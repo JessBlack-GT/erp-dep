@@ -9,9 +9,10 @@
 
 const mongoose = require('mongoose');
 const { logger } = require('../shared/utils/logger');
+const { config } = require('./environment');
 
-const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'erp-db';
+const MONGODB_URI = config.mongodbUri;
+const MONGODB_DB_NAME = config.mongodbDbName;
 
 if (!MONGODB_URI) {
   logger.error('MONGODB_URI no esta definida en las variables de entorno');
@@ -40,7 +41,7 @@ async function connectDB() {
     }
 
     const connection = await mongoose.connect(MONGODB_URI, dbOptions);
-    logger.info(`MongoDB Atlas conectado exitosamente a la base: ${MONGODB_DB_NAME}`);
+    logger.info('MongoDB connection: SUCCESS');
 
     // Monitoreo de eventos de conexion
     mongoose.connection.on('disconnected', () => {
@@ -57,7 +58,7 @@ async function connectDB() {
 
     return connection;
   } catch (error) {
-    logger.error('Error al conectar a MongoDB Atlas');
+    logger.error('MongoDB connection: FAILED');
     throw error;
   }
 }

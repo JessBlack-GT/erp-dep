@@ -9,7 +9,7 @@
 const dotenv = require('dotenv');
 const { logger } = require('../shared/utils/logger');
 
-dotenv.config();
+dotenv.config({ path: require('path').resolve(__dirname, '../../.env') });
 
 const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -17,7 +17,7 @@ const config = {
 
   // MongoDB
   mongodbUri: process.env.MONGODB_URI,
-  mongodbDbName: process.env.MONGODB_DB_NAME || 'erp-db',
+  mongodbDbName: process.env.MONGODB_DB_NAME || undefined,
 
   // JWT
   jwtSecret: process.env.JWT_SECRET,
