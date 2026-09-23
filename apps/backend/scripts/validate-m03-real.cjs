@@ -27,7 +27,8 @@ async function main() {
   Object.assign(process.env, env, { MONGODB_DB_NAME: check.dbName });
   const mongoose = require('mongoose');
   let server, Customer, User, connected = false;
-  const marker = `QA_M03_${Date.now()}_${crypto.randomUUID()}`;
+  // Leave room for suffixes within documentNumber's 50-character schema limit.
+  const marker = `QA_M03_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
   const email = `${marker.toLowerCase()}@example.com`;
   const password = crypto.randomBytes(32).toString('hex');
   const userId = new mongoose.Types.ObjectId();
