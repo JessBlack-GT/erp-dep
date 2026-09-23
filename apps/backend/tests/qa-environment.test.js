@@ -32,4 +32,7 @@ describe('Real QA runner safety gates', () => {
     expect(classifyConnectionError({ message: 'TLS certificate failure' })).to.equal('TLS');
     expect(classifyConnectionError({ name: 'MongooseServerSelectionError' })).to.equal('NETWORK_OR_IP_ALLOWLIST_UNCONFIRMED');
   });
+  it('rejects an unparseable URI even with a confirmed database override', () => {
+    expect(validateQaEnvironment({ ...local, MONGODB_URI: 'mongodb://', MONGODB_DB_NAME: 'erp_qa' })).to.deep.equal({ ok: false, reason: 'URI_INVALID' });
+  });
 });

@@ -73,6 +73,7 @@ ios/
 
 # All local environment variants; safe template only
 .env.*
+*.env
 !.env.example
 *credentials*.json
 *service-account*.json

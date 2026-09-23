@@ -6,6 +6,10 @@ function selectedDatabase(env) {
 function validateQaEnvironment(env) {
   if (!env.MONGODB_URI || /USER:PASSWORD|@HOST|replace_with/.test(env.MONGODB_URI)) return { ok: false, reason: 'MONGODB_CONFIG_MISSING' };
   if (!/^mongodb(?:\+srv)?:\/\//.test(env.MONGODB_URI)) return { ok: false, reason: 'URI_INVALID' };
+  try {
+    const uri = new URL(env.MONGODB_URI);
+    if (!uri.hostname) return { ok: false, reason: 'URI_INVALID' };
+  } catch (_) { return { ok: false, reason: 'URI_INVALID' }; }
   const dbName = selectedDatabase(env);
   if (!['test', 'development'].includes(env.NODE_ENV) || !dbName || /prod/i.test(dbName) || env.M03_QA_DATABASE !== dbName) return { ok: false, reason: 'QA_DATABASE_NOT_CONFIRMED' };
   return { ok: true, dbName };
