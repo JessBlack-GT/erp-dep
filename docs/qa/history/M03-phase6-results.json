@@ -1,0 +1,116 @@
+{
+  "date": "2026-09-23",
+  "backend": {
+    "m03": {
+      "suites": 10,
+      "tests": 47,
+      "passes": 47,
+      "pending": 0,
+      "failures": 0,
+      "start": "2026-09-23T14:24:15.226Z",
+      "end": "2026-09-23T14:24:15.651Z",
+      "duration": 425,
+      "exitCode": 0
+    },
+    "all": {
+      "suites": 43,
+      "tests": 126,
+      "passes": 123,
+      "pending": 0,
+      "failures": [
+        {
+          "test": "Customer Routes Integration debería tener las rutas de clientes registradas en routes/index.js",
+          "error": "Cannot find module '../modules/roles/roles.routes'"
+        },
+        {
+          "test": "Module Structure debería tener la estructura de módulos roles",
+          "error": "Cannot find module '../src/modules/roles/roles.routes'"
+        },
+        {
+          "test": "Health Check debería responder a la ruta de salud",
+          "error": "Cannot find module '../modules/roles/roles.routes'"
+        }
+      ],
+      "start": "2026-09-23T14:26:08.601Z",
+      "end": "2026-09-23T14:26:09.122Z",
+      "duration": 521,
+      "exitCode": 3
+    }
+  },
+  "frontend": {
+    "m03": {
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "all": {
+      "total": 37,
+      "passed": 24,
+      "failed": 13,
+      "skipped": 0,
+      "exitCode": 1,
+      "failures": [
+        {
+          "test": "Component Imports debería tener el export de componentes comunes",
+          "error": "Error: Cannot find module './Button' from 'src/components/common/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"auth\" preparada",
+          "error": "Error: Cannot find module './LoginScreen' from 'src/features/auth/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"dashboard\" preparada",
+          "error": "Error: Cannot find module './DashboardScreen' from 'src/features/dashboard/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"suppliers\" preparada",
+          "error": "Error: Cannot find module './SuppliersScreen' from 'src/features/suppliers/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"products\" preparada",
+          "error": "Error: Cannot find module './ProductsScreen' from 'src/features/products/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"inventory\" preparada",
+          "error": "Error: Cannot find module './InventoryScreen' from 'src/features/inventory/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"sales\" preparada",
+          "error": "Error: Cannot find module './SalesScreen' from 'src/features/sales/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"purchases\" preparada",
+          "error": "Error: Cannot find module './PurchasesScreen' from 'src/features/purchases/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"finance\" preparada",
+          "error": "Error: Cannot find module './FinanceScreen' from 'src/features/finance/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"human-resources\" preparada",
+          "error": "Error: Cannot find module './HREScreen' from 'src/features/human-resources/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"reports\" preparada",
+          "error": "Error: Cannot find module './ReportsScreen' from 'src/features/reports/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"notifications\" preparada",
+          "error": "Error: Cannot find module './NotificationsScreen' from 'src/features/notifications/index.js'"
+        },
+        {
+          "test": "Frontend Features debería tener la estructura de feature \"settings\" preparada",
+          "error": "Error: Cannot find module './SettingsScreen' from 'src/features/settings/index.js'"
+        }
+      ]
+    }
+  },
+  "realMongo": {
+    "status": "blocked-no-local-env",
+    "exitCode": 2,
+    "operationsExecuted": 0
+  },
+  "verdict": "RECHAZADO"
+}
