@@ -1,189 +1,127 @@
-# QA M03 — Fase 7, 2026-09-23
+# M03 — Cierre de integración real, 2026-09-23
 
-**Dictamen: RECHAZADO.** Se corrigieron los bloqueos de código del arranque global y se conservaron las 60 pruebas originales, pero no existe configuración Atlas accesible en las ubicaciones revisadas. No se ha demostrado el flujo con persistencia real y la política de autorización de clientes continúa pendiente de decisión empresarial.
+**Dictamen: APROBADO CON PENDIENTES.** MongoDB, API HTTP y frontend web funcionaron juntos. Autorización empresarial: **PENDING BUSINESS DECISION**. No se implementó una política nueva ni se desarrolló M04.
 
-## Evidencia preservada y estado inicial
+## Repositorio
 
-- Rama comprobada: `codex/m03-validation`; working tree limpio antes de modificar.
-- HEAD inicial: `c1bc712ca2aeba1bae98becee442e46f9084da07`.
-- Reejecución inicial: 47/47 backend M03 y 13/13 frontend M03, exit 0.
-- Informe y resultados anteriores conservados sin sustituir su contenido en `history/M03-phase6.md` y `history/M03-phase6-results.json`.
-- Los seis archivos que contienen las 60 pruebas originales no tienen cambios respecto al HEAD inicial; se comprobó con `git diff`. No se debilitaron expectativas.
+- Copia: `C:\Users\jessb\OneDrive\Desktop\RP\erp-dep`.
+- Rama conservada: `codex/m03-validation`.
+- Commit inicial de esta continuación: `5847e36b426d5059598ecf10ce06658256a5a975`; árbol inicialmente limpio.
+- Evidencia anterior preservada íntegramente en `history/M03-phase7.md` y `history/M03-phase7-results.json`. Sus bloqueos corresponden a la ejecución anterior.
+- Sin cambios de dependencias, push, merge, rebase ni eliminación del historial.
 
-## Diagnóstico y corrección del backend global
+## Environment
 
-`roles` solo tenía modelo y repositorio. El router general importaba un archivo inexistente. La documentación no define endpoints de administración de roles y no se encontró evidencia local de un router implementado anteriormente.
-
-Se añadió un router mínimo que exige autenticación y devuelve **501 ROLES_NOT_IMPLEMENTED**. No se expuso CRUD de roles ni se asignaron privilegios. Se implementó el endpoint documentado `/api/v1/health` como liveness y `/api/v1/ready` como readiness: devuelve 503 sin conexión MongoDB.
-
-Al resolver el primer bloqueo aparecieron errores de sintaxis en los stubs de recursos humanos: identificadores con guiones. Se corrigieron únicamente los identificadores, sin añadir funcionalidad de RR. HH. Los 121 archivos JavaScript del backend pasan comprobación sintáctica.
-
-También se corrigieron defectos de la base de autenticación: `/auth/me` y logout requerían middleware; el registro público aceptaba roles privilegiados y respondía con el documento que contenía el hash; login/refresh no rechazaban todos los estados inactivos. Se agregaron regresiones específicas para estos cambios. No se implementó revocación completa de tokens ni gestión de permisos.
-
-## Clasificación de los 13 fallos originales del frontend
-
-Tabla presentada antes de modificar la estrategia de pruebas:
-
-| Test original | Error | Clasificación | Acción realizada |
-|---|---|---|---|
-| Component Imports | `Button`/exports comunes ausentes | D: funcionalidad futura, no usada por M03 | Requisito conservado como TODO; sin componentes vacíos |
-| Feature auth | `LoginScreen` ausente | A: archivo necesario | Login real con contexto y servicio existentes |
-| Feature dashboard | `DashboardScreen` ausente | D | TODO; Clientes es la entrada autenticada |
-| Feature suppliers | `SuppliersScreen` ausente | D | TODO; M04 no desarrollado |
-| Feature products | `ProductsScreen` ausente | D | TODO |
-| Feature inventory | `InventoryScreen` ausente | D | TODO |
-| Feature sales | `SalesScreen` ausente | D | TODO |
-| Feature purchases | `PurchasesScreen` ausente | D | TODO |
-| Feature finance | `FinanceScreen` ausente | D | TODO |
-| Feature human-resources | `HREScreen` ausente | D | TODO |
-| Feature reports | `ReportsScreen` ausente | D | TODO |
-| Feature notifications | `NotificationsScreen` ausente | D | TODO |
-| Feature settings | `SettingsScreen` ausente | D | TODO |
-
-Hallazgos adicionales: B — imports incorrectos en App/ApiContext; E — AuthContext no extraía `response.data.data`; F — scripts web invocaban Expo sin dependencia. Se corrigieron los imports y el contrato del login, y se añadió una entrada web con React Native Web y esbuild **0.28.2**. No se migró React/React Native.
-
-La navegación registra Login y las tres pantallas reales de Clientes. Los módulos futuros no se importan en el arranque ni se simulan con componentes vacíos. Se añadió cambio de estado en detalle y actualización de listado/detalle al volver a una pantalla. Register/ResetPassword, biblioteca común, módulos futuros y ejecución Expo Android/iOS continúan pendientes.
-
-La prueba antigua de imports generales era una expectativa de disponibilidad, no una prueba funcional. Los 12 requisitos no implementados se conservan como `it.todo`, contados separadamente. No se presentan como 37/37 ni se ocultan los fallos anteriores, cuya evidencia está archivada.
-
-## A. Backend aislado
-
-| Suite | Total | Pass | Fail | Omitidas | Exit |
-|---|---:|---:|---:|---:|---:|
-| M03 original | 47 | 47 | 0 | 0 | 0 |
-
-Incluye HTTP con router/autenticación reales y persistencia simulada; modelo y repositorio sin DB. No acredita Atlas.
-
-## B. Frontend aislado
-
-| Suite | Total | Pass | Fail | Omitidas | Exit |
-|---|---:|---:|---:|---:|---:|
-| M03 original, ejecutada por rutas exactas | 13 | 13 | 0 | 0 | 0 |
-| Nuevas pruebas M03 de estado y actualización al volver | 2 | 2 | 0 | 0 | 0 |
-
-Además se añaden 3 pruebas del login/contexto con API simulada: validación, almacenamiento/restauración y rechazo de credenciales. No se acreditan como login real contra Atlas.
-
-## C. Backend global
-
-| Suite | Total | Pass | Fail | Omitidas | Exit |
-|---|---:|---:|---:|---:|---:|
-| Global, incluidos `src/**/*.test.js` | 138 | 138 | 0 | 0 | 0 |
-
-Las 126 pruebas originales pasan. Se añaden 12 de arranque, autenticación y condiciones de seguridad del runner QA. La aplicación completa se importa y el health responde; readiness permanece 503 sin DB.
-
-## D. Frontend global
-
-| Suite | Total registrado | Pass | Fail | TODO | Exit |
-|---|---:|---:|---:|---:|---:|
-| Global aplicable + requisitos futuros visibles | 42 | 30 | 0 | 12 | 0 |
-
-Compilación web: PASS, exit 0. Se comprobó mediante automatización de navegador el renderizado de Login y el mensaje de campos obligatorios. No se introdujeron credenciales reales. El servidor temporal de frontend se detuvo después de la comprobación.
-
-## E. MongoDB real
-
-- **MongoDB connection: FAILED**.
-- Motivo: `LOCAL_ENV_MISSING`; fallo del preflight, **no se intentó conexión de red**. No se atribuye a DNS, allowlist, TLS ni autenticación de Atlas.
-- Base utilizada: **no ejecutada**. No se asumió un nombre ni se utilizó producción.
-- Operaciones contra DB real: **0**.
-- Datos QA limpiados: **no aplica; no se creó ningún dato**.
-- Runner: `node apps/backend/scripts/validate-m03-real.cjs`, exit **2**.
-
-Solo se encontraron plantillas en el clon y la copia local de origen, y no había variables MONGODB/JWT disponibles en el proceso. Se solicitó exclusivamente la ruta de configuración y la identificación de la base QA, nunca sus credenciales; esa información sigue pendiente.
-
-El backend ahora carga `apps/backend/.env` mediante ruta absoluta. `MONGODB_DB_NAME` solo sustituye el nombre de la URI si está definido explícitamente. El runner acepta una ruta local en `M03_ENV_FILE`, exige `NODE_ENV=development/test` y `M03_QA_DATABASE` igual a la base seleccionada como confirmación de propósito. Rechaza producción y plantillas. Si faltan JWT de desarrollo, genera claves efímeras **solo en memoria**; nunca escribe secretos al repositorio.
-
-Se prepararon pruebas para login con un usuario temporal, dos clientes, dos páginas y dos límites, filtros, persistencia, lectura posterior, estado, errores y soft delete. La limpieza usa IDs y marcadores aleatorios exclusivos de esta ejecución; no hay `dropDatabase` ni borrado general. El camino con Atlas sigue **sin ejecutarse**, aunque las condiciones de seguridad y el tamaño de las fixtures se verificaron aisladamente.
-
-## F. API real
-
-| Operación | HTTP observado contra DB real | Resultado |
-|---|---|---|
-| Login | — | No ejecutado |
-| POST cliente | — | No ejecutado |
-| GET listado | — | No ejecutado |
-| GET detalle | — | No ejecutado |
-| PATCH actualización | — | No ejecutado |
-| Búsqueda | — | No ejecutado |
-| Paginación y filtros | — | No ejecutado |
-| Cambio de estado | — | No ejecutado |
-| DELETE lógico y lectura posterior | — | No ejecutado |
-| Payload inválido / obligatorio ausente / email inválido | — | No ejecutado |
-| ID inexistente / ID inválido / duplicado | — | No ejecutado |
-| Sin token / inválido / expirado | — | No ejecutado |
-
-Los códigos 200/201/400/401/404/409/500 de las pruebas aisladas no se trasladan a esta tabla como evidencia real.
-
-## G. Autenticación
-
-| Caso | Resultado aislado | Contra Atlas |
-|---|---|---|
-| Sin token | PASS, 401 | No ejecutado |
-| Token inválido | PASS, 401 | No ejecutado |
-| Token expirado | PASS, 401 | No ejecutado |
-| Token válido | PASS | No ejecutado |
-| Login malformado | PASS, 400 | No ejecutado |
-| Usuario inactivo | PASS, 401 | No ejecutado |
-| Registro público sin privilegios ni hash expuesto | PASS | No ejecutado |
-
-## H. Autorización
-
-Roles reales: `super_admin`, `admin`, `manager`, `user`, `viewer`. Usuarios contienen un rol string y permisos explícitos; JWT copia `user.permissions`. El modelo Role existe pero no hay una relación de asignación implementada; la documentación que describe una referencia ObjectId no coincide con el esquema actual. Otros módulos importan middleware de roles sin una matriz aplicable a clientes.
-
-Propuesta presentada, **pendiente de decisión**, sin asignación automática a roles:
-
-| Acción | Permiso propuesto |
+| Comprobación | Resultado |
 |---|---|
-| Listar, consultar, buscar y estadísticas | `customers.read` |
-| Crear | `customers.create` |
-| Modificar y cambiar estado | `customers.update` |
-| Eliminar lógicamente | `customers.delete` |
+| MongoDB.env source | FOUND |
+| Formato dotenv | VALID |
+| MONGODB_URI en origen | PRESENT |
+| JWT_SECRET / JWT_REFRESH_SECRET en origen | MISSING |
+| Variables de origen no utilizadas | Ninguna |
+| Local .env | CONFIGURED |
+| .env y MongoDB.env ignorados | YES |
+| Secrets committed | NO |
 
-Se pidió confirmar la aplicación de estos permisos explícitos sin privilegios implícitos. No se recibió una decisión específica; la instrucción «Continúa» no se interpretó como aprobación de la matriz. **No se modificó la autorización de M03.** El middleware `authorizeRoles` conserva su prueba aislada admin/viewer/usuario ausente, pero los cuatro permisos propuestos **no están aplicados ni probados en las rutas de clientes**.
+Se copiaron solo las variables necesarias al `.env` local ignorado y se generaron dos secretos JWT aleatorios fuertes para desarrollo local. No se mostraron ni versionaron. `.env.example` conserva valores ficticios.
 
-## I. Frontend → Backend
+El loader existente carga `apps/backend/.env` por ruta absoluta relativa a `src/config/environment.js`. No se cambió para cargar `MongoDB.env`. Requiere `MONGODB_URI`, `JWT_SECRET` y `JWT_REFRESH_SECRET`. Se configuraron `NODE_ENV=development` y `PORT=3000`. Son opcionales `MONGODB_DB_NAME`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, `BCRYPT_ROUNDS`, `CORS_ORIGIN`, `CORS_ORIGIN_FRONTEND`, `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `COMPANY_NAME` y `COMPANY_URL`. El runner usa además `M03_QA_DATABASE` para confirmar la selección y admite `M03_ENV_FILE` como ruta alternativa.
 
-- Automatizado: componentes/contexto/cliente con mocks, compilación web y smoke de Login en navegador.
-- Manual: no se realizó un flujo manual con API/Atlas.
-- No ejecutado: LOGIN → CUSTOMERS → LIST → CREATE → DETAIL → EDIT → SEARCH → PAGINATION → STATUS con persistencia real y recarga.
-- Persistencia de sesión probada con AsyncStorage simulado; no confundirla con persistencia MongoDB.
+## MongoDB
 
-## J. Regresiones y comandos
+- Preflight: **PASS**. Configuración y variables obligatorias presentes, URI parseable, entorno permitido y selección QA confirmada.
+- Connection: **SUCCESS**.
+- Environment: **QA**, base nueva y exclusiva autorizada explícitamente por el usuario mediante `MONGODB_DB_NAME`, sin modificar la URI.
+- La primera comprobación bajo restricción de red falló en DNS. El reintento autorizado fuera de ella conectó y comprobó que la base nueva estaba vacía. No se atribuye ese fallo a credenciales ni allowlist.
+- Arranque real mediante `node apps/backend/src/server.js`: conexión exitosa y escucha en puerto 3000. Servidores temporales detenidos al finalizar.
+- Registros creados/limpiados: **29/29**: runner inicial **3/3**, recorrido web **23/23**, runner final **3/3**. La web utilizó un usuario, 21 clientes para paginación y un cliente creado desde el formulario.
+- Limpieza limitada a IDs propios y marcadores exclusivos. Sin borrado global, de bases ni de colecciones. Estado `deleted` verificado antes de limpiar el cliente web.
 
-Las **60 pruebas originales siguen aprobadas y sus archivos no cambiaron**. Nuevas pruebas agregadas sin reducir aserciones anteriores. Los únicos cambios de estrategia son los requisitos futuros del frontend descritos arriba.
+## API real
 
-Desde backend:
+Runner final: **26 comprobaciones aprobadas, 0 fallidas, 0 omitidas, exit 0**. Express, middleware JWT, Mongoose y Atlas reales. Respuestas HTTP y lecturas directas posteriores verifican persistencia. El JSON adjunto conserva cada comprobación.
 
-```sh
-node ../../node_modules/mocha/bin/mocha.js "tests/customers*.test.js" "src/modules/customers/*.test.js" --reporter json --reporter-option output=../../tmp/phase7-backend-m03.json
-node ../../node_modules/mocha/bin/mocha.js "tests/**/*.test.js" "src/**/*.test.js" --reporter json --reporter-option output=../../tmp/phase7-backend-global.json
+| Operación | Resultado | HTTP |
+|---|---|---:|
+| Authentication: login y token válido | PASS | 200 |
+| Create: dos clientes | PASS | 201 |
+| List | PASS | 200 |
+| Get by ID | PASS | 200 |
+| Update y lectura posterior | PASS | 200 |
+| Search | PASS | 200 |
+| Pagination: límites 1/2 y fechas empatadas | PASS | 200 |
+| Filters: inactivo | PASS | 200 |
+| Status | PASS | 200 |
+| Soft delete y ausencia en listado | PASS | 200 |
+| Invalid payload, nombre ausente, email inválido | PASS | 400 |
+| Invalid ID | PASS | 400 |
+| Missing ID | PASS | 404 |
+| Duplicate | PASS | 409 |
+| Sin token, token inválido, token expirado | PASS | 401 |
+
+## Frontend → Backend
+
+**AUTOMATED PASS** mediante control de navegador por el agente, con API y DB reales. No es una suite Playwright incluida en el repositorio ni una ejecución manual humana. Manual: **NOT EXECUTED**. Android/iOS: **NOT EXECUTED**; alcance integrado probado: web.
+
+Recorrido: login con usuario QA temporal → Clientes → listado → creación con formulario → búsqueda → detalle → edición → cambio a inactivo → recarga y persistencia → cancelar eliminación → confirmar eliminación lógica → ausencia en búsqueda → paginación de 21 filas únicas → intento duplicado con error visible. Se observó el indicador de login en curso. MongoDB confirmó el nombre editado y luego el estado `deleted`.
+
+Jest utiliza mocks y se contabiliza separadamente. Los fallos de carga/servicio y estados de carga tienen cobertura aislada; no se simularon cortes de Atlas en el recorrido real.
+
+## Defectos corregidos
+
+1. Paginación no estable: clientes con la misma fecha se repetían entre páginas. Se agregó `_id` como segundo criterio. Verificado con 21 filas distintas en navegador y fechas iguales en el runner real.
+2. Eliminación web sin efecto: `Alert.alert` de React Native Web no muestra diálogos. Se añadió confirmación Modal en web, conservando confirmación nativa. Cancelar no elimina; confirmar elimina y vuelve al listado. Errores visibles.
+3. Errores de formulario invisibles en web: mensaje en pantalla para errores de API/carga; conflicto real de email visible.
+4. Protección `*.env`, rechazo de URI no parseable, conteo de creación/limpieza y resultado JSON sanitizado del runner.
+5. Tres regresiones nuevas del frontend y limpieza de temporizadores de animación bajo `act`, sin silenciar avisos ni debilitar expectativas originales.
+
+## Regresión
+
+| Suite | Total | Pass | Fail | Omitidas | TODO | Exit code |
+|---|---:|---:|---:|---:|---:|---:|
+| Backend M03 original | 47 | 47 | 0 | 0 | 0 | 0 |
+| Backend global | 139 | 139 | 0 | 0 | 0 | 0 |
+| Frontend M03 original | 13 | 13 | 0 | 0 | 0 | 0 |
+| Frontend global | 45 | 33 | 0 | 0 | 12 | 0 |
+| API real M03 | 26 | 26 | 0 | 0 | 0 | 0 |
+
+Las 60 pruebas originales pasan; sus seis archivos no cambiaron respecto a `c1bc712`. El backend suma una comprobación de URI inválida. Frontend suma tres pruebas de confirmación, error de eliminación y duplicado visible. Compilación web: PASS, exit 0. Última regresión frontend sin advertencias de `act`.
+
+Los 12 TODO conservados son requisitos futuros: componentes comunes, dashboard, suppliers, products, inventory, sales, purchases, finance, human-resources, reports, notifications y settings. No se contabilizan como aprobados ni ejecutados; clasificación previa conservada en el informe histórico.
+
+Comandos reproducibles sin watch:
+
+```powershell
+# Desde apps/backend
+node ../../node_modules/mocha/bin/mocha.js "tests/customers*.test.js" "src/modules/customers/*.test.js" --reporter json --reporter-option output=../../tmp/backend-m03-final.json
+node ../../node_modules/mocha/bin/mocha.js "tests/**/*.test.js" "src/**/*.test.js" --reporter json --reporter-option output=../../tmp/backend-global-final.json
+# Desde apps/frontend
+node ../../node_modules/jest/bin/jest.js --runTestsByPath tests/customers.frontend.test.js tests/customers.api.test.js tests/customers.navigation.test.js --watch=false --runInBand --json --outputFile=../../tmp/frontend-original-final.json
+node ../../node_modules/jest/bin/jest.js --watch=false --runInBand --json --outputFile=../../tmp/frontend-global-final.json
+# Desde raíz; runner requiere .env local y base QA confirmada
+node apps/backend/scripts/validate-m03-real.cjs
+node apps/frontend/scripts/web.cjs --build
+# Para repetir recorrido web
+node apps/backend/src/server.js
+node apps/frontend/scripts/web.cjs
 ```
 
-Desde frontend:
+La red Atlas y la resolución de archivos de esbuild requirieron ejecución autorizada fuera del sandbox. No se modificaron credenciales existentes, CORS ni autenticación para sortear fallos.
 
-```sh
-node ../../node_modules/jest/bin/jest.js --runTestsByPath tests/customers.frontend.test.js tests/customers.api.test.js tests/customers.navigation.test.js --watch=false --runInBand
-node ../../node_modules/jest/bin/jest.js --watch=false --runInBand
-```
+## Clasificación M03 y autorización
 
-Desde raíz: `npm run build:web --workspace=apps/frontend` y `npm ci --dry-run --ignore-scripts --no-audit --no-fund`, exit 0. El dry-run comprueba coherencia de lockfile, no acredita una segunda instalación limpia. Node 24.19.0; npm 11.19.0. PATH ajustado solo en procesos de esta sesión.
+Crear, listar, consultar por ID, actualizar, buscar, paginar/filtrar, cambiar estado, eliminar lógicamente, validar datos, rechazar duplicados y exigir autenticación: **Implementadas y validadas contra API/DB**, además de cobertura aislada. Errores internos de servicio: **Implementados y validados con prueba aislada**; no se provocó caída real de DB. Errores HTTP de entrada, autenticación y recursos inexistentes: validados contra API real.
 
-Seguridad: `.env`, `.env.local`, `.env.qa`, variantes sensibles y artefactos `dist/` ignorados; solo `.env.example` con placeholders está versionado. Escaneo previo del historial: 242 blobs, sin candidatos a secretos reales ni `.env` locales. No se detectaron secretos en el análisis de patrones; no es una certificación de todos los formatos posibles. Sin URI, contraseñas ni tokens reales en informes.
+**Authorization policy: PENDING BUSINESS DECISION.** No se implementó ninguna política nueva `customers.read/create/update/delete`. Autenticación obligatoria probada real y aisladamente. Middleware de roles: prueba aislada conservada. Matriz por rol de clientes: no definida, aplicada ni probada contra API real. El usuario web usó el rol existente `user`, sin permisos adicionales. Este pendiente no invalida los resultados técnicos.
 
-## K. Git
+## Seguridad, archivos y commits
 
-Commits nuevos de implementación:
+`.env` y `MongoDB.env` ignorados; ningún archivo de entorno sensible versionado. Escaneo previo a commits: 281 blobs del historial disponible, comparación con secretos locales conocidos y patrones de claves privadas/tokens: **0 coincidencias**, también 0 en archivos pendientes. Es un análisis acotado, no una garantía sobre todos los formatos posibles. Sin URI, contraseñas ni JWT en informes. Credenciales temporales web eliminadas localmente tras limpiar sus registros.
 
-- `deb28a6` — preservar evidencia de fase 6.
-- `1a3ff84` — router global, roles mínimo y health.
-- `561043a` — límites seguros de autenticación y registro.
-- `b5c99e5` — entorno QA confirmado y runner de integración.
-- `784a674` — base web/login/clientes y estrategia honesta de pruebas.
-- `889935c` — marcadores QA compatibles con el esquema.
+Archivos cambiados: `.gitignore`; `apps/backend/scripts/qa-environment.cjs`; `apps/backend/scripts/validate-m03-real.cjs`; `apps/backend/src/modules/customers/customers.repository.js`; `apps/backend/tests/qa-environment.test.js`; `apps/frontend/src/features/customers/CustomerDetailScreen.js`; `apps/frontend/src/features/customers/CustomerForm.js`; `apps/frontend/tests/customers.web-actions.test.js`; `apps/frontend/tests/login.test.js`; este informe, JSON y copias históricas. Dependencias modificadas: ninguna.
 
-Este informe y JSON se guardan en un commit posterior de documentación. Se revisó `git diff --check`. Sin push, merge, rebase ni eliminación de historial. No se inició M04; solo se conserva su estructura previa.
+- `48456b3` — proteger configuración local y validar URI QA.
+- `1bb7079` — paginación estable y evidencia real de limpieza.
+- `c2afde8` — confirmación web y errores visibles con regresiones.
 
-## L. Dictamen
-
-**RECHAZADO**.
-
-El arranque de código y las pruebas aplicables están corregidos. Persisten tres condiciones que impiden demostrar M03 integral: configuración Atlas/QA no disponible, frontend contra API y persistencia real no ejecutados, y autorización empresarial de clientes no definida/aplicada. No corresponde APROBADO CON PENDIENTES porque el extremo a extremo todavía no está demostrado.
+Informe y JSON se guardan en un commit posterior de documentación. Sin push ni merge. M04 no iniciado.

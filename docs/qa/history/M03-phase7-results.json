@@ -1,0 +1,98 @@
+{
+  "phase": 7,
+  "date": "2026-09-23",
+  "initialHead": "c1bc712ca2aeba1bae98becee442e46f9084da07",
+  "branch": "codex/m03-validation",
+  "previousEvidence": "history/M03-phase6-results.json",
+  "backend": {
+    "m03": {
+      "total": 47,
+      "pass": 47,
+      "fail": 0,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "global": {
+      "total": 138,
+      "pass": 138,
+      "fail": 0,
+      "skipped": 0,
+      "exitCode": 0
+    }
+  },
+  "frontend": {
+    "originalM03": {
+      "total": 13,
+      "pass": 13,
+      "fail": 0,
+      "exitCode": 0
+    },
+    "global": {
+      "total": 42,
+      "pass": 30,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 12,
+      "exitCode": 0
+    },
+    "newCustomerChecks": 2,
+    "buildWeb": "PASS",
+    "browserSmoke": {
+      "type": "agent UI automation",
+      "loginRendered": true,
+      "requiredFieldsValidated": true,
+      "apiConnected": false
+    }
+  },
+  "mongodb": {
+    "connection": "FAILED",
+    "reason": "LOCAL_ENV_MISSING",
+    "connectionAttempted": false,
+    "environment": "not_executed",
+    "operations": 0,
+    "qaDataCreated": 0,
+    "cleanup": "not_applicable",
+    "runnerExitCode": 2
+  },
+  "realApi": {
+    "executed": false,
+    "results": []
+  },
+  "authentication": {
+    "isolated": {
+      "missingToken": 401,
+      "invalidToken": 401,
+      "expiredToken": 401,
+      "validToken": "PASS"
+    },
+    "real": false
+  },
+  "authorization": {
+    "proposal": [
+      "customers.read",
+      "customers.create",
+      "customers.update",
+      "customers.delete"
+    ],
+    "customerRouteEnforcement": false,
+    "approval": "pending",
+    "roleMiddlewareIsolated": "PASS"
+  },
+  "regression": {
+    "original60Preserved": true,
+    "originalTestsModified": false
+  },
+  "git": {
+    "push": false,
+    "merge": false,
+    "commits": [
+      "deb28a6",
+      "1a3ff84",
+      "561043a",
+      "b5c99e5",
+      "784a674",
+      "889935c"
+    ]
+  },
+  "verdict": "RECHAZADO"
+}
