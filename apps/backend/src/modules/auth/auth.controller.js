@@ -17,7 +17,7 @@ exports.login = asyncHandler(async (req, res) => {
 
 exports.register = asyncHandler(async (req, res) => {
   const result = await authService.register(req.body);
-  res.status(201).json({ success: true, data: result, message: 'Registro exitoso' });
+  res.status(201).json({ success: true, data: result.toPublicJSON(), message: 'Registro exitoso' });
 });
 
 exports.refreshToken = asyncHandler(async (req, res) => {

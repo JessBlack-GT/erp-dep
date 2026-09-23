@@ -10,13 +10,14 @@ const User = require('../users/users.model');
 const Role = require('../roles/roles.model');
 const { config } = require('../../config/environment');
 const { validateEmail } = require('../../shared/validators/validators');
-const { UnauthorizedError, ConflictError } = require('../../shared/errors/appErrors');
+const { UnauthorizedError, ConflictError, ValidationError } = require('../../shared/errors/appErrors');
 
 class AuthService {
   /**
    * Registrar un nuevo usuario
    */
   async register(userData) {
+    if (typeof userData.email !== 'string' || !validateEmail(userData.email).valid || typeof userData.password !== 'string' || !userData.password) throw new ValidationError('Email y contraseña requeridos');
     const existingUser = await User.findOne({ email: userData.email });
     if (existingUser) throw new ConflictError('Ya existe un usuario con este email');
 
@@ -28,7 +29,8 @@ class AuthService {
       password: userData.password,
       firstName: userData.firstName,
       lastName: userData.lastName,
-      role: userData.role || 'user',
+      // Public registration never grants administrative access.
+      role: 'user',
     });
     return user.save();
   }
@@ -37,8 +39,9 @@ class AuthService {
    * Iniciar sesión y generar tokens JWT
    */
   async login(email, password) {
+    if (typeof email !== 'string' || !validateEmail(email).valid || typeof password !== 'string' || !password) throw new ValidationError('Email y contraseña requeridos');
     const user = await User.findOne({ email }).select('+password');
-    if (!user) throw new UnauthorizedError('Credenciales inválidas');
+    if (!user || user.status !== 'active') throw new UnauthorizedError('Credenciales inválidas');
 
     const isValidPassword = await user.comparePassword(password);
     if (!isValidPassword) throw new UnauthorizedError('Credenciales inválidas');
@@ -70,7 +73,7 @@ class AuthService {
     try {
       const decoded = jwt.verify(refreshToken, config.jwtRefreshSecret);
       const user = await User.findById(decoded.id);
-      if (!user || user.status === 'inactive') throw new UnauthorizedError('Usuario no válido');
+      if (!user || user.status !== 'active') throw new UnauthorizedError('Usuario no válido');
 
       const newAccessToken = jwt.sign(
         { id: user._id, email: user.email, role: user.role, permissions: user.permissions },
