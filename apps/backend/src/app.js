@@ -13,10 +13,9 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
 const rateLimit = require('express-rate-limit');
-const errorHandler = require('./middleware/errorHandler');
-const requestLogger = require('./middleware/requestLogger');
+const { errorHandler } = require('./middleware/errorHandler');
+const { requestLogger } = require('./middleware/requestLogger');
 const routes = require('./routes');
-const { connectDB } = require('./config/database');
 const { corsOptions } = require('./config/cors');
 
 dotenv.config();
@@ -59,11 +58,7 @@ app.use('/api/', limiter);
 // ============================================
 // Conexion a Base de Datos
 // ============================================
-connectDB().catch((err) => {
-  console.error('Error critico: No se pudo conectar a MongoDB Atlas');
-  console.error('Detalle:', err.message);
-  process.exit(1);
-});
+// La conexión se realiza una sola vez en server.js, antes de escuchar HTTP.
 
 // ============================================
 // Rutas

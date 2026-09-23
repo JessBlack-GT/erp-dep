@@ -5,7 +5,7 @@
  */
 
 const Customer = require('./customers.model');
-const { NotFoundError } = require('../../shared/errors/appErrors');
+const { ValidationError } = require('../../shared/errors/appErrors');
 const { validateObjectId } = require('../../shared/validators/validators');
 
 class CustomerRepository {
@@ -13,15 +13,16 @@ class CustomerRepository {
     const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc', search = '' } = options;
     const skip = (page - 1) * limit;
 
-    const query = { ...filters };
+    const query = { status: { $ne: 'deleted' }, ...filters };
+    const literalSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     // Busqueda por texto
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { businessName: { $regex: search, $options: 'i' } },
-        { documentNumber: { $regex: search, $options: 'i' } },
+        { name: { $regex: literalSearch, $options: 'i' } },
+        { email: { $regex: literalSearch, $options: 'i' } },
+        { businessName: { $regex: literalSearch, $options: 'i' } },
+        { documentNumber: { $regex: literalSearch, $options: 'i' } },
       ];
     }
 
@@ -33,7 +34,7 @@ class CustomerRepository {
   }
 
   async findById(id) {
-    if (!validateObjectId(id).valid) throw new Error('ID inválido');
+    if (!validateObjectId(id).valid) throw new ValidationError('ID inválido');
     return Customer.findById(id);
   }
 
@@ -51,17 +52,17 @@ class CustomerRepository {
   }
 
   async updateById(id, updateData) {
-    if (!validateObjectId(id).valid) throw new Error('ID inválido');
+    if (!validateObjectId(id).valid) throw new ValidationError('ID inválido');
     return Customer.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
   }
 
   async updateStatus(id, status) {
-    if (!validateObjectId(id).valid) throw new Error('ID inválido');
-    return Customer.findByIdAndUpdate(id, { status }, { new: true });
+    if (!validateObjectId(id).valid) throw new ValidationError('ID inválido');
+    return Customer.findByIdAndUpdate(id, { status }, { new: true, runValidators: true });
   }
 
   async softDelete(id) {
-    if (!validateObjectId(id).valid) throw new Error('ID inválido');
+    if (!validateObjectId(id).valid) throw new ValidationError('ID inválido');
     return Customer.findByIdAndUpdate(id, { status: 'deleted' }, { new: true });
   }
 

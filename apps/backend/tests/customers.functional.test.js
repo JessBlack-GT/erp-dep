@@ -131,7 +131,7 @@ describe('M03 - Customers functional isolated tests', () => {
     expect(customerRepository.softDelete.calledOnce).to.be.true;
   });
 
-  it('10. rechaza correos duplicados y números de documento duplicados', async () => {
+  it('10. rechaza correos duplicados', async () => {
     sinon.stub(customerRepository, 'exists').resolves({ _id: '507f1f77bcf86cd799439000', email: 'ana@example.com' });
 
     try {

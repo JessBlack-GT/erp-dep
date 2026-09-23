@@ -7,6 +7,25 @@
 const customerRepository = require('./customers.repository');
 const { NotFoundError, ConflictError, ValidationError } = require('../../shared/errors/appErrors');
 const { validateEmail, validateRequired } = require('../../shared/validators/validators');
+const { STATUS } = require('../../shared/constants/appConstants');
+
+function customerInput(data) {
+  const allowed = ['name', 'lastName', 'businessName', 'type', 'email', 'phone', 'documentType', 'documentNumber', 'address', 'city', 'country', 'zipCode', 'status', 'notes'];
+  const result = {};
+  for (const field of Object.keys(data)) {
+    if (!allowed.includes(field)) throw new ValidationError(`Campo no permitido: ${field}`);
+    if (typeof data[field] !== 'string') throw new ValidationError(`Campo inválido: ${field}`);
+    result[field] = data[field].trim();
+  }
+  if (result.email !== undefined) {
+    result.email = result.email.toLowerCase();
+    if (!validateEmail(result.email).valid) throw new ValidationError('Email inválido');
+  }
+  if (result.name !== undefined && !result.name) throw new ValidationError('Nombre requerido');
+  if (result.status !== undefined && !Object.values(STATUS).includes(result.status)) throw new ValidationError('Estado inválido');
+  if (result.type !== undefined && !['natural', 'legal'].includes(result.type)) throw new ValidationError('Tipo inválido');
+  return result;
+}
 
 class CustomerService {
   /**
@@ -21,7 +40,7 @@ class CustomerService {
       sortOrder: sortOrder || 'desc',
       search: search || '',
     };
-    return customerRepository.findAll({}, options);
+    return customerRepository.findAll(filters.filters || {}, options);
   }
 
   /**
@@ -37,6 +56,8 @@ class CustomerService {
    * Crear un nuevo cliente
    */
   async create(customerData) {
+    customerData = customerInput(customerData);
+    if (!customerData.documentNumber) delete customerData.documentNumber;
     // Validar email
     const emailValidation = validateEmail(customerData.email);
     if (!emailValidation.valid) {
@@ -70,7 +91,16 @@ class CustomerService {
    * Actualizar un cliente existente
    */
   async update(id, updateData) {
+    updateData = customerInput(updateData);
     const customer = await this.getById(id);
+    if (updateData.documentNumber) {
+      const existingDoc = await customerRepository.findByDocumentNumber(updateData.documentNumber);
+      if (existingDoc && existingDoc._id.toString() !== id) throw new ConflictError('Ya existe un cliente con este número de documento');
+    }
+    if (updateData.documentNumber === '') {
+      delete updateData.documentNumber;
+      updateData.$unset = { documentNumber: 1 };
+    }
 
     // Validar email si se actualiza
     if (updateData.email && updateData.email !== customer.email) {
@@ -96,7 +126,9 @@ class CustomerService {
    * Cambiar estado de un cliente
    */
   async changeStatus(id, status) {
-    const customer = await this.getById(id);
+    const { STATUS } = require('../../shared/constants/appConstants');
+    if (!Object.values(STATUS).includes(status)) throw new ValidationError('Estado inválido');
+    await this.getById(id);
     return customerRepository.updateStatus(id, status);
   }
 

@@ -6,7 +6,7 @@
  * ============================================
  */
 
-const config = require('../config/environment');
+
 
 const LEVELS = {
   ERROR: 'error',
@@ -35,7 +35,7 @@ const logger = {
     console.log(JSON.stringify(formatMessage(LEVELS.INFO, message, meta)));
   },
   debug(message, meta = {}) {
-    if (config.nodeEnv !== 'production') {
+    if (process.env.NODE_ENV !== 'production') {
       console.log(JSON.stringify(formatMessage(LEVELS.DEBUG, message, meta)));
     }
   },

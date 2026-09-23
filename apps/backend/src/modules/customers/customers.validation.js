@@ -42,15 +42,18 @@ const validateFilters = (params) => {
   const errors = [];
   const { page, limit, sortBy, sortOrder, search } = params;
 
-  if (page && (isNaN(page) || parseInt(page) < 1)) {
+  if (page !== undefined && (!/^\d+$/.test(String(page)) || !Number.isSafeInteger(Number(page)) || Number(page) < 1)) {
     errors.push({ field: 'page', message: 'Debe ser un número positivo' });
   }
-  if (limit && (isNaN(limit) || parseInt(limit) < 1 || parseInt(limit) > 100)) {
+  if (limit !== undefined && (!/^\d+$/.test(String(limit)) || Number(limit) < 1 || Number(limit) > 100)) {
     errors.push({ field: 'limit', message: 'Debe ser entre 1 y 100' });
   }
   if (search && typeof search !== 'string') {
     errors.push({ field: 'search', message: 'Debe ser un string' });
   }
+  if (params.status !== undefined && !Object.values(require('../../shared/constants/appConstants').STATUS).includes(params.status)) errors.push({ field: 'status', message: 'Estado inválido' });
+  if (params.type !== undefined && !['natural', 'legal'].includes(params.type)) errors.push({ field: 'type', message: 'Tipo inválido' });
+  if (params.city !== undefined && typeof params.city !== 'string') errors.push({ field: 'city', message: 'Ciudad inválida' });
   if (sortBy && !['name', 'email', 'status', 'createdAt', 'type'].includes(sortBy)) {
     errors.push({ field: 'sortBy', message: 'Campo de ordenamiento inválido' });
   }

@@ -123,7 +123,7 @@ exports.getCustomerStats = asyncHandler(async (req, res) => {
  */
 exports.searchCustomers = asyncHandler(async (req, res) => {
   const { q } = req.query;
-  if (!q || q.length < 2) {
+  if (typeof q !== 'string' || q.length < 2) {
     return res.status(400).json({ success: false, error: 'Busqueda debe tener al menos 2 caracteres' });
   }
   
