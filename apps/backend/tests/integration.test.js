@@ -11,7 +11,7 @@ describe('Module Structure', () => {
     const authRoutes = require('../src/modules/auth/auth.routes');
     const authService = require('../src/modules/auth/auth.service');
     const authController = require('../src/modules/auth/auth.controller');
-    expect(authRoutes).to.be.an('object');
+    expect(authRoutes).to.be.a('function');
     expect(authService).to.be.an('object');
     expect(authController).to.be.an('object');
   });
@@ -20,7 +20,7 @@ describe('Module Structure', () => {
     const usersRoutes = require('../src/modules/users/users.routes');
     const userService = require('../src/modules/users/users.service');
     const userController = require('../src/modules/users/users.controller');
-    expect(usersRoutes).to.be.an('object');
+    expect(usersRoutes).to.be.a('function');
     expect(userService).to.be.an('object');
     expect(userController).to.be.an('object');
   });
@@ -28,7 +28,7 @@ describe('Module Structure', () => {
   it('debería tener la estructura de módulos roles', () => {
     const roleRoutes = require('../src/modules/roles/roles.routes');
     const roleService = require('../src/modules/roles/roles.repository');
-    expect(roleRoutes).to.be.an('object');
+    expect(roleRoutes).to.be.a('function');
     expect(roleService).to.be.an('object');
   });
 });

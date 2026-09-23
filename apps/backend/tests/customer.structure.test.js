@@ -82,17 +82,17 @@ describe('Customer Module Logic', () => {
   });
 
   it('debería cargar las rutas de clientes', () => {
-    const routes = require('../customers/customers.routes');
-    expect(routes).to.be.an('object');
+    const routes = require('../src/modules/customers/customers.routes');
+    expect(routes).to.be.a('function');
     expect(routes.use).to.be.a('function');
   });
 });
 
 describe('Customer Routes Integration', () => {
   it('debería tener las rutas de clientes registradas en routes/index.js', () => {
-    const routes = require('../../routes');
+    const routes = require('../src/routes');
     // Verificar que el módulo de rutas existe y puede ser requerido
-    const customersRoutes = require('../customers/customers.routes');
-    expect(customersRoutes).to.be.an('object');
+    const customersRoutes = require('../src/modules/customers/customers.routes');
+    expect(customersRoutes).to.be.a('function');
   });
 });

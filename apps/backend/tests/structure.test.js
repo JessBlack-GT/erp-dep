@@ -9,7 +9,7 @@ const path = require('path');
 const fs = require('fs');
 
 describe('ERP-SYSTEM - Estructura del Proyecto', () => {
-  const basePath = path.join(__dirname, '..', '..', '..', '..');
+  const basePath = path.join(__dirname, '..', '..', '..');
 
   it('debería existir el directorio raíz', () => {
     expect(fs.existsSync(basePath)).to.be.true;
@@ -46,21 +46,21 @@ describe('ERP-SYSTEM - Backend Modules', () => {
 describe('ERP-SYSTEM - Configuración de Seguridad', () => {
   it('debería tener el middleware de autenticación', () => {
     const auth = require('../src/middleware/authenticate');
-    expect(auth.authenticateToken).toBeDefined();
+    expect(auth.authenticateToken).to.be.a('function');
   });
 
   it('debería tener el middleware de autorización', () => {
     const authorize = require('../src/middleware/authorize');
-    expect(authorize.authorizeRoles).toBeDefined();
+    expect(authorize.authorizeRoles).to.be.a('function');
   });
 
   it('debería tener el middleware de validación', () => {
     const validate = require('../src/middleware/validateRequest');
-    expect(validate.validateRequest).toBeDefined();
+    expect(validate.validateRequest).to.be.a('function');
   });
 
   it('debería tener el manejo de errores', () => {
     const errorHandler = require('../src/middleware/errorHandler');
-    expect(errorHandler.errorHandler).toBeDefined();
+    expect(errorHandler.errorHandler).to.be.a('function');
   });
 });

@@ -6,11 +6,13 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "mocha --timeout 10000 --recursive tests/",
+    "test": "mocha --timeout 10000 \"tests/**/*.test.js\" \"src/**/*.test.js\"",
     "test:watch": "npm test -- --watch",
     "lint": "eslint src/ tests/",
     "migrate": "node scripts/migrate.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "test:m03": "mocha --timeout 10000 \"tests/customers*.test.js\" \"src/modules/customers/*.test.js\"",
+    "test:integration:m03": "node scripts/validate-m03-real.cjs"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -26,7 +28,6 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "@babel/register": "^7.29.7",
     "nodemon": "^3.0.2",
     "mocha": "^10.2.0",
     "chai": "^4.3.7",

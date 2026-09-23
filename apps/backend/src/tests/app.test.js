@@ -37,9 +37,8 @@ describe('Server Configuration', () => {
 
 describe('Health Check', () => {
   it('debería responder a la ruta de salud', async () => {
-    // Ruta de salud definida en server.js
-    // Este test verifica la estructura de la app
-    const config = require('./src/config/environment');
-    expect(config.port).to.be.a('number');
+    // Exercise the application: importing configuration alone cannot prove HTTP health.
+    const application = require('../app');
+    await request(application).get('/api/v1/health').expect(200);
   });
 });

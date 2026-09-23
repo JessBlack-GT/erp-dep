@@ -5,7 +5,7 @@
  */
 
 const { expect } = require('chai');
-const { validateEmail } = require('../../shared/validators/validators');
+const { validateEmail, validateRequired } = require('../../shared/validators/validators');
 
 describe('Auth Module', () => {
   describe('Validación de Email', () => {

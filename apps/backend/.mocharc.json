@@ -2,8 +2,9 @@
   "timeout": 10000,
   "recursive": true,
   "require": [
-    "@babel/register"
+    "./tests/setup.cjs"
   ],
-  "extension": ["test.js"],
-  "watch-extensions": ["js"]
+  "extension": [
+    "test.js"
+  ]
 }

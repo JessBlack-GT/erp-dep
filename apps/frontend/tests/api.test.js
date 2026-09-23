@@ -18,7 +18,7 @@ describe('API Service Client', () => {
 
 describe('API Client Configuration', () => {
   it('debería tener la URL base configurada', () => {
-    const apiClient = require('../src/services/api');
+    const apiClient = require('../src/services/api').default;
     expect(apiClient.defaults?.baseURL).toBeDefined();
   });
 });
