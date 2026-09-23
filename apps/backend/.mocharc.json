@@ -1,0 +1,9 @@
+{
+  "timeout": 10000,
+  "recursive": true,
+  "require": [
+    "@babel/register"
+  ],
+  "extension": ["test.js"],
+  "watch-extensions": ["js"]
+}
