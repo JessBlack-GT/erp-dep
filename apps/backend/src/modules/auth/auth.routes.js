@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('./auth.controller');
 const { authenticateToken } = require('../../middleware/authenticate');
+const { requireCurrentUser } = require('../../middleware/authorize');
 const { validateRequest } = require('../../middleware/validateRequest');
 const { validateRequired, validateEmail } = require('../../shared/validators/validators');
 
@@ -20,6 +21,6 @@ router.post('/logout', authenticateToken, authController.logout);
 router.post('/refresh', authController.refreshToken);
 
 // Perfil del usuario autenticado
-router.get('/me', authenticateToken, authController.getMe);
+router.get('/me', authenticateToken, requireCurrentUser, authController.getMe);
 
 module.exports = router;

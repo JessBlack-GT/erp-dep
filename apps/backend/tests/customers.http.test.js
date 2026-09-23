@@ -19,7 +19,12 @@ const token = jwt.sign({ id, role: ROLES.ADMIN }, process.env.JWT_SECRET);
 const call = (method, path = '') => request(app)[method]('/api/v1/customers' + path).set('Authorization', `Bearer ${token}`);
 
 describe('M03 HTTP with real router/authentication and stubbed persistence', () => {
-  beforeEach(() => { sinon.stub(logger, 'error'); sinon.stub(logger, 'warn'); });
+  beforeEach(() => {
+    sinon.stub(logger, 'error'); sinon.stub(logger, 'warn');
+    // Persisted identity fixture; authorization itself remains real.
+    sinon.stub(require('../src/modules/users/users.model'), 'findById').returns({ select: () => ({ lean: async () => ({ _id: id, role: 'admin', status: 'active' }) }) });
+    sinon.stub(require('../src/modules/roles/roles.model'), 'findOne').returns({ lean: async () => null });
+  });
   afterEach(() => sinon.restore());
   it('requires authentication for every customer endpoint', async () => {
     for (const [method, path] of [['get',''],['post',''],['get','/search?q=qa'],['get',`/${id}`],['patch',`/${id}`],['patch',`/${id}/status`],['delete',`/${id}`]]) {

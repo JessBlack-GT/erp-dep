@@ -1,0 +1,39 @@
+// Central module.action catalog and initial policy. Role documents override defaults.
+const PERMISSIONS = Object.freeze(['customers.read', 'customers.create', 'customers.update', 'customers.delete']);
+const ROLE_PERMISSIONS = Object.freeze({
+  superadmin: PERMISSIONS,
+  admin: PERMISSIONS,
+  manager: PERMISSIONS.slice(0, 3),
+  sales: PERMISSIONS.slice(0, 3),
+  purchasing: ['customers.read'],
+  warehouse: ['customers.read'],
+  finance: ['customers.read'],
+  hr: [],
+  auditor: ['customers.read'],
+  user: [],
+});
+Object.values(ROLE_PERMISSIONS).forEach(Object.freeze);
+const normalizeRole = role => role === 'super_admin' ? 'superadmin' : role;
+
+async function resolveAccess(id) {
+  const mongoose = require('mongoose');
+  if (!mongoose.isValidObjectId(id)) return null;
+  const User = require('../modules/users/users.model');
+  const Role = require('../modules/roles/roles.model');
+  const user = await User.findById(id).select('_id email firstName lastName role status').lean();
+  if (!user || user.status !== 'active') return null;
+  const role = normalizeRole(user.role);
+  let stored = await Role.findOne({ name: role }).lean();
+  if (!stored && user.role !== role) stored = await Role.findOne({ name: user.role }).lean();
+  const roleActive = !stored || stored.status === 'active';
+  const isSuperadmin = roleActive && role === 'superadmin';
+  const assigned = roleActive ? (stored ? stored.permissions : ROLE_PERMISSIONS[role] || []) : [];
+  const permissions = isSuperadmin ? [...PERMISSIONS] : assigned.filter(p => PERMISSIONS.includes(p));
+  // Legacy per-user permissions and token claims are deliberately not authorization sources.
+  return { id: String(user._id), email: user.email, firstName: user.firstName, lastName: user.lastName, role, permissions, isSuperadmin, roleActive };
+}
+
+function hasPermission(access, permission) {
+  return !!access && PERMISSIONS.includes(permission) && (access.isSuperadmin || access.permissions.includes(permission));
+}
+module.exports = { PERMISSIONS, ROLE_PERMISSIONS, normalizeRole, resolveAccess, hasPermission };

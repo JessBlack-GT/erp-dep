@@ -14,10 +14,17 @@ module.exports = {
   // Roles de usuario
   ROLES: {
     SUPER_ADMIN: 'super_admin',
+    SUPERADMIN: 'superadmin',
     ADMIN: 'admin',
     MANAGER: 'manager',
     USER: 'user',
     VIEWER: 'viewer',
+    SALES: 'sales',
+    PURCHASING: 'purchasing',
+    WAREHOUSE: 'warehouse',
+    FINANCE: 'finance',
+    HR: 'hr',
+    AUDITOR: 'auditor',
   },
 
   // Módulos del sistema

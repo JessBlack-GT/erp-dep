@@ -23,6 +23,7 @@ function customerInput(data) {
   }
   if (result.name !== undefined && !result.name) throw new ValidationError('Nombre requerido');
   if (result.status !== undefined && !Object.values(STATUS).includes(result.status)) throw new ValidationError('Estado inválido');
+  if (result.status === STATUS.DELETED) throw new ValidationError('Utilice la operación de eliminación');
   if (result.type !== undefined && !['natural', 'legal'].includes(result.type)) throw new ValidationError('Tipo inválido');
   return result;
 }
@@ -128,6 +129,7 @@ class CustomerService {
   async changeStatus(id, status) {
     const { STATUS } = require('../../shared/constants/appConstants');
     if (!Object.values(STATUS).includes(status)) throw new ValidationError('Estado inválido');
+    if (status === STATUS.DELETED) throw new ValidationError('Utilice la operación de eliminación');
     await this.getById(id);
     return customerRepository.updateStatus(id, status);
   }

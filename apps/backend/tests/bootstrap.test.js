@@ -28,7 +28,10 @@ describe('Global application bootstrap', () => {
     await request(app).get('/api/v1/customers').expect(401);
     const repo = require('../src/modules/customers/customers.repository');
     sinon.stub(repo, 'findAll').resolves([]);
-    const token = jwt.sign({ id: 'qa-bootstrap', role: 'user', permissions: ['customers.read'] }, config.jwtSecret);
+    const id = '507f1f77bcf86cd799439011';
+    sinon.stub(require('../src/modules/users/users.model'), 'findById').returns({ select: () => ({ lean: async () => ({ _id: id, role: 'auditor', status: 'active' }) }) });
+    sinon.stub(require('../src/modules/roles/roles.model'), 'findOne').returns({ lean: async () => null });
+    const token = jwt.sign({ id }, config.jwtSecret);
     const result = await request(app).get('/api/v1/customers').set('Authorization', `Bearer ${token}`).expect(200);
     expect(result.body).to.deep.equal({ success: true, data: [] });
   });

@@ -7,7 +7,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../users/users.model');
-const Role = require('../roles/roles.model');
+const rbac = require('../../security/rbac');
 const { config } = require('../../config/environment');
 const { validateEmail } = require('../../shared/validators/validators');
 const { UnauthorizedError, ConflictError, ValidationError } = require('../../shared/errors/appErrors');
@@ -52,18 +52,20 @@ class AuthService {
 
     // Generar tokens
     const accessToken = jwt.sign(
-      { id: user._id, email: user.email, role: user.role, permissions: user.permissions },
+      { id: user._id },
       config.jwtSecret,
       { expiresIn: config.jwtExpiresIn }
     );
 
     const refreshToken = jwt.sign(
-      { id: user._id, email: user.email },
+      { id: user._id },
       config.jwtRefreshSecret,
       { expiresIn: config.jwtRefreshExpiresIn }
     );
 
-    return { accessToken, refreshToken, user: user.toPublicJSON() };
+    const access = await rbac.resolveAccess(String(user._id));
+    if (!access) throw new UnauthorizedError('Usuario no válido');
+    return { accessToken, refreshToken, user: access };
   }
 
   /**
@@ -76,7 +78,7 @@ class AuthService {
       if (!user || user.status !== 'active') throw new UnauthorizedError('Usuario no válido');
 
       const newAccessToken = jwt.sign(
-        { id: user._id, email: user.email, role: user.role, permissions: user.permissions },
+        { id: user._id },
         config.jwtSecret,
         { expiresIn: config.jwtExpiresIn }
       );
