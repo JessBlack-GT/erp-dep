@@ -1,127 +1,130 @@
-# M03 — Cierre de integración real, 2026-09-23
+# M03 — Fase 9: RBAC y cierre definitivo
 
-**Dictamen: APROBADO CON PENDIENTES.** MongoDB, API HTTP y frontend web funcionaron juntos. Autorización empresarial: **PENDING BUSINESS DECISION**. No se implementó una política nueva ni se desarrolló M04.
+**Dictamen: APROBADO.** La matriz empresarial aprobada está aplicada y validada con usuarios, roles, JWT, HTTP y MongoDB reales. Las 60 pruebas originales siguen pasando; no hay regresiones en las suites ejecutadas. M04 no se desarrolló.
 
-## Repositorio
+## Estado y evidencia
 
-- Copia: `C:\Users\jessb\OneDrive\Desktop\RP\erp-dep`.
-- Rama conservada: `codex/m03-validation`.
-- Commit inicial de esta continuación: `5847e36b426d5059598ecf10ce06658256a5a975`; árbol inicialmente limpio.
-- Evidencia anterior preservada íntegramente en `history/M03-phase7.md` y `history/M03-phase7-results.json`. Sus bloqueos corresponden a la ejecución anterior.
-- Sin cambios de dependencias, push, merge, rebase ni eliminación del historial.
+- Repositorio: `C:\Users\jessb\OneDrive\Desktop\RP\erp-dep`.
+- Rama: `codex/m03-validation`; HEAD inicial `fdc557ef26efff089ea82d35269b5520f37c901b`; árbol inicialmente limpio.
+- Evidencia anterior preservada en `history/M03-phase8.md` y `history/M03-phase8-results.json`.
+- Arquitectura, matriz y extensión: [RBAC](../security/RBAC.md).
+- Detalle de cada comprobación HTTP: [resultados JSON](M03-results.json).
 
-## Environment
+## Implementación
 
-| Comprobación | Resultado |
-|---|---|
-| MongoDB.env source | FOUND |
-| Formato dotenv | VALID |
-| MONGODB_URI en origen | PRESENT |
-| JWT_SECRET / JWT_REFRESH_SECRET en origen | MISSING |
-| Variables de origen no utilizadas | Ninguna |
-| Local .env | CONFIGURED |
-| .env y MongoDB.env ignorados | YES |
-| Secrets committed | NO |
+Se reutilizaron User y Role. No existía Permission; los cuatro identificadores granulares se registran en un catálogo central, sin duplicar modelos. User conserva su rol string; Role puede sustituir la matriz central mediante sus permisos y estado persistidos. La base QA tenía las colecciones users/roles/customers, sin usuarios ni roles al iniciar.
 
-Se copiaron solo las variables necesarias al `.env` local ignorado y se generaron dos secretos JWT aleatorios fuertes para desarrollo local. No se mostraron ni versionaron. `.env.example` conserva valores ficticios.
+`requirePermission` exige autenticación, resuelve usuario activo y rol actuales en backend y diferencia 401/403. Un fallo de autorización por DB responde 503 sin detalles sensibles y no permite la operación. Superadmin activo obtiene todas las acciones registradas desde esta capa, sin evitar autenticación. Se conserva `super_admin` como alias y `viewer` sin permisos predeterminados M03.
 
-El loader existente carga `apps/backend/.env` por ruta absoluta relativa a `src/config/environment.js`. No se cambió para cargar `MongoDB.env`. Requiere `MONGODB_URI`, `JWT_SECRET` y `JWT_REFRESH_SECRET`. Se configuraron `NODE_ENV=development` y `PORT=3000`. Son opcionales `MONGODB_DB_NAME`, `JWT_EXPIRES_IN`, `JWT_REFRESH_EXPIRES_IN`, `BCRYPT_ROUNDS`, `CORS_ORIGIN`, `CORS_ORIGIN_FRONTEND`, `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_MS`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, `COMPANY_NAME` y `COMPANY_URL`. El runner usa además `M03_QA_DATABASE` para confirmar la selección y admite `M03_ENV_FILE` como ruta alternativa.
+Los nuevos JWT contienen únicamente ID y claims temporales. Se ignoran rol/permisos obsoletos del token, permisos enviados por frontend y el antiguo campo User.permissions. Login y `/auth/me` ofrecen los permisos efectivos para UX. Cambios de Role y de estado del usuario tienen efecto con el mismo JWT en el siguiente request.
 
-## MongoDB
+Se protegieron listado, detalle, búsqueda, estadísticas, creación, edición, estado y DELETE lógico. Se cerraron dos vías de evasión detectadas: autoasignar un rol mediante la API de usuarios y enviar `status: deleted` por PATCH. La administración de usuarios requiere política administrativa central; el perfil propio continúa disponible. El borrado lógico solo se realiza por DELETE con customers.delete. No existe borrado físico nuevo en la API.
 
-- Preflight: **PASS**. Configuración y variables obligatorias presentes, URI parseable, entorno permitido y selección QA confirmada.
-- Connection: **SUCCESS**.
-- Environment: **QA**, base nueva y exclusiva autorizada explícitamente por el usuario mediante `MONGODB_DB_NAME`, sin modificar la URI.
-- La primera comprobación bajo restricción de red falló en DNS. El reintento autorizado fuera de ella conectó y comprobó que la base nueva estaba vacía. No se atribuye ese fallo a credenciales ni allowlist.
-- Arranque real mediante `node apps/backend/src/server.js`: conexión exitosa y escucha en puerto 3000. Servidores temporales detenidos al finalizar.
-- Registros creados/limpiados: **29/29**: runner inicial **3/3**, recorrido web **23/23**, runner final **3/3**. La web utilizó un usuario, 21 clientes para paginación y un cliente creado desde el formulario.
-- Limpieza limitada a IDs propios y marcadores exclusivos. Sin borrado global, de bases ni de colecciones. Estado `deleted` verificado antes de limpiar el cliente web.
+Frontend: `usePermissions` centraliza permisos y oculta acciones Crear/Editar/Estado/Eliminar; formularios sin permiso muestran denegación. La API sigue siendo la barrera de seguridad. La instantánea UX puede actualizarse al volver a iniciar sesión; no concede derechos por sí misma.
 
-## API real
+## Resultados
 
-Runner final: **26 comprobaciones aprobadas, 0 fallidas, 0 omitidas, exit 0**. Express, middleware JWT, Mongoose y Atlas reales. Respuestas HTTP y lecturas directas posteriores verifican persistencia. El JSON adjunto conserva cada comprobación.
-
-| Operación | Resultado | HTTP |
-|---|---|---:|
-| Authentication: login y token válido | PASS | 200 |
-| Create: dos clientes | PASS | 201 |
-| List | PASS | 200 |
-| Get by ID | PASS | 200 |
-| Update y lectura posterior | PASS | 200 |
-| Search | PASS | 200 |
-| Pagination: límites 1/2 y fechas empatadas | PASS | 200 |
-| Filters: inactivo | PASS | 200 |
-| Status | PASS | 200 |
-| Soft delete y ausencia en listado | PASS | 200 |
-| Invalid payload, nombre ausente, email inválido | PASS | 400 |
-| Invalid ID | PASS | 400 |
-| Missing ID | PASS | 404 |
-| Duplicate | PASS | 409 |
-| Sin token, token inválido, token expirado | PASS | 401 |
-
-## Frontend → Backend
-
-**AUTOMATED PASS** mediante control de navegador por el agente, con API y DB reales. No es una suite Playwright incluida en el repositorio ni una ejecución manual humana. Manual: **NOT EXECUTED**. Android/iOS: **NOT EXECUTED**; alcance integrado probado: web.
-
-Recorrido: login con usuario QA temporal → Clientes → listado → creación con formulario → búsqueda → detalle → edición → cambio a inactivo → recarga y persistencia → cancelar eliminación → confirmar eliminación lógica → ausencia en búsqueda → paginación de 21 filas únicas → intento duplicado con error visible. Se observó el indicador de login en curso. MongoDB confirmó el nombre editado y luego el estado `deleted`.
-
-Jest utiliza mocks y se contabiliza separadamente. Los fallos de carga/servicio y estados de carga tienen cobertura aislada; no se simularon cortes de Atlas en el recorrido real.
-
-## Defectos corregidos
-
-1. Paginación no estable: clientes con la misma fecha se repetían entre páginas. Se agregó `_id` como segundo criterio. Verificado con 21 filas distintas en navegador y fechas iguales en el runner real.
-2. Eliminación web sin efecto: `Alert.alert` de React Native Web no muestra diálogos. Se añadió confirmación Modal en web, conservando confirmación nativa. Cancelar no elimina; confirmar elimina y vuelve al listado. Errores visibles.
-3. Errores de formulario invisibles en web: mensaje en pantalla para errores de API/carga; conflicto real de email visible.
-4. Protección `*.env`, rechazo de URI no parseable, conteo de creación/limpieza y resultado JSON sanitizado del runner.
-5. Tres regresiones nuevas del frontend y limpieza de temporizadores de animación bajo `act`, sin silenciar avisos ni debilitar expectativas originales.
-
-## Regresión
-
-| Suite | Total | Pass | Fail | Omitidas | TODO | Exit code |
+| Área | Total | Pass | Fail | TODO | Omitidas | Exit code |
 |---|---:|---:|---:|---:|---:|---:|
 | Backend M03 original | 47 | 47 | 0 | 0 | 0 | 0 |
-| Backend global | 139 | 139 | 0 | 0 | 0 | 0 |
 | Frontend M03 original | 13 | 13 | 0 | 0 | 0 | 0 |
-| Frontend global | 45 | 33 | 0 | 0 | 12 | 0 |
+| Backend global | 196 | 196 | 0 | 0 | 0 | 0 |
+| Frontend global | 51 | 39 | 0 | 12 | 0 | 0 |
+| RBAC backend aislado | 57 | 57 | 0 | 0 | 0 | 0 |
+| RBAC frontend aislado | 6 | 6 | 0 | 0 | 0 | 0 |
 | API real M03 | 26 | 26 | 0 | 0 | 0 | 0 |
+| Autorización real MongoDB/HTTP | 138 | 138 | 0 | 0 | 0 | 0 |
 
-Las 60 pruebas originales pasan; sus seis archivos no cambiaron respecto a `c1bc712`. El backend suma una comprobación de URI inválida. Frontend suma tres pruebas de confirmación, error de eliminación y duplicado visible. Compilación web: PASS, exit 0. Última regresión frontend sin advertencias de `act`.
+Las filas originales/RBAC aisladas son subconjuntos de las suites globales; no deben sumarse como pruebas independientes. Las cantidades reales cuentan comprobaciones HTTP; también contienen aserciones de respuesta, persistencia y ausencia de modificación al denegar.
 
-Los 12 TODO conservados son requisitos futuros: componentes comunes, dashboard, suppliers, products, inventory, sales, purchases, finance, human-resources, reports, notifications y settings. No se contabilizan como aprobados ni ejecutados; clasificación previa conservada en el informe histórico.
+Compilación web: PASS, exit 0. Controles UX de permisos: probados con RNTL, contexto y hook reales, API simulada. **No se repitió un recorrido de navegador en esta fase**; el AUTOMATED PASS del recorrido completo con API real pertenece a fase 8 y se conserva como evidencia histórica. No se atribuyen pruebas con mocks a un navegador real. Android/iOS no ejecutados.
 
-Comandos reproducibles sin watch:
+No se eliminaron ni debilitaron las aserciones de las 60 pruebas originales. Se adaptaron fixtures: identidad administrativa persistida simulada en las pruebas HTTP y sesión autorizada simulada en componentes; las denegaciones se prueban separadamente con RBAC real. El bootstrap usa una identidad persistida de auditor. Los 12 TODO de módulos futuros permanecen sin cambios.
+
+La primera matriz aislada excedió el límite de 100 peticiones y obtuvo ocho fallos 429. Se configuró un límite 1000 exclusivamente en el setup de pruebas y en el proceso del runner QA; la aplicación conserva su límite predeterminado. Tras la corrección, las suites pasaron sin omitir casos.
+
+## Roles, permisos y pruebas reales
+
+Roles probados real y aisladamente: **superadmin, admin, manager, sales, purchasing, warehouse, finance, hr, auditor, user**. Compatibilidad super_admin/viewer: adicionalmente probada de forma aislada.
+
+Permisos: **customers.read, customers.create, customers.update, customers.delete**.
+
+| Política | Resultado |
+|---|---|
+| superadmin/admin: todas las operaciones M03 | PASS |
+| manager/sales: leer, crear, actualizar; DELETE denegado | PASS |
+| purchasing/warehouse/finance/auditor: solo lectura | PASS |
+| hr/user: sin acceso M03 | PASS |
+| Cada permiso individual persistido en Role, sin privilegios adicionales | PASS |
+| Sin token y token inválido | PASS, 401 |
+| Usuario autenticado sin permiso | PASS, 403 |
+| Revocar permisos con el mismo token | PASS, 403 |
+| Usuario inactivo o eliminado con token válido | PASS, 401 |
+| Claims antiguos privilegiados firmados no elevan al usuario | PASS, 403 |
+| Autoelevación vía PATCH de usuario | PASS, 403 y rol conservado |
+| Bypass de DELETE mediante status en PATCH | PASS, 400 y sin borrado |
+| DELETE autorizado | PASS, estado deleted persistido |
+
+El runner usa documentos Role reales y la matriz esperada independiente. También verifica que los JWT nuevos no contengan email/rol/permisos y que login entregue la matriz efectiva. No sobrescribe roles existentes: aborta ante colisión. Los rechazos se comprueban antes de ejecutar escrituras de clientes.
+
+Las 26 comprobaciones M03 preservadas validan login, CRUD, búsqueda, filtros, paginación normal y fechas empatadas, estado, eliminación lógica, datos inválidos, duplicados, IDs inválidos/inexistentes y tokens ausentes/inválidos/expirados. Se usa ahora un usuario QA admin autorizado, en lugar del anterior user con permisos individuales.
+
+## MongoDB y limpieza
+
+- Preflight: PASS; conexión: SUCCESS; entorno: **QA exclusivo ya autorizado**.
+- Runner RBAC: **26 registros creados / 26 limpiados** (10 roles, 10 usuarios y 6 clientes).
+- Runner API M03: **3 creados / 3 limpiados**.
+- Total de esta fase: **29 creados / 29 limpiados**. No se suma la ejecución histórica de fase 8.
+- Limpieza por IDs y marcadores propios, sin drop ni eliminación global. La eliminación física está limitada a fixtures QA durante limpieza; la API de clientes solo borra lógicamente.
+- No se mostraron URI, credenciales, contraseñas ni tokens. No se modificó producción.
+
+## Reproducción
+
+Desde `apps/backend`:
 
 ```powershell
-# Desde apps/backend
-node ../../node_modules/mocha/bin/mocha.js "tests/customers*.test.js" "src/modules/customers/*.test.js" --reporter json --reporter-option output=../../tmp/backend-m03-final.json
-node ../../node_modules/mocha/bin/mocha.js "tests/**/*.test.js" "src/**/*.test.js" --reporter json --reporter-option output=../../tmp/backend-global-final.json
-# Desde apps/frontend
-node ../../node_modules/jest/bin/jest.js --runTestsByPath tests/customers.frontend.test.js tests/customers.api.test.js tests/customers.navigation.test.js --watch=false --runInBand --json --outputFile=../../tmp/frontend-original-final.json
-node ../../node_modules/jest/bin/jest.js --watch=false --runInBand --json --outputFile=../../tmp/frontend-global-final.json
-# Desde raíz; runner requiere .env local y base QA confirmada
-node apps/backend/scripts/validate-m03-real.cjs
-node apps/frontend/scripts/web.cjs --build
-# Para repetir recorrido web
-node apps/backend/src/server.js
-node apps/frontend/scripts/web.cjs
+node ../../node_modules/mocha/bin/mocha.js "tests/customers*.test.js" "src/modules/customers/*.test.js" --reporter json --reporter-option output=../../tmp/phase9-backend-original.json
+node ../../node_modules/mocha/bin/mocha.js "tests/**/*.test.js" "src/**/*.test.js" --reporter json --reporter-option output=../../tmp/phase9-backend-global.json
+node ../../node_modules/mocha/bin/mocha.js tests/rbac.test.js --reporter json --reporter-option output=../../tmp/phase9-rbac-isolated.json
 ```
 
-La red Atlas y la resolución de archivos de esbuild requirieron ejecución autorizada fuera del sandbox. No se modificaron credenciales existentes, CORS ni autenticación para sortear fallos.
+Desde `apps/frontend`:
 
-## Clasificación M03 y autorización
+```powershell
+node ../../node_modules/jest/bin/jest.js --runTestsByPath tests/customers.frontend.test.js tests/customers.api.test.js tests/customers.navigation.test.js --watch=false --runInBand --json --outputFile=../../tmp/phase9-frontend-original.json
+node ../../node_modules/jest/bin/jest.js --watch=false --runInBand --json --outputFile=../../tmp/phase9-frontend-global.json
+```
 
-Crear, listar, consultar por ID, actualizar, buscar, paginar/filtrar, cambiar estado, eliminar lógicamente, validar datos, rechazar duplicados y exigir autenticación: **Implementadas y validadas contra API/DB**, además de cobertura aislada. Errores internos de servicio: **Implementados y validados con prueba aislada**; no se provocó caída real de DB. Errores HTTP de entrada, autenticación y recursos inexistentes: validados contra API real.
+Desde raíz, con `.env` ignorado y base QA confirmada:
 
-**Authorization policy: PENDING BUSINESS DECISION.** No se implementó ninguna política nueva `customers.read/create/update/delete`. Autenticación obligatoria probada real y aisladamente. Middleware de roles: prueba aislada conservada. Matriz por rol de clientes: no definida, aplicada ni probada contra API real. El usuario web usó el rol existente `user`, sin permisos adicionales. Este pendiente no invalida los resultados técnicos.
+```powershell
+node apps/backend/scripts/validate-rbac-real.cjs
+node apps/backend/scripts/validate-m03-real.cjs
+node apps/frontend/scripts/web.cjs --build
+```
 
-## Seguridad, archivos y commits
+Los runners reales y esbuild se ejecutaron con autorización fuera de la restricción de red/lectura del sandbox. No se alteraron las credenciales ni controles de autenticación para conseguir resultados.
 
-`.env` y `MongoDB.env` ignorados; ningún archivo de entorno sensible versionado. Escaneo previo a commits: 281 blobs del historial disponible, comparación con secretos locales conocidos y patrones de claves privadas/tokens: **0 coincidencias**, también 0 en archivos pendientes. Es un análisis acotado, no una garantía sobre todos los formatos posibles. Sin URI, contraseñas ni JWT en informes. Credenciales temporales web eliminadas localmente tras limpiar sus registros.
+## Seguridad, archivos y Git
 
-Archivos cambiados: `.gitignore`; `apps/backend/scripts/qa-environment.cjs`; `apps/backend/scripts/validate-m03-real.cjs`; `apps/backend/src/modules/customers/customers.repository.js`; `apps/backend/tests/qa-environment.test.js`; `apps/frontend/src/features/customers/CustomerDetailScreen.js`; `apps/frontend/src/features/customers/CustomerForm.js`; `apps/frontend/tests/customers.web-actions.test.js`; `apps/frontend/tests/login.test.js`; este informe, JSON y copias históricas. Dependencias modificadas: ninguna.
+`.env` y MongoDB.env siguen ignorados y fuera del índice Git. Escaneo antes de commits: **292 blobs**, 0 coincidencias con secretos locales conocidos, 0 candidatos de los patrones revisados y 0 coincidencias en archivos pendientes. Es un escaneo acotado, no una garantía sobre todos los posibles formatos de secretos.
 
-- `48456b3` — proteger configuración local y validar URI QA.
-- `1bb7079` — paginación estable y evidencia real de limpieza.
-- `c2afde8` — confirmación web y errores visibles con regresiones.
+Archivos principales:
 
-Informe y JSON se guardan en un commit posterior de documentación. Sin push ni merge. M04 no iniciado.
+- Backend: `src/security/rbac.js`, `middleware/authorize.js`, constantes de roles, rutas de auth/clientes/usuarios, servicio de auth/clientes.
+- Pruebas backend: `tests/rbac.test.js`, fixtures de bootstrap/HTTP y setup; `scripts/validate-rbac-real.cjs`, fixture del runner M03.
+- Frontend: `hooks/usePermissions.js`, listado/formulario/detalle de Clientes; `tests/rbac.test.js` y fixtures de las pruebas de componentes.
+- Documentación: `docs/security/RBAC.md`, informe y JSON actuales, copias históricas de fase 8. El JSON contiene la lista exacta de archivos de código.
+- Dependencias modificadas: ninguna.
+
+Commits de implementación:
+
+- `08e6fbb` — autorización vigente, rutas M03 y protección contra elevación.
+- `83b0fe3` — validación HTTP/MongoDB de la matriz aprobada.
+- `9ec41df` — permisos centralizados de UX y pruebas frontend.
+
+Documentación guardada en un commit posterior. Sin push ni merge. No se inició M04.
+
+## Dictamen
+
+**APROBADO** para el alcance M03 y la matriz indicada. Los 12 TODO futuros, gestión administrativa de roles aún 501 y ejecución móvil no forman parte de este cierre. Los controles autorizables de M03 están implementados y probados; la autorización deja de figurar como pendiente empresarial.

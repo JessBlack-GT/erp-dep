@@ -1,32 +1,64 @@
 {
-  "phase": "7-real-integration",
+  "phase": 9,
   "date": "2026-09-23",
   "branch": "codex/m03-validation",
-  "initialHead": "5847e36b426d5059598ecf10ce06658256a5a975",
-  "previousEvidence": "history/M03-phase7-results.json",
-  "environment": {
-    "source": "FOUND",
-    "format": "VALID",
-    "sourceVariables": [
-      "MONGODB_URI"
-    ],
-    "sourceJwtSecrets": "MISSING",
-    "unusedSourceVariables": [],
-    "localEnv": "CONFIGURED",
-    "jwtSecrets": "GENERATED LOCALLY; NOT VERSIONED",
-    "envIgnored": true,
-    "mongoDbEnvIgnored": true,
-    "secretsCommitted": false
+  "initialHead": "fdc557ef26efff089ea82d35269b5520f37c901b",
+  "previousEvidence": "history/M03-phase8-results.json",
+  "backend": {
+    "originalM03": {
+      "total": 47,
+      "pass": 47,
+      "fail": 0,
+      "todo": 0,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "global": {
+      "total": 196,
+      "pass": 196,
+      "fail": 0,
+      "todo": 0,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "rbac": {
+      "total": 57,
+      "pass": 57,
+      "fail": 0,
+      "todo": 0,
+      "skipped": 0,
+      "exitCode": 0
+    }
   },
-  "mongodb": {
-    "preflight": "PASS",
-    "connection": "SUCCESS",
-    "environment": "QA",
-    "databaseSelection": "Dedicated new database explicitly authorized by user; MONGODB_DB_NAME",
-    "initialDatabaseEmpty": true,
-    "sandboxAttempt": "DNS failure; unrestricted retry successful",
-    "qaRecordsCreated": 29,
-    "qaRecordsCleaned": 29
+  "frontend": {
+    "originalM03": {
+      "total": 13,
+      "pass": 13,
+      "fail": 0,
+      "todo": 0,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "global": {
+      "total": 51,
+      "pass": 39,
+      "fail": 0,
+      "todo": 12,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "rbac": {
+      "total": 6,
+      "pass": 6,
+      "fail": 0,
+      "todo": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "mode": "mock API with actual permission hook and context"
+    },
+    "build": "PASS",
+    "browserThisPhase": "NOT EXECUTED",
+    "previousBrowserEvidence": "history/M03-phase8-results.json"
   },
   "realApi": {
     "connection": "SUCCESS",
@@ -168,107 +200,797 @@
     "success": true,
     "exitCode": 0
   },
-  "frontend": {
-    "real": {
-      "result": "AUTOMATED PASS",
-      "method": "Agent-driven browser UI automation against actual backend and MongoDB; no API mocks",
-      "checks": [
-        "login",
-        "list",
-        "create",
-        "detail",
-        "edit",
-        "search",
-        "pagination: 21 unique rows",
-        "status",
-        "reload persistence",
-        "delete cancellation",
-        "confirmed soft delete",
-        "duplicate error visible"
-      ],
-      "created": 23,
-      "cleaned": 23,
-      "persistenceVerified": {
-        "nameEdited": true,
-        "status": "deleted"
+  "realRbac": {
+    "connection": "SUCCESS",
+    "checks": [
+      {
+        "operation": "superadmin:login",
+        "http": 200,
+        "result": "PASS"
       },
-      "manual": "NOT EXECUTED",
-      "nativeAndroidIos": "NOT EXECUTED"
-    },
-    "originalM03": {
-      "total": 13,
-      "pass": 13,
-      "fail": 0,
-      "skipped": 0,
-      "todo": 0,
-      "exitCode": 0
-    },
-    "global": {
-      "total": 45,
-      "pass": 33,
-      "fail": 0,
-      "skipped": 0,
-      "todo": 12,
-      "exitCode": 0
-    },
-    "buildWeb": {
-      "result": "PASS",
-      "exitCode": 0
-    }
-  },
-  "backend": {
-    "m03": {
-      "total": 47,
-      "pass": 47,
-      "fail": 0,
-      "skipped": 0,
-      "todo": 0,
-      "exitCode": 0
-    },
-    "global": {
-      "total": 139,
-      "pass": 139,
-      "fail": 0,
-      "skipped": 0,
-      "todo": 0,
-      "exitCode": 0
-    }
-  },
-  "authentication": {
-    "isolated": "PASS",
-    "real": {
-      "validToken": "PASS",
-      "missingToken": 401,
-      "invalidToken": 401,
-      "expiredToken": 401
-    }
+      {
+        "operation": "admin:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:login",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "no-token:GET/customers",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "no-token:GET/customers/search",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "no-token:GET/customers/stats",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "no-token:GET/customers/6ab43363130ed313d09394b3",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "no-token:POST/customers",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "no-token:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "no-token:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "no-token:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "invalid-token",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "superadmin:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "superadmin:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "superadmin:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "superadmin:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "superadmin:POST/customers",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "operation": "superadmin:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "superadmin:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "superadmin:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "admin:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "admin:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "admin:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "admin:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "admin:POST/customers",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "operation": "admin:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "admin:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "admin:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:POST/customers",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "manager:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:POST/customers",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "sales:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "purchasing:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "warehouse:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "finance:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:GET/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:GET/customers/search",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:GET/customers/stats",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:GET/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "hr:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "auditor:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:GET/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:GET/customers/search",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:GET/customers/stats",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:GET/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "user:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "self-elevation",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "status-delete-bypass",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "operation": "update-delete-bypass",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.read:GET/customers",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.read:GET/customers/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.read:GET/customers/stats",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.read:GET/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.read:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.read:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.read:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.read:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.create:GET/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.create:GET/customers/search",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.create:GET/customers/stats",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.create:GET/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.create:POST/customers",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.create:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.create:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.create:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.update:GET/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.update:GET/customers/search",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.update:GET/customers/stats",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.update:GET/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.update:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.update:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.update:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.update:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.delete:GET/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.delete:GET/customers/search",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.delete:GET/customers/stats",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.delete:GET/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.delete:POST/customers",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.delete:PATCH/customers/6ab43363130ed313d09394b3",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.delete:PATCH/customers/6ab43363130ed313d09394b3/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "single-customers.delete:DELETE/customers/6ab43363130ed313d09394b3",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "role-revocation-same-token",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "operation": "inactive-user-same-token",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "deleted-user-same-token",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "obsolete-privileged-claims-ignored",
+        "http": 403,
+        "result": "PASS"
+      }
+    ],
+    "recordsCreated": 26,
+    "recordsCleaned": 26,
+    "failedStep": null,
+    "success": true,
+    "exitCode": 0
   },
   "authorization": {
-    "status": "PENDING BUSINESS DECISION",
-    "customerRouteEnforcement": false,
-    "roleMiddlewareIsolated": "PASS",
-    "customerRoleMatrixReal": "NOT EXECUTED"
+    "status": "IMPLEMENTED AND VALIDATED",
+    "rolesTested": [
+      "superadmin",
+      "admin",
+      "manager",
+      "sales",
+      "purchasing",
+      "warehouse",
+      "finance",
+      "hr",
+      "auditor",
+      "user"
+    ],
+    "permissionsTested": [
+      "customers.read",
+      "customers.create",
+      "customers.update",
+      "customers.delete"
+    ],
+    "legacyRolesIsolated": [
+      "super_admin",
+      "viewer"
+    ],
+    "resolution": "current persisted User and Role; centralized fallback policy",
+    "jwtClaims": [
+      "id",
+      "iat",
+      "exp"
+    ],
+    "clientPermissionsTrusted": false,
+    "revocationSameToken": "PASS"
+  },
+  "mongodb": {
+    "environment": "QA",
+    "connection": "SUCCESS",
+    "preflight": "PASS",
+    "recordsCreated": 29,
+    "recordsCleaned": 29,
+    "productionTouched": false
   },
   "security": {
-    "historyBlobs": 281,
-    "knownSecretMatches": 0,
+    "historyBlobs": 292,
+    "historyMatches": 0,
+    "workingMatches": 0,
     "patternCandidates": 0,
-    "workingFileMatches": 0
+    "envIgnored": true,
+    "mongoDbEnvIgnored": true,
+    "secretsDetected": false,
+    "scope": "Known local secrets and selected private-key/token patterns"
   },
   "regression": {
-    "original60Preserved": true,
-    "originalTestFilesModified": false,
-    "todo12Preserved": true
+    "original60Pass": true,
+    "originalAssertionsPreserved": true,
+    "fixturesAdapted": true,
+    "futureTodo12Preserved": true,
+    "failures": 0
   },
+  "filesModified": [
+    "apps/backend/scripts/validate-m03-real.cjs",
+    "apps/backend/scripts/validate-rbac-real.cjs",
+    "apps/backend/src/middleware/authorize.js",
+    "apps/backend/src/modules/auth/auth.routes.js",
+    "apps/backend/src/modules/auth/auth.service.js",
+    "apps/backend/src/modules/customers/customers.routes.js",
+    "apps/backend/src/modules/customers/customers.service.js",
+    "apps/backend/src/modules/users/users.routes.js",
+    "apps/backend/src/security/rbac.js",
+    "apps/backend/src/shared/constants/appConstants.js",
+    "apps/backend/tests/bootstrap.test.js",
+    "apps/backend/tests/customers.http.test.js",
+    "apps/backend/tests/rbac.test.js",
+    "apps/backend/tests/setup.cjs",
+    "apps/frontend/src/features/customers/CustomerDetailScreen.js",
+    "apps/frontend/src/features/customers/CustomerForm.js",
+    "apps/frontend/src/features/customers/CustomersScreen.js",
+    "apps/frontend/src/hooks/usePermissions.js",
+    "apps/frontend/tests/customers.frontend.test.js",
+    "apps/frontend/tests/customers.phase7.test.js",
+    "apps/frontend/tests/customers.web-actions.test.js",
+    "apps/frontend/tests/rbac.test.js"
+  ],
   "dependenciesModified": [],
   "git": {
     "commits": [
-      "48456b3",
-      "1bb7079",
-      "c2afde8"
+      "08e6fbb",
+      "83b0fe3",
+      "9ec41df"
     ],
     "push": false,
     "merge": false
   },
-  "verdict": "APROBADO CON PENDIENTES"
+  "verdict": "APROBADO"
 }

@@ -1,0 +1,274 @@
+{
+  "phase": "7-real-integration",
+  "date": "2026-09-23",
+  "branch": "codex/m03-validation",
+  "initialHead": "5847e36b426d5059598ecf10ce06658256a5a975",
+  "previousEvidence": "history/M03-phase7-results.json",
+  "environment": {
+    "source": "FOUND",
+    "format": "VALID",
+    "sourceVariables": [
+      "MONGODB_URI"
+    ],
+    "sourceJwtSecrets": "MISSING",
+    "unusedSourceVariables": [],
+    "localEnv": "CONFIGURED",
+    "jwtSecrets": "GENERATED LOCALLY; NOT VERSIONED",
+    "envIgnored": true,
+    "mongoDbEnvIgnored": true,
+    "secretsCommitted": false
+  },
+  "mongodb": {
+    "preflight": "PASS",
+    "connection": "SUCCESS",
+    "environment": "QA",
+    "databaseSelection": "Dedicated new database explicitly authorized by user; MONGODB_DB_NAME",
+    "initialDatabaseEmpty": true,
+    "sandboxAttempt": "DNS failure; unrestricted retry successful",
+    "qaRecordsCreated": 29,
+    "qaRecordsCleaned": 29
+  },
+  "realApi": {
+    "connection": "SUCCESS",
+    "checks": [
+      {
+        "operation": "LOGIN",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "CREATE_1",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "operation": "CREATE_2",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "operation": "LIST",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "DETAIL",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "UPDATE",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "READ_AFTER_UPDATE",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "SEARCH",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "PAGE_1_LIMIT_1",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "PAGE_2_LIMIT_1",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "PAGE_1_LIMIT_2",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "TIED_PAGE_1",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "TIED_PAGE_2",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "STATUS",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "FILTER",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "INVALID_PAYLOAD",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "operation": "MISSING_NAME",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "operation": "INVALID_EMAIL",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "operation": "MISSING_ID",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "operation": "INVALID_ID",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "operation": "DUPLICATE",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "operation": "NO_TOKEN",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "INVALID_TOKEN",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "EXPIRED_TOKEN",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "operation": "SOFT_DELETE",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "operation": "LIST_AFTER_DELETE",
+        "http": 200,
+        "result": "PASS"
+      }
+    ],
+    "recordsCreated": 3,
+    "recordsCleaned": 3,
+    "failedStep": null,
+    "success": true,
+    "exitCode": 0
+  },
+  "frontend": {
+    "real": {
+      "result": "AUTOMATED PASS",
+      "method": "Agent-driven browser UI automation against actual backend and MongoDB; no API mocks",
+      "checks": [
+        "login",
+        "list",
+        "create",
+        "detail",
+        "edit",
+        "search",
+        "pagination: 21 unique rows",
+        "status",
+        "reload persistence",
+        "delete cancellation",
+        "confirmed soft delete",
+        "duplicate error visible"
+      ],
+      "created": 23,
+      "cleaned": 23,
+      "persistenceVerified": {
+        "nameEdited": true,
+        "status": "deleted"
+      },
+      "manual": "NOT EXECUTED",
+      "nativeAndroidIos": "NOT EXECUTED"
+    },
+    "originalM03": {
+      "total": 13,
+      "pass": 13,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "global": {
+      "total": 45,
+      "pass": 33,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 12,
+      "exitCode": 0
+    },
+    "buildWeb": {
+      "result": "PASS",
+      "exitCode": 0
+    }
+  },
+  "backend": {
+    "m03": {
+      "total": 47,
+      "pass": 47,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "global": {
+      "total": 139,
+      "pass": 139,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    }
+  },
+  "authentication": {
+    "isolated": "PASS",
+    "real": {
+      "validToken": "PASS",
+      "missingToken": 401,
+      "invalidToken": 401,
+      "expiredToken": 401
+    }
+  },
+  "authorization": {
+    "status": "PENDING BUSINESS DECISION",
+    "customerRouteEnforcement": false,
+    "roleMiddlewareIsolated": "PASS",
+    "customerRoleMatrixReal": "NOT EXECUTED"
+  },
+  "security": {
+    "historyBlobs": 281,
+    "knownSecretMatches": 0,
+    "patternCandidates": 0,
+    "workingFileMatches": 0
+  },
+  "regression": {
+    "original60Preserved": true,
+    "originalTestFilesModified": false,
+    "todo12Preserved": true
+  },
+  "dependenciesModified": [],
+  "git": {
+    "commits": [
+      "48456b3",
+      "1bb7079",
+      "c2afde8"
+    ],
+    "push": false,
+    "merge": false
+  },
+  "verdict": "APROBADO CON PENDIENTES"
+}
