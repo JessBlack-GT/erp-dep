@@ -4,7 +4,7 @@
  * ============================================
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -25,54 +25,59 @@ export function CustomerList({ navigation }) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const latestRequest = useRef(0);
 
   useEffect(() => {
-    loadCustomers();
+    loadCustomers(1, '');
+    return () => { latestRequest.current += 1; };
   }, []);
 
-  const loadCustomers = async () => {
+  const loadCustomers = async (requestedPage = 1, query = search, append = false) => {
+    const requestId = ++latestRequest.current;
     try {
       setLoading(true);
       const result = await customerService.getAll({
-        page,
+        page: requestedPage,
         limit: 20,
-        search,
+        search: query,
       });
-      setCustomers(result.data?.data || []);
-      setHasMore((result.data?.data?.pagination?.page || page) < (result.data?.data?.pagination?.totalPages || 1));
+      if (requestId !== latestRequest.current) return;
+      const rows = result.data?.data || [];
+      setCustomers(previous => append ? [...previous, ...rows] : rows);
+      setPage(requestedPage);
+      setHasMore(rows.length === 20);
       setError(null);
     } catch (err) {
+      if (requestId !== latestRequest.current) return;
       setError(err.response?.data?.message || 'Error al cargar clientes');
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
   };
 
   const handleSearch = (query) => {
     setSearch(query);
     setPage(1);
-    // Debounce search
-    setTimeout(() => loadCustomers(), 300);
+    loadCustomers(1, query);
   };
 
   const handleRefresh = () => {
     setPage(1);
-    loadCustomers();
+    loadCustomers(1, search);
   };
 
   const handleLoadMore = () => {
     if (hasMore && !loading) {
-      setPage((prev) => prev + 1);
-      loadCustomers();
+      loadCustomers(page + 1, search, true);
     }
   };
 
   const renderCustomer = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('CustomerDetail', { id: item.id })}
+      onPress={() => navigation.navigate('CustomerDetail', { id: item._id || item.id })}
     >
-      <Text style={styles.cardTitle}>{item.getFullName ? item.getFullName() : item.name}</Text>
+      <Text style={styles.cardTitle}>{item.businessName || `${item.name} ${item.lastName || ''}`.trim()}</Text>
       <Text style={styles.cardSubtitle}>{item.email}</Text>
       <Text style={styles.cardMeta}>
         {item.type === 'legal' ? 'Empresa' : 'Persona'} · {item.status}
@@ -80,7 +85,7 @@ export function CustomerList({ navigation }) {
     </TouchableOpacity>
   );
 
-  if (loading) {
+  if (loading && customers.length === 0) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#1976D2" />
@@ -116,7 +121,7 @@ export function CustomerList({ navigation }) {
       ) : (
         <FlatList
           data={customers}
-          keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+          keyExtractor={(item) => (item._id || item.id).toString()}
           renderItem={renderCustomer}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
@@ -134,6 +139,9 @@ export function CustomerList({ navigation }) {
     </View>
   );
 }
+
+export const CustomersScreen = CustomerList;
+export default CustomersScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },

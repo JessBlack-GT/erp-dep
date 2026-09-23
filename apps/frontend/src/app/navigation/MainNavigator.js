@@ -6,7 +6,10 @@
 
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuth } from '../providers/AuthProvider';
+import { useAuth } from '../../context/AuthContext';
+import { CustomersScreen } from '../../features/customers/CustomersScreen';
+import { CustomerDetailScreen } from '../../features/customers/CustomerDetailScreen';
+import { CustomerForm } from '../../features/customers/CustomerForm';
 
 // Pantallas de autenticación
 const LoginScreen = React.lazy(() => import('../../features/auth/LoginScreen'));
@@ -14,9 +17,6 @@ const RegisterScreen = React.lazy(() => import('../../features/auth/RegisterScre
 
 // Pantallas principales (requieren autenticación)
 const DashboardScreen = React.lazy(() => import('../../features/dashboard/DashboardScreen'));
-const CustomersScreen = React.lazy(() => import('../../features/customers/CustomersScreen'));
-const CustomerDetailScreen = React.lazy(() => import('../../features/customers/CustomerDetailScreen'));
-const CustomerForm = React.lazy(() => import('../../features/customers/CustomerForm'));
 const SuppliersScreen = React.lazy(() => import('../../features/suppliers/SuppliersScreen'));
 const ProductsScreen = React.lazy(() => import('../../features/products/ProductsScreen'));
 const InventoryScreen = React.lazy(() => import('../../features/inventory/InventoryScreen'));
