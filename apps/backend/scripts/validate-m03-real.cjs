@@ -42,7 +42,7 @@ async function main() {
     Customer = require('../src/modules/customers/customers.model');
     User = require('../src/modules/users/users.model');
     await Customer.init();
-    await User.create({ _id: userId, email, password, firstName: marker, lastName: 'QA', role: 'user', permissions: ['customers.read', 'customers.create', 'customers.update', 'customers.delete'] });
+    await User.create({ _id: userId, email, password, firstName: marker, lastName: 'QA', role: 'admin' });
     recordsCreated++;
     server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
     const base = `http://127.0.0.1:${server.address().port}/api/v1`;
