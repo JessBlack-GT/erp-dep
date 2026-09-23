@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('./auth.controller');
+const { authenticateToken } = require('../../middleware/authenticate');
 const { validateRequest } = require('../../middleware/validateRequest');
 const { validateRequired, validateEmail } = require('../../shared/validators/validators');
 
@@ -15,10 +16,10 @@ router.post('/register', validateRequest, authController.register);
 
 // Login y logout
 router.post('/login', validateRequest, authController.login);
-router.post('/logout', authController.logout);
+router.post('/logout', authenticateToken, authController.logout);
 router.post('/refresh', authController.refreshToken);
 
 // Perfil del usuario autenticado
-router.get('/me', authController.getMe);
+router.get('/me', authenticateToken, authController.getMe);
 
 module.exports = router;

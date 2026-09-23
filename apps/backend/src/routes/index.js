@@ -8,6 +8,12 @@
 
 const express = require('express');
 const router = express.Router();
+// Liveness does not claim database readiness.
+router.get('/health', (req, res) => res.json({ success: true, status: 'healthy', timestamp: new Date().toISOString() }));
+router.get('/ready', (req, res) => {
+  const ready = require('mongoose').connection.readyState === 1;
+  res.status(ready ? 200 : 503).json({ success: ready, status: ready ? 'ready' : 'not_ready' });
+});
 
 // ============================================
 // Módulos de autenticación y seguridad
