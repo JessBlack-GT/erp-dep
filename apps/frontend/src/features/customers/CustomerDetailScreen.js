@@ -14,6 +14,8 @@ import {
   TouchableOpacity,
   Alert,
   Button,
+  Modal,
+  Platform,
 } from 'react-native';
 import { customerService } from '../../services/api';
 
@@ -23,6 +25,9 @@ export function CustomerDetailScreen({ route, navigation }) {
   const [customer, setCustomer] = useState(null);
   const [error, setError] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
   useEffect(() => {
     if (navigation?.addListener) return navigation.addListener('focus', loadCustomer);
@@ -53,6 +58,7 @@ export function CustomerDetailScreen({ route, navigation }) {
       const response = await customerService.changeStatus(id, status);
       setCustomer(response.data.data);
     } catch (err) {
+      setActionError('No se pudo cambiar el estado');
       Alert.alert('Error', err.response?.data?.error || 'No se pudo cambiar el estado');
     } finally { setUpdatingStatus(false); }
   };
@@ -61,7 +67,22 @@ export function CustomerDetailScreen({ route, navigation }) {
     navigation.navigate('CustomerForm', { customerId: id });
   };
 
+  const deleteCustomer = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setActionError(null);
+    try {
+      await customerService.delete(id);
+      setConfirmDelete(false);
+      navigation.goBack();
+    } catch (err) {
+      setConfirmDelete(false);
+      setActionError('No se pudo eliminar el cliente');
+    } finally { setDeleting(false); }
+  };
+
   const handleDelete = () => {
+    if (Platform.OS === 'web') { setConfirmDelete(true); return; }
     Alert.alert(
       'Confirmar',
       '¿Estás seguro de eliminar este cliente?',
@@ -70,15 +91,7 @@ export function CustomerDetailScreen({ route, navigation }) {
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await customerService.delete(id);
-              Alert.alert('Éxito', 'Cliente eliminado');
-              navigation.goBack();
-            } catch (err) {
-              Alert.alert('Error', 'No se pudo eliminar el cliente');
-            }
-          },
+          onPress: deleteCustomer,
         },
       ]
     );
@@ -163,6 +176,16 @@ export function CustomerDetailScreen({ route, navigation }) {
         </View>
       )}
 
+      {actionError && <Text accessibilityRole="alert">{actionError}</Text>}
+      <Modal visible={confirmDelete} transparent animationType="fade" onRequestClose={() => !deleting && setConfirmDelete(false)}>
+        <View style={styles.confirmOverlay}>
+          <View style={styles.section} accessibilityViewIsModal>
+            <Text style={styles.sectionTitle}>¿Estás seguro de eliminar este cliente?</Text>
+            <Button title="Cancelar" disabled={deleting} onPress={() => setConfirmDelete(false)} />
+            <Button title="Confirmar eliminación" disabled={deleting} onPress={deleteCustomer} />
+          </View>
+        </View>
+      </Modal>
       <View style={styles.buttonRow}>
         <Button title={customer.status === 'active' ? 'Desactivar' : 'Activar'} onPress={changeStatus} disabled={updatingStatus} />
         <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
@@ -177,6 +200,7 @@ export function CustomerDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  confirmOverlay: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.4)' },
   container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#212121', marginBottom: 12 },
   statusContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },

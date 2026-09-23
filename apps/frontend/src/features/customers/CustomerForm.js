@@ -23,6 +23,7 @@ export function CustomerForm({ route, navigation }) {
   const [loading, setLoading] = useState(!!customerId);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     lastName: '',
@@ -65,6 +66,7 @@ export function CustomerForm({ route, navigation }) {
         notes: customer.notes || '',
       });
     } catch (err) {
+      setSubmitError('No se pudo cargar el cliente');
       Alert.alert('Error', 'No se pudo cargar el cliente');
     } finally {
       setLoading(false);
@@ -87,6 +89,7 @@ export function CustomerForm({ route, navigation }) {
   };
 
   const handleSubmit = async () => {
+    setSubmitError(null);
     if (!validateForm()) {
       Alert.alert('Error', 'Por favor, corrige los campos marcados');
       return;
@@ -104,6 +107,7 @@ export function CustomerForm({ route, navigation }) {
       navigation.goBack();
     } catch (err) {
       const message = err.response?.data?.error || err.response?.data?.message || 'Error al guardar';
+      setSubmitError(typeof message === 'string' ? message : 'Error al guardar');
       Alert.alert('Error', message);
     } finally {
       setSubmitting(false);
@@ -242,6 +246,7 @@ export function CustomerForm({ route, navigation }) {
         numberOfLines={4}
       />
 
+      {submitError && <Text accessibilityRole="alert" style={styles.errorText}>{submitError}</Text>}
       <TouchableOpacity
         style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
         onPress={handleSubmit}

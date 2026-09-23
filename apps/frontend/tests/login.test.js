@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, cleanup, act } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { LoginScreen } from '../src/features/auth/LoginScreen';
@@ -11,7 +11,12 @@ function Session() {
   return auth.loading ? <Text>Loading</Text> : auth.isAuthenticated ? <Text>Authenticated</Text> : <LoginScreen />;
 }
 describe('Login and real auth context with mocked API', () => {
-  beforeEach(async () => { jest.clearAllMocks(); await AsyncStorage.clear(); });
+  beforeEach(async () => { jest.clearAllMocks(); jest.useFakeTimers(); await AsyncStorage.clear(); });
+  afterEach(async () => {
+    cleanup();
+    await act(async () => jest.runOnlyPendingTimers());
+    jest.useRealTimers();
+  });
   it('validates required fields without sending credentials', async () => {
     const ui = render(<AuthProvider><Session /></AuthProvider>);
     await waitFor(() => expect(ui.getByText('Entrar')).toBeTruthy());
