@@ -15,10 +15,13 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { usePermissions } from '../../hooks/usePermissions';
 import { customerService } from '../../services/api';
 import { formatDate, truncate } from '../../utils';
 
 export function CustomerList({ navigation }) {
+  const can = usePermissions();
+  const canRead = can('customers.read');
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,6 +40,7 @@ export function CustomerList({ navigation }) {
   }, []);
 
   const loadCustomers = async (requestedPage = 1, query = search, append = false) => {
+    if (!canRead) { setLoading(false); return; }
     const requestId = ++latestRequest.current;
     try {
       setLoading(true);
@@ -89,6 +93,8 @@ export function CustomerList({ navigation }) {
     </TouchableOpacity>
   );
 
+  if (!canRead) return <Text accessibilityRole="alert">Sin permiso para consultar clientes</Text>;
+
   if (loading && customers.length === 0) {
     return (
       <View style={styles.centered}>
@@ -134,12 +140,12 @@ export function CustomerList({ navigation }) {
           onRefresh={handleRefresh}
         />
       )}
-      <TouchableOpacity
+      {can('customers.create') && <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('CustomerForm')}
       >
         <Text style={styles.fabText}>+</Text>
-      </TouchableOpacity>
+      </TouchableOpacity>}
     </View>
   );
 }

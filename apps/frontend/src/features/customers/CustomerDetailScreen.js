@@ -17,10 +17,13 @@ import {
   Modal,
   Platform,
 } from 'react-native';
+import { usePermissions } from '../../hooks/usePermissions';
 import { customerService } from '../../services/api';
 
 export function CustomerDetailScreen({ route, navigation }) {
   const { id } = route.params || {};
+  const can = usePermissions();
+  const canRead = can('customers.read');
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState(null);
   const [error, setError] = useState(null);
@@ -38,6 +41,7 @@ export function CustomerDetailScreen({ route, navigation }) {
   }, [id]);
 
   const loadCustomer = async () => {
+    if (!canRead) { setLoading(false); return; }
     setLoading(true);
     try {
       const result = await customerService.getById(id);
@@ -51,7 +55,7 @@ export function CustomerDetailScreen({ route, navigation }) {
   };
 
   const changeStatus = async () => {
-    if (updatingStatus) return;
+    if (updatingStatus || !can('customers.update')) return;
     setUpdatingStatus(true);
     try {
       const status = customer.status === 'active' ? 'inactive' : 'active';
@@ -68,7 +72,7 @@ export function CustomerDetailScreen({ route, navigation }) {
   };
 
   const deleteCustomer = async () => {
-    if (deleting) return;
+    if (deleting || !can('customers.delete')) return;
     setDeleting(true);
     setActionError(null);
     try {
@@ -82,6 +86,7 @@ export function CustomerDetailScreen({ route, navigation }) {
   };
 
   const handleDelete = () => {
+    if (!can('customers.delete')) return;
     if (Platform.OS === 'web') { setConfirmDelete(true); return; }
     Alert.alert(
       'Confirmar',
@@ -96,6 +101,8 @@ export function CustomerDetailScreen({ route, navigation }) {
       ]
     );
   };
+
+  if (!canRead) return <Text accessibilityRole="alert">Sin permiso para consultar clientes</Text>;
 
   if (loading) {
     return (
@@ -187,13 +194,13 @@ export function CustomerDetailScreen({ route, navigation }) {
         </View>
       </Modal>
       <View style={styles.buttonRow}>
-        <Button title={customer.status === 'active' ? 'Desactivar' : 'Activar'} onPress={changeStatus} disabled={updatingStatus} />
-        <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+        {can('customers.update') && <Button title={customer.status === 'active' ? 'Desactivar' : 'Activar'} onPress={changeStatus} disabled={updatingStatus} />}
+        {can('customers.update') && <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
           <Text style={styles.editButtonText}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+        </TouchableOpacity>}
+        {can('customers.delete') && <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
           <Text style={styles.deleteButtonText}>Eliminar</Text>
-        </TouchableOpacity>
+        </TouchableOpacity>}
       </View>
     </ScrollView>
   );

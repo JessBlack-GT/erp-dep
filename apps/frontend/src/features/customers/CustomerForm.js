@@ -15,11 +15,14 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { usePermissions } from '../../hooks/usePermissions';
 import { customerService } from '../../services/api';
 import { isValidEmail } from '../../utils';
 
 export function CustomerForm({ route, navigation }) {
   const { customerId } = route.params || {};
+  const can = usePermissions();
+  const canSubmit = can(customerId ? 'customers.update' : 'customers.create');
   const [loading, setLoading] = useState(!!customerId);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -41,7 +44,7 @@ export function CustomerForm({ route, navigation }) {
   });
 
   useEffect(() => {
-    if (customerId) {
+    if (customerId && canSubmit) {
       loadCustomer(customerId);
     }
   }, [customerId]);
@@ -89,6 +92,7 @@ export function CustomerForm({ route, navigation }) {
   };
 
   const handleSubmit = async () => {
+    if (!canSubmit) return;
     setSubmitError(null);
     if (!validateForm()) {
       Alert.alert('Error', 'Por favor, corrige los campos marcados');
@@ -113,6 +117,8 @@ export function CustomerForm({ route, navigation }) {
       setSubmitting(false);
     }
   };
+
+  if (!canSubmit) return <Text accessibilityRole="alert">Sin permiso para guardar clientes</Text>;
 
   if (loading) {
     return (

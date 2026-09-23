@@ -1,3 +1,5 @@
+// Existing component behavior uses an authorized session; RBAC is covered separately.
+jest.mock('../src/hooks/usePermissions', () => ({ usePermissions: () => () => true }));
 import React from 'react';
 import { Platform, Alert } from 'react-native';
 import { render, fireEvent, waitFor, cleanup, act } from '@testing-library/react-native';
