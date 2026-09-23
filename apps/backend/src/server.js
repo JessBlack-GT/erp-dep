@@ -27,12 +27,12 @@ async function startServer() {
 
     // Manejo de errores no capturados
     process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled Rejection:', reason);
+      logger.error('Unhandled Rejection');
       server.close(() => process.exit(1));
     });
 
     process.on('uncaughtException', (err) => {
-      logger.error('Uncaught Exception:', err);
+      logger.error('Uncaught Exception');
       server.close(() => process.exit(1));
     });
 
@@ -47,7 +47,7 @@ async function startServer() {
 
     return server;
   } catch (error) {
-    logger.error('Error al iniciar el servidor:', error);
+    logger.error('Error al iniciar el servidor; verifique la configuración local');
     process.exit(1);
   }
 }

@@ -70,3 +70,11 @@ ios/
 *.tgz
 .npm
 .yarn-integrity
+
+# All local environment variants; safe template only
+.env.*
+!.env.example
+*credentials*.json
+*service-account*.json
+*.p12
+*.pfx

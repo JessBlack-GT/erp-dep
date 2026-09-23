@@ -41,8 +41,6 @@ async function connectDB() {
 
     const connection = await mongoose.connect(MONGODB_URI, dbOptions);
     logger.info(`MongoDB Atlas conectado exitosamente a la base: ${MONGODB_DB_NAME}`);
-    logger.info(`Host: ${connection.connection.host}`);
-    logger.info(`Puerto: ${connection.connection.port}`);
 
     // Monitoreo de eventos de conexion
     mongoose.connection.on('disconnected', () => {
@@ -50,7 +48,7 @@ async function connectDB() {
     });
 
     mongoose.connection.on('error', (err) => {
-      logger.error('Error de conexion MongoDB:', err.message);
+      logger.error('Error de conexion MongoDB');
     });
 
     mongoose.connection.on('reconnected', () => {
@@ -59,7 +57,7 @@ async function connectDB() {
 
     return connection;
   } catch (error) {
-    logger.error('Error al conectar a MongoDB Atlas:', error.message);
+    logger.error('Error al conectar a MongoDB Atlas');
     throw error;
   }
 }
@@ -73,7 +71,7 @@ async function closeDB() {
     await mongoose.connection.close();
     logger.info('Conexion a MongoDB Atlas cerrada');
   } catch (error) {
-    logger.error('Error al cerrar la conexion:', error.message);
+    logger.error('Error al cerrar la conexion');
     throw error;
   }
 }
