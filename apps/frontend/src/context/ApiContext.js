@@ -5,7 +5,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { apiClient } from '../services/api';
+import apiClient from '../services/api';
 
 const ApiContext = createContext(null);
 

@@ -37,7 +37,8 @@ export function AuthProvider({ children }) {
   };
 
   const login = useCallback(async (email, password) => {
-    const result = await authService.login(email, password);
+    const response = await authService.login(email, password);
+    const result = response.data.data;
     await AsyncStorage.multiSet([
       [STORAGE_KEYS.ACCESS_TOKEN, result.accessToken],
       [STORAGE_KEYS.REFRESH_TOKEN, result.refreshToken],
@@ -70,7 +71,8 @@ export function AuthProvider({ children }) {
   const refreshSession = useCallback(async () => {
     try {
       const storedRefresh = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-      const result = await authService.refreshToken(storedRefresh);
+      const response = await authService.refreshToken(storedRefresh);
+      const result = response.data.data;
       await AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, result.accessToken);
       setToken(result.accessToken);
     } catch (error) {

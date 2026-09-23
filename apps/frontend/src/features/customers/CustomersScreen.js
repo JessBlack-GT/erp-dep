@@ -28,6 +28,10 @@ export function CustomerList({ navigation }) {
   const latestRequest = useRef(0);
 
   useEffect(() => {
+    if (navigation?.addListener) return navigation.addListener('focus', () => loadCustomers(1, search));
+  }, [navigation, search]);
+
+  useEffect(() => {
     loadCustomers(1, '');
     return () => { latestRequest.current += 1; };
   }, []);

@@ -6,11 +6,10 @@
 
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { AuthProvider } from './app/providers/AuthProvider';
-import { ThemeProvider } from './app/providers/ThemeProvider';
-import { ApiProvider } from './app/providers/ApiProvider';
-import { MainNavigator } from './app/navigation/MainNavigator';
-import { LoadingScreen } from './app/components/feedback/LoadingScreen';
+import { AuthProvider } from '../context/AuthContext';
+import { ThemeProvider } from '../context/ThemeContext';
+import { ApiProvider } from '../context/ApiContext';
+import { MainNavigator } from './navigation/MainNavigator';
 
 export default function App() {
   return (

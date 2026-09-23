@@ -5,5 +5,4 @@
  */
 
 export { LoginScreen } from './LoginScreen';
-export { RegisterScreen } from './RegisterScreen';
-export { ResetPasswordScreen } from './ResetPasswordScreen';
+// RegisterScreen and ResetPasswordScreen are future UI capabilities.

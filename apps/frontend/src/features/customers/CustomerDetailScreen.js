@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
+  Button,
 } from 'react-native';
 import { customerService } from '../../services/api';
 
@@ -21,12 +22,18 @@ export function CustomerDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState(null);
   const [error, setError] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+
+  useEffect(() => {
+    if (navigation?.addListener) return navigation.addListener('focus', loadCustomer);
+  }, [navigation, id]);
 
   useEffect(() => {
     loadCustomer();
   }, [id]);
 
   const loadCustomer = async () => {
+    setLoading(true);
     try {
       const result = await customerService.getById(id);
       setCustomer(result.data?.data || result.data);
@@ -36,6 +43,18 @@ export function CustomerDetailScreen({ route, navigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const changeStatus = async () => {
+    if (updatingStatus) return;
+    setUpdatingStatus(true);
+    try {
+      const status = customer.status === 'active' ? 'inactive' : 'active';
+      const response = await customerService.changeStatus(id, status);
+      setCustomer(response.data.data);
+    } catch (err) {
+      Alert.alert('Error', err.response?.data?.error || 'No se pudo cambiar el estado');
+    } finally { setUpdatingStatus(false); }
   };
 
   const handleEdit = () => {
@@ -145,6 +164,7 @@ export function CustomerDetailScreen({ route, navigation }) {
       )}
 
       <View style={styles.buttonRow}>
+        <Button title={customer.status === 'active' ? 'Desactivar' : 'Activar'} onPress={changeStatus} disabled={updatingStatus} />
         <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
           <Text style={styles.editButtonText}>Editar</Text>
         </TouchableOpacity>
