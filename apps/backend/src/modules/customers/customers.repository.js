@@ -27,7 +27,8 @@ class CustomerRepository {
     }
 
     return Customer.find(query)
-      .sort({ [sortBy]: sortOrder })
+      // A unique tie-breaker keeps adjacent pages stable when values are equal.
+      .sort({ [sortBy]: sortOrder, _id: sortOrder })
       .skip(skip)
       .limit(limit)
       .lean();

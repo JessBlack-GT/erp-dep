@@ -27,6 +27,7 @@ async function main() {
   Object.assign(process.env, env, { MONGODB_DB_NAME: check.dbName });
   const mongoose = require('mongoose');
   let server, Customer, User, connected = false;
+  let recordsCreated = 0, recordsCleaned = 0, failedStep = null, currentStep = 'CONNECTION';
   // Leave room for suffixes within documentNumber's 50-character schema limit.
   const marker = `QA_M03_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`;
   const email = `${marker.toLowerCase()}@example.com`;
@@ -42,10 +43,12 @@ async function main() {
     User = require('../src/modules/users/users.model');
     await Customer.init();
     await User.create({ _id: userId, email, password, firstName: marker, lastName: 'QA', role: 'user', permissions: ['customers.read', 'customers.create', 'customers.update', 'customers.delete'] });
+    recordsCreated++;
     server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
     const base = `http://127.0.0.1:${server.address().port}/api/v1`;
     let token;
     async function http(label, method, endpoint, status, body, auth = token) {
+      currentStep = label;
       const headers = { 'Content-Type': 'application/json' };
       if (auth) headers.Authorization = `Bearer ${auth}`;
       const response = await fetch(base + endpoint, { method, headers, body: body ? JSON.stringify(body) : undefined });
@@ -61,6 +64,7 @@ async function main() {
     for (let i = 0; i < 2; i++) {
       const item = await http(`CREATE_${i + 1}`, 'POST', '/customers', 201, { name: `${marker}_${i}`, email: `${i}_${email}`, documentNumber: `${marker}_${i}` });
       created.push(item);
+      recordsCreated++;
       ownedIds[i] = new mongoose.Types.ObjectId(item._id);
       assert.equal((await Customer.findById(item._id)).name, `${marker}_${i}`);
     }
@@ -75,6 +79,11 @@ async function main() {
     const page2 = await http('PAGE_2_LIMIT_1', 'GET', `/customers?search=${marker}&page=2&limit=1&sortBy=name&sortOrder=asc`, 200);
     assert.notEqual(page1[0]._id, page2[0]._id);
     assert.equal((await http('PAGE_1_LIMIT_2', 'GET', `/customers?search=${marker}&page=1&limit=2`, 200)).length, 2);
+    // Reproduce equal timestamps: pagination must not repeat or omit either record.
+    await Customer.collection.updateMany({ _id: { $in: ownedIds } }, { $set: { createdAt: new Date('2026-01-01T00:00:00Z') } });
+    const tied1 = await http('TIED_PAGE_1', 'GET', `/customers?search=${marker}&page=1&limit=1`, 200);
+    const tied2 = await http('TIED_PAGE_2', 'GET', `/customers?search=${marker}&page=2&limit=1`, 200);
+    assert.deepEqual(new Set([tied1[0]._id, tied2[0]._id]), new Set(created.map(c => c._id)));
     await http('STATUS', 'PATCH', `/customers/${id}/status`, 200, { status: 'inactive' });
     assert.equal((await Customer.findById(id)).status, 'inactive');
     assert.equal((await http('FILTER', 'GET', `/customers?search=${marker}&status=inactive`, 200)).length, 1);
@@ -92,20 +101,24 @@ async function main() {
     assert.equal((await Customer.findById(id)).status, 'deleted');
     assert(!(await http('LIST_AFTER_DELETE', 'GET', `/customers?search=${marker}`, 200)).some(c => c._id === id));
   } catch (error) {
+    failedStep = currentStep;
     if (!connected) console.log('MongoDB connection: FAILED');
     console.log(`QA failure category: ${classifyConnectionError(error)}`);
     process.exitCode = 1;
   } finally {
     try {
       if (connected && mongoose.connection.readyState === 1) {
-        if (Customer) await Customer.deleteMany({ $or: [{ _id: { $in: ownedIds }, email: { $in: [`0_${email}`, `1_${email}`] } }, { email: { $in: [`0_${email}`, `1_${email}`] }, documentNumber: { $in: [`${marker}_0`, `${marker}_1`] } }] });
-        if (User) await User.deleteOne({ _id: userId, email });
+        if (Customer) recordsCleaned += (await Customer.deleteMany({ $or: [{ _id: { $in: ownedIds }, email: { $in: [`0_${email}`, `1_${email}`] } }, { email: { $in: [`0_${email}`, `1_${email}`] }, documentNumber: { $in: [`${marker}_0`, `${marker}_1`] } }] })).deletedCount;
+        if (User) recordsCleaned += (await User.deleteOne({ _id: userId, email })).deletedCount;
         console.log('QA cleanup: SUCCESS');
       }
     } catch (_) { console.log('QA cleanup: FAILED'); process.exitCode = 1; }
     if (server) await new Promise(resolve => server.close(resolve));
     await mongoose.disconnect();
     console.log(`QA HTTP checks passed: ${results.length}`);
+    console.log(`QA records created: ${recordsCreated}`);
+    console.log(`QA records cleaned: ${recordsCleaned}`);
+    console.log('QA_RESULT: ' + JSON.stringify({ connection: connected ? 'SUCCESS' : 'FAILED', checks: results, recordsCreated, recordsCleaned, failedStep, success: !process.exitCode }));
   }
 }
 main().catch(() => { console.log('QA failure category: APPLICATION'); process.exitCode = 1; });
