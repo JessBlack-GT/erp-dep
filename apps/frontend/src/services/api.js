@@ -124,3 +124,13 @@ export const reportService = {
 };
 
 export default apiClient;
+
+export const supplierService = {
+ getAll: params => apiClient.get('/suppliers', {params}),
+ getById: id => apiClient.get('/suppliers/'+id),
+ create: data => apiClient.post('/suppliers',data),
+ update: (id,data) => apiClient.patch('/suppliers/'+id,data),
+ changeStatus: (id,status) => apiClient.patch('/suppliers/'+id+'/status',{status}),
+ delete: id => apiClient.delete('/suppliers/'+id),
+ search: q => apiClient.get('/suppliers/search',{params:{q}}),
+};

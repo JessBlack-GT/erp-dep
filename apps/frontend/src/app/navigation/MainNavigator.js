@@ -1,4 +1,6 @@
 import React from 'react';
+import { View, Button } from 'react-native';
+import { SuppliersScreen, SupplierDetailScreen, SupplierForm } from '../../features/suppliers';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import { LoginScreen } from '../../features/auth/LoginScreen';
@@ -8,13 +10,16 @@ import { CustomerForm } from '../../features/customers/CustomerForm';
 const Stack = createNativeStackNavigator();
 // Future modules are not registered until their screens exist.
 export function MainNavigator() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, logout } = useAuth();
   if (loading) return null;
-  return <Stack.Navigator>
+  return <Stack.Navigator screenOptions={({ navigation }) => ({ headerRight: () => isAuthenticated ? <View style={{flexDirection:'row',gap:8}}><Button title="Clientes" onPress={() => navigation.navigate('Customers')} /><Button title="Proveedores" onPress={() => navigation.navigate('Suppliers')} /><Button title="Cerrar sesión" onPress={() => logout().catch(() => {})} /></View> : null })}>
     {!isAuthenticated ? <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Iniciar sesión' }} /> : <>
       <Stack.Screen name="Customers" component={CustomersScreen} options={{ title: 'Clientes' }} />
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} options={{ title: 'Detalle' }} />
       <Stack.Screen name="CustomerForm" component={CustomerForm} options={{ title: 'Cliente' }} />
+      <Stack.Screen name="Suppliers" component={SuppliersScreen} options={{ title: 'Proveedores' }} />
+      <Stack.Screen name="SupplierDetail" component={SupplierDetailScreen} options={{ title: 'Proveedor' }} />
+      <Stack.Screen name="SupplierForm" component={SupplierForm} options={{ title: 'Proveedor' }} />
     </>}
   </Stack.Navigator>;
 }
