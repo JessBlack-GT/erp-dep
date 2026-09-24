@@ -7,7 +7,7 @@
 import { expect } from '@jest/globals';
 
 describe('Frontend Features', () => {
-  const features = ['auth', 'customers', 'suppliers', 'products'];
+  const features = ['auth', 'customers', 'suppliers', 'products', 'inventory'];
 
   features.forEach((feature) => {
     it(`debería tener la estructura de feature "${feature}" preparada`, () => {
@@ -18,7 +18,7 @@ describe('Frontend Features', () => {
 });
 
 describe('Future features — not implemented, not credited as passing', () => {
-  for (const feature of ['dashboard', 'inventory', 'sales', 'purchases', 'finance', 'human-resources', 'reports', 'notifications', 'settings']) {
+  for (const feature of ['dashboard', 'sales', 'purchases', 'finance', 'human-resources', 'reports', 'notifications', 'settings']) {
     it.todo(`debería tener la estructura de feature "${feature}" preparada`);
   }
 });
