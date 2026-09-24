@@ -1,10 +1,11 @@
-/**
- * ============================================
- * ERP-SYSTEM - Feature: Inventario
- * ============================================
- */
-
-export { InventoryScreen } from './InventoryScreen';
-export { InventoryMovementScreen } from './InventoryMovementScreen';
-export { InventoryBalance } from './InventoryBalance';
-export { MovementList } from './MovementList';
+export {
+  InventoryScreen,
+  InventoryBalances,
+  InventoryMovements,
+} from './InventoryScreen';
+export {
+  InventoryMovementForm,
+  InventoryTransferForm,
+} from './InventoryMovementForm';
+export { WarehouseSelector } from './InventorySelector';
+export { WarehouseForm } from './WarehouseForm';

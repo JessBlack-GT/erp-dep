@@ -101,6 +101,11 @@ export const productService = {
 // Servicio de Inventario
 // ============================================
 export const inventoryService = {
+  getWarehouses: (params) => apiClient.get('/inventory/warehouses', { params }),
+  getProducts: (params) => apiClient.get('/inventory/products', { params }),
+  createWarehouse: (data) => apiClient.post('/inventory/warehouses', data),
+  updateWarehouse: (id, data) => apiClient.patch('/inventory/warehouses/' + id, data),
+  getByProduct: (id, params) => apiClient.get('/inventory/balances/product/' + id, { params }),
   getBalances: (params) => apiClient.get('/inventory/balances', { params }),
   getMovements: (params) => apiClient.get('/inventory/movements', { params }),
   createMovement: (data) => apiClient.post('/inventory/movements', data),
