@@ -1,16 +1,16 @@
-# ERP — baseline aprobado M03 + M04
+# ERP — baseline aprobado M03 + M04 + M05
 
 Base local importada con autorización desde `ERP-SYSTEM`. El remoto estaba vacío.
-Rama estable: `main`. M03 Clientes y M04 Proveedores: **APROBADO**.
+Rama estable: `main`. M03 Clientes, M04 Proveedores y M05 Productos y servicios: **APROBADO**.
 RBAC centralizado activo, MongoDB Atlas QA y E2E Web validados.
 Android/iOS nativo pendiente de validación.
 
 Evidencia: [M03](docs/qa/M03-VALIDATION.md), [M04](docs/qa/M04-VALIDATION.md) y
 [Proveedores](docs/modules/SUPPLIERS.md).
 
-En `codex/m05-products-services`, **M05 — Productos y servicios: APROBADO**.
+**M05 — Productos y servicios** está integrado en el baseline estable.
 [Evidencia M05](docs/qa/M05-VALIDATION.md) y [catálogo](docs/modules/PRODUCTS-SERVICES.md).
-Esta rama todavía no está integrada en main.
+La rama `codex/m05-products-services` se conserva como referencia de la entrega aprobada.
 
 ## Instalación y pruebas
 

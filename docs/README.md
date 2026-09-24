@@ -201,12 +201,12 @@ npm test
 - ✅ Cliente API centralizado del frontend
 - ✅ Documentación inicial completa
 - 🔄 Módulos de negocio: estructura preparada
-- M03 Clientes y M04 Proveedores: APROBADO. RBAC activo, Atlas QA y Web validados.
+- M03 Clientes, M04 Proveedores y M05 Productos y servicios: APROBADO. RBAC activo, Atlas QA y Web validados.
 - Android/iOS nativo pendiente de validación.
 
 ### Estado de módulos
 
-M03 y M04 cuentan con evidencia QA aprobada en el baseline. M05 está aprobado en su rama de desarrollo, pendiente de integración a main. Véanse [M03](qa/M03-VALIDATION.md), [M04](qa/M04-VALIDATION.md) y [M05](qa/M05-VALIDATION.md).
+M03, M04 y M05 cuentan con evidencia QA aprobada y están integrados en el baseline estable main. Véanse [M03](qa/M03-VALIDATION.md), [M04](qa/M04-VALIDATION.md) y [M05](qa/M05-VALIDATION.md).
 
 | Módulo | Estado |
 |--------|--------|
@@ -214,7 +214,7 @@ M03 y M04 cuentan con evidencia QA aprobada en el baseline. M05 está aprobado e
 | M02 - Dashboard | Estructura preparada |
 | M03 - Clientes | APROBADO |
 | M04 - Proveedores | APROBADO |
-| M05 - Productos y servicios | APROBADO en rama M05 |
+| M05 - Productos y servicios | APROBADO |
 | M06 - Inventario | Estructura preparada |
 | M07 - Ventas | Estructura preparada |
 | M08 - Compras | Estructura preparada |
