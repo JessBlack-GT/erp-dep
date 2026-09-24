@@ -93,6 +93,8 @@ export const productService = {
   create: (data) => apiClient.post('/products', data),
   update: (id, data) => apiClient.patch(`/products/${id}`, data),
   delete: (id) => apiClient.delete(`/products/${id}`),
+  changeStatus: (id, status) => apiClient.patch(`/products/${id}/status`, { status }),
+  search: q => apiClient.get('/products/search', {params:{q}}),
 };
 
 // ============================================

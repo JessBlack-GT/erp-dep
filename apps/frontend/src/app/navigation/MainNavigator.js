@@ -1,4 +1,5 @@
 import React from 'react';
+import {ProductsScreen, ProductDetailScreen, ProductForm} from '../../features/products';
 import { View, Button } from 'react-native';
 import { SuppliersScreen, SupplierDetailScreen, SupplierForm } from '../../features/suppliers';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -12,7 +13,7 @@ const Stack = createNativeStackNavigator();
 export function MainNavigator() {
   const { isAuthenticated, loading, logout } = useAuth();
   if (loading) return null;
-  return <Stack.Navigator screenOptions={({ navigation }) => ({ headerRight: () => isAuthenticated ? <View style={{flexDirection:'row',gap:8}}><Button title="Clientes" onPress={() => navigation.navigate('Customers')} /><Button title="Proveedores" onPress={() => navigation.navigate('Suppliers')} /><Button title="Cerrar sesión" onPress={() => logout().catch(() => {})} /></View> : null })}>
+  return <Stack.Navigator screenOptions={({ navigation }) => ({ headerRight: () => isAuthenticated ? <View style={{flexDirection:'row',gap:8}}><Button title="Clientes" onPress={() => navigation.navigate('Customers')} /><Button title="Proveedores" onPress={() => navigation.navigate('Suppliers')} /><Button title="Catálogo" onPress={() => navigation.navigate('Products')} /><Button title="Cerrar sesión" onPress={() => logout().catch(() => {})} /></View> : null })}>
     {!isAuthenticated ? <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Iniciar sesión' }} /> : <>
       <Stack.Screen name="Customers" component={CustomersScreen} options={{ title: 'Clientes' }} />
       <Stack.Screen name="CustomerDetail" component={CustomerDetailScreen} options={{ title: 'Detalle' }} />
@@ -20,6 +21,9 @@ export function MainNavigator() {
       <Stack.Screen name="Suppliers" component={SuppliersScreen} options={{ title: 'Proveedores' }} />
       <Stack.Screen name="SupplierDetail" component={SupplierDetailScreen} options={{ title: 'Proveedor' }} />
       <Stack.Screen name="SupplierForm" component={SupplierForm} options={{ title: 'Proveedor' }} />
+      <Stack.Screen name="Products" component={ProductsScreen} options={{title: "Productos y servicios"}} />
+      <Stack.Screen name="ProductDetail" component={ProductDetailScreen} options={{title: "Elemento"}} />
+      <Stack.Screen name="ProductForm" component={ProductForm} options={{title: "Elemento"}} />
     </>}
   </Stack.Navigator>;
 }
