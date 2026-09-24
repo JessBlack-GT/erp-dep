@@ -201,18 +201,19 @@ npm test
 - ✅ Cliente API centralizado del frontend
 - ✅ Documentación inicial completa
 - 🔄 Módulos de negocio: estructura preparada
-- ⏳ Funcionalidades empresariales: pendientes
+- M03 Clientes y M04 Proveedores: APROBADO. RBAC activo, Atlas QA y Web validados.
+- Android/iOS nativo pendiente de validación.
 
-### Funcionalidades Pendientes
+### Estado de módulos
 
-Los siguientes módulos están estructurados pero aún no tienen lógica de negocio completa:
+M03 y M04 cuentan con evidencia QA aprobada; los demás estados se conservan según su alcance documentado. Véanse [M03](qa/M03-VALIDATION.md) y [M04](qa/M04-VALIDATION.md).
 
 | Módulo | Estado |
 |--------|--------|
 | M01 - Autenticación | Estructura completa |
 | M02 - Dashboard | Estructura preparada |
-| M03 - Clientes | Estructura preparada |
-| M04 - Proveedores | Estructura preparada |
+| M03 - Clientes | APROBADO |
+| M04 - Proveedores | APROBADO |
 | M05 - Productos | Estructura preparada |
 | M06 - Inventario | Estructura preparada |
 | M07 - Ventas | Estructura preparada |

@@ -1,7 +1,13 @@
-# ERP — preparación Git y QA de M03
+# ERP — baseline aprobado M03 + M04
 
 Base local importada con autorización desde `ERP-SYSTEM`. El remoto estaba vacío.
-Rama de trabajo: `codex/m03-validation`. No se ha desarrollado M04.
+Rama estable: `main`. M03 Clientes y M04 Proveedores: **APROBADO**.
+RBAC centralizado activo, MongoDB Atlas QA y E2E Web validados.
+Android/iOS nativo pendiente de validación.
+
+Evidencia: [M03](docs/qa/M03-VALIDATION.md), [M04](docs/qa/M04-VALIDATION.md) y
+[Proveedores](docs/modules/SUPPLIERS.md). Siguiente módulo definido en el catálogo:
+**M05 — Productos y servicios**; su desarrollo aún no ha comenzado.
 
 ## Instalación y pruebas
 
@@ -43,8 +49,8 @@ puerto efímero local, usa JWT de corta duración, comprueba HTTP y persistencia
 y elimina físicamente solo los clientes y el usuario de esta ejecución,
 identificados por IDs y marcadores aleatorios.
 Nunca usa `dropDatabase` ni limpia colecciones completas. Los errores se reportan
-sin URI ni credenciales. El runner está preparado, pero su camino con conexión
-real todavía no se ha ejecutado por falta de configuración local autorizada.
+sin URI ni credenciales. La integración real M03 y M04 fue validada en la base
+QA autorizada; los resultados y la limpieza están documentados en las evidencias.
 
 ## Arranque de desarrollo
 
@@ -57,15 +63,16 @@ npm run build:web --workspace=apps/frontend
 El backend requiere MongoDB y ambos secretos JWT configurados. Lee
 `apps/backend/.env` independientemente del directorio de ejecución. El runner QA
 puede generar JWT efímeros solo en memoria si no están definidos localmente.
-La web se sirve en `http://localhost:8081`, con Login y Clientes. Usa React Native
+La web se sirve en `http://localhost:8081`, con Login, Clientes y Proveedores. Usa React Native
 Web y esbuild; no requiere Expo para web. `PUBLIC_API_BASE_URL` puede seleccionar
 una API de desarrollo al compilar: nunca poner credenciales en esa variable pública.
 
 `/api/v1/health` es liveness; `/api/v1/ready` devuelve 503 mientras no haya conexión
 MongoDB. `/api/v1/roles` exige token y devuelve 501: no hay API de administración
-de roles implementada. La política de permisos de clientes sigue pendiente de decisión.
+de roles implementada. Clientes y Proveedores aplican la política RBAC centralizada
+documentada en [Seguridad](docs/security/RBAC.md).
 
-Dashboard, M04 y otros módulos futuros no están registrados en la navegación.
+Dashboard y otros módulos futuros no están registrados en la navegación.
 Register/ResetPassword, la biblioteca de componentes comunes y el entorno Expo
 Android/iOS siguen pendientes. Una prueba con mocks o una compilación web no
 acredita ejecución nativa, autenticación real ni persistencia.

@@ -8,8 +8,8 @@
 | --- | ----------------------- | ------------------------------------------ | ------------ |
 | M01 | Usuarios y seguridad    | Usuarios, roles, permisos y autenticación. | Estructura completa |
 | M02 | Panel principal         | Resumen general de las operaciones.        | Estructura preparada |
-| M03 | Clientes                | Administración de clientes.                | Estructura preparada |
-| M04 | Proveedores             | Administración de proveedores.             | Estructura preparada |
+| M03 | Clientes                | Administración de clientes.                | APROBADO |
+| M04 | Proveedores             | Administración de proveedores.             | APROBADO |
 | M05 | Productos y servicios   | Catálogo de productos y servicios.         | Estructura preparada |
 | M06 | Inventario              | Existencias y movimientos.                 | Estructura preparada |
 | M07 | Ventas                  | Cotizaciones, pedidos y ventas.            | Estructura preparada |
