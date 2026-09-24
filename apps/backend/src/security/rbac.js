@@ -1,15 +1,17 @@
 // Central module.action catalog and initial policy. Role documents override defaults.
-const PERMISSIONS = Object.freeze(['customers.read', 'customers.create', 'customers.update', 'customers.delete']);
+const CUSTOMER_PERMISSIONS = Object.freeze(['customers.read', 'customers.create', 'customers.update', 'customers.delete']);
+const SUPPLIER_PERMISSIONS = Object.freeze(['suppliers.read', 'suppliers.create', 'suppliers.update', 'suppliers.delete']);
+const PERMISSIONS = Object.freeze([...CUSTOMER_PERMISSIONS, ...SUPPLIER_PERMISSIONS]);
 const ROLE_PERMISSIONS = Object.freeze({
   superadmin: PERMISSIONS,
   admin: PERMISSIONS,
-  manager: PERMISSIONS.slice(0, 3),
-  sales: PERMISSIONS.slice(0, 3),
-  purchasing: ['customers.read'],
-  warehouse: ['customers.read'],
-  finance: ['customers.read'],
+  manager: [...CUSTOMER_PERMISSIONS.slice(0, 3), ...SUPPLIER_PERMISSIONS.slice(0, 3)],
+  sales: [...CUSTOMER_PERMISSIONS.slice(0, 3), 'suppliers.read'],
+  purchasing: ['customers.read', ...SUPPLIER_PERMISSIONS.slice(0, 3)],
+  warehouse: ['customers.read', 'suppliers.read'],
+  finance: ['customers.read', 'suppliers.read'],
   hr: [],
-  auditor: ['customers.read'],
+  auditor: ['customers.read', 'suppliers.read'],
   user: [],
 });
 Object.values(ROLE_PERMISSIONS).forEach(Object.freeze);

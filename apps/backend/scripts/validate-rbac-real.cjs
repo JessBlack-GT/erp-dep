@@ -51,7 +51,7 @@ async function main() {
       const session=await http(name+':login','POST','/auth/login',200,null,{email,password});tokens[name]=session.accessToken;
       const payload=require('jsonwebtoken').decode(session.accessToken);
       assert(!('permissions' in payload)&&!('role' in payload)&&!('email' in payload));
-      assert.deepEqual([...session.user.permissions].sort(),permissions.filter((_,i)=>matrix[name][i]).sort());
+      assert.deepEqual(session.user.permissions.filter(p => p.startsWith('customers.')).sort(),permissions.filter((_,i)=>matrix[name][i]).sort());
     }
     const endpoints=[['GET','/customers',0,200],['GET','/customers/search?q='+marker,0,200],['GET','/customers/stats',0,200],['GET','/customers/'+target.id,0,200],['POST','/customers',1,201],['PATCH','/customers/'+target.id,2,200],['PATCH','/customers/'+target.id+'/status',2,200],['DELETE','/customers/'+target.id,3,200]];
     for(const [method,url] of endpoints)await http('no-token:'+method+url.split('?')[0],method,url,401);

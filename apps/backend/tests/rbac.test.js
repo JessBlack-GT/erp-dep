@@ -54,7 +54,7 @@ describe('RBAC: persisted identities, approved matrix and privilege boundaries',
     await request(app).post('/api/v1/customers').set('Authorization','Bearer '+token()).send({...item,role:'superadmin',permissions:['customers.create']}).expect(403);
     expect(repo.create.called).to.equal(false);
   });
-  for(const [permission,index] of rbac.PERMISSIONS.map((p,i)=>[p,i])) {
+  for(const [permission,index] of rbac.PERMISSIONS.filter(p => p.startsWith('customers.')).map((p,i)=>[p,i])) {
     it(`stored Role grants only ${permission}`,async()=>{
       storedRole={status:'active',permissions:[permission]};
       for(const e of endpoints)await call(e,e[2]===index?e[3]:403);
@@ -72,7 +72,7 @@ describe('RBAC: persisted identities, approved matrix and privilege boundaries',
     for(const e of endpoints) await call(e);
   });
   it('unknown stored permissions grant no access',async()=>{
-    storedRole={status:'active',permissions:['customers.*','suppliers.read','*']};
+    storedRole={status:'active',permissions:['customers.*','unregistered.read','*']};
     await call(endpoints[0],403);
   });
   it('supports the legacy super_admin alias but denies viewer by default',async()=>{
@@ -96,6 +96,6 @@ describe('RBAC: persisted identities, approved matrix and privilege boundaries',
     const res={status:sinon.stub().returnsThis(),json:sinon.stub()}; const next=sinon.spy();
     await requirePermission('customers.read')({user:{role:'superadmin'}},res,next);
     expect(res.status.calledWith(401)).to.equal(true);expect(next.called).to.equal(false);
-    expect(()=>requirePermission('suppliers.read')).to.throw('Unregistered permission');
+    expect(()=>requirePermission('unregistered.read')).to.throw('Unregistered permission');
   });
 });
