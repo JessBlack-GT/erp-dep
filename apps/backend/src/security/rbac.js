@@ -2,17 +2,18 @@
 const CUSTOMER_PERMISSIONS = Object.freeze(['customers.read', 'customers.create', 'customers.update', 'customers.delete']);
 const SUPPLIER_PERMISSIONS = Object.freeze(['suppliers.read', 'suppliers.create', 'suppliers.update', 'suppliers.delete']);
 const PRODUCT_PERMISSIONS = Object.freeze(['products.read', 'products.create', 'products.update', 'products.delete']);
-const PERMISSIONS = Object.freeze([...CUSTOMER_PERMISSIONS, ...SUPPLIER_PERMISSIONS, ...PRODUCT_PERMISSIONS]);
+const INVENTORY_PERMISSIONS = Object.freeze(['inventory.read', 'inventory.entry', 'inventory.exit', 'inventory.transfer', 'inventory.adjust', 'inventory.warehouse.manage']);
+const PERMISSIONS = Object.freeze([...CUSTOMER_PERMISSIONS, ...SUPPLIER_PERMISSIONS, ...PRODUCT_PERMISSIONS, ...INVENTORY_PERMISSIONS]);
 const ROLE_PERMISSIONS = Object.freeze({
   superadmin: PERMISSIONS,
   admin: PERMISSIONS,
-  manager: [...CUSTOMER_PERMISSIONS.slice(0, 3), ...SUPPLIER_PERMISSIONS.slice(0, 3), ...PRODUCT_PERMISSIONS.slice(0, 3)],
-  sales: [...CUSTOMER_PERMISSIONS.slice(0, 3), 'suppliers.read', 'products.read'],
-  purchasing: ['customers.read', ...SUPPLIER_PERMISSIONS.slice(0, 3), ...PRODUCT_PERMISSIONS.slice(0, 3)],
-  warehouse: ['customers.read', 'suppliers.read', ...PRODUCT_PERMISSIONS.slice(0, 3)],
-  finance: ['customers.read', 'suppliers.read', 'products.read'],
+  manager: [...CUSTOMER_PERMISSIONS.slice(0, 3), ...SUPPLIER_PERMISSIONS.slice(0, 3), ...PRODUCT_PERMISSIONS.slice(0, 3), ...INVENTORY_PERMISSIONS],
+  sales: [...CUSTOMER_PERMISSIONS.slice(0, 3), 'suppliers.read', 'products.read', 'inventory.read'],
+  purchasing: ['customers.read', ...SUPPLIER_PERMISSIONS.slice(0, 3), ...PRODUCT_PERMISSIONS.slice(0, 3), 'inventory.read', 'inventory.entry'],
+  warehouse: ['customers.read', 'suppliers.read', ...PRODUCT_PERMISSIONS.slice(0, 3), ...INVENTORY_PERMISSIONS],
+  finance: ['customers.read', 'suppliers.read', 'products.read', 'inventory.read'],
   hr: [],
-  auditor: ['customers.read', 'suppliers.read', 'products.read'],
+  auditor: ['customers.read', 'suppliers.read', 'products.read', 'inventory.read'],
   user: [],
 });
 Object.values(ROLE_PERMISSIONS).forEach(Object.freeze);
