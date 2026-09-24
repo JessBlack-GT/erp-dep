@@ -1,4 +1,4 @@
-# RBAC del ERP — M03
+# RBAC del ERP — M03 y M04
 
 ## Inspección y arquitectura
 
@@ -62,7 +62,9 @@ Los middlewares antiguos `authorizeRoles` y `authorizeOwnerOrAdmin` se conservan
 
 Convención: `module.action`. Para incorporar un módulo futuro: registrar sus identificadores explícitos en el catálogo, aprobar su matriz central o documentos Role, aplicar `authenticateToken` + `requirePermission` en cada ruta, reutilizar el hook UX y añadir pruebas positivas/negativas y de revocación. Nunca aceptar permisos del payload ni dispersar comparaciones de nombres de rol en controladores.
 
-No se registraron todavía permisos `suppliers.*`, `products.*`, `inventory.*`, `sales.*`, `purchases.*`, `finance.*`, `hr.*`, `reports.*`, `audit.*` ni `settings.*`. M04 no se desarrolló.
+M04 registra `suppliers.read`, `suppliers.create`, `suppliers.update` y `suppliers.delete` en el mismo catálogo y aplica los mismos middlewares a sus siete endpoints. La matriz Customers anterior permanece intacta. La [matriz Proveedores](../modules/SUPPLIERS.md) permite crear/actualizar a purchasing, pero reserva eliminar a admin/superadmin. Role persistido sigue sustituyendo los valores predeterminados; no se actualizan documentos Role existentes automáticamente.
+
+No se registraron todavía permisos `products.*`, `inventory.*`, `sales.*`, `purchases.*`, `finance.*`, `hr.*`, `reports.*`, `audit.*` ni `settings.*`.
 
 ## Verificación
 
