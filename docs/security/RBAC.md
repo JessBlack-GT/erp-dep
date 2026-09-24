@@ -1,4 +1,4 @@
-# RBAC del ERP — M03 y M04
+# RBAC del ERP — M03, M04 y M05
 
 ## Inspección y arquitectura
 
@@ -64,7 +64,9 @@ Convención: `module.action`. Para incorporar un módulo futuro: registrar sus i
 
 M04 registra `suppliers.read`, `suppliers.create`, `suppliers.update` y `suppliers.delete` en el mismo catálogo y aplica los mismos middlewares a sus siete endpoints. La matriz Customers anterior permanece intacta. La [matriz Proveedores](../modules/SUPPLIERS.md) permite crear/actualizar a purchasing, pero reserva eliminar a admin/superadmin. Role persistido sigue sustituyendo los valores predeterminados; no se actualizan documentos Role existentes automáticamente.
 
-No se registraron todavía permisos `products.*`, `inventory.*`, `sales.*`, `purchases.*`, `finance.*`, `hr.*`, `reports.*`, `audit.*` ni `settings.*`.
+M05 registra `products.read`, `products.create`, `products.update` y `products.delete` para el catálogo PRODUCT/SERVICE. La [matriz M05](../modules/PRODUCTS-SERVICES.md) concede lectura/alta/edición a warehouse y purchasing, pero no eliminación. No agrega `services.*` ni altera los permisos Customers/Suppliers. Los documentos Role explícitos mantienen su prioridad y no se modifican automáticamente.
+
+No se registraron todavía permisos `inventory.*`, `sales.*`, `purchases.*`, `finance.*`, `hr.*`, `reports.*`, `audit.*` ni `settings.*`.
 
 ## Verificación
 

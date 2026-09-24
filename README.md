@@ -6,8 +6,11 @@ RBAC centralizado activo, MongoDB Atlas QA y E2E Web validados.
 Android/iOS nativo pendiente de validación.
 
 Evidencia: [M03](docs/qa/M03-VALIDATION.md), [M04](docs/qa/M04-VALIDATION.md) y
-[Proveedores](docs/modules/SUPPLIERS.md). Siguiente módulo definido en el catálogo:
-**M05 — Productos y servicios**; su desarrollo aún no ha comenzado.
+[Proveedores](docs/modules/SUPPLIERS.md).
+
+En `codex/m05-products-services`, **M05 — Productos y servicios: APROBADO**.
+[Evidencia M05](docs/qa/M05-VALIDATION.md) y [catálogo](docs/modules/PRODUCTS-SERVICES.md).
+Esta rama todavía no está integrada en main.
 
 ## Instalación y pruebas
 

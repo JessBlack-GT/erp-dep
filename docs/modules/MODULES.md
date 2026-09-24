@@ -10,7 +10,7 @@
 | M02 | Panel principal         | Resumen general de las operaciones.        | Estructura preparada |
 | M03 | Clientes                | Administración de clientes.                | APROBADO |
 | M04 | Proveedores             | Administración de proveedores.             | APROBADO |
-| M05 | Productos y servicios   | Catálogo de productos y servicios.         | Estructura preparada |
+| M05 | Productos y servicios   | Catálogo de productos y servicios.         | APROBADO |
 | M06 | Inventario              | Existencias y movimientos.                 | Estructura preparada |
 | M07 | Ventas                  | Cotizaciones, pedidos y ventas.            | Estructura preparada |
 | M08 | Compras                 | Solicitudes y órdenes de compra.           | Estructura preparada |

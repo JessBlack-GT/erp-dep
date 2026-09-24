@@ -1,0 +1,1088 @@
+{
+  "module": "M05 Productos y servicios",
+  "date": "2026-09-24",
+  "verdict": "APROBADO",
+  "baseline": "65c2ed02be53e87339c0e9e6c21b9245ef9532ea",
+  "branch": "codex/m05-products-services",
+  "dependenciesChanged": false,
+  "m03M04DomainsModified": false,
+  "architecture": {
+    "types": [
+      "PRODUCT",
+      "SERVICE"
+    ],
+    "sku": "Required, trim, uppercase, collapse whitespace to hyphen; unique",
+    "barcode": "Optional unique ASCII identifier; PRODUCT only",
+    "categories": "Normalized text, no independent category module",
+    "units": "Extensible normalized text; no conversions",
+    "money": "Optional canonical decimal strings: 12 integer and 4 fractional digits, non-negative; no Number conversion",
+    "taxes": "Optional classification metadata only",
+    "inventory": "trackInventory boolean PRODUCT metadata only; no stock or movements"
+  },
+  "backend": {
+    "m05Domain": {
+      "total": 69,
+      "pass": 69,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "m05Rbac": {
+      "total": 42,
+      "pass": 42,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "m03Original": {
+      "total": 47,
+      "pass": 47,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "m04IncludingRbac": {
+      "total": 89,
+      "pass": 89,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "global": {
+      "total": 394,
+      "pass": 394,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "finalRun": {
+      "suites": 53,
+      "tests": 394,
+      "passes": 394,
+      "pending": 0,
+      "failures": 0,
+      "start": "2026-09-24T06:40:46.367Z",
+      "end": "2026-09-24T06:40:50.818Z",
+      "duration": 4451
+    }
+  },
+  "frontend": {
+    "m05Ui": {
+      "total": 24,
+      "pass": 24,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "m05Api": {
+      "total": 7,
+      "pass": 7,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "m05Navigation": {
+      "total": 2,
+      "pass": 2,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "m05Total": {
+      "total": 33,
+      "pass": 33,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "m03All": {
+      "total": 18,
+      "pass": 18,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "m04": {
+      "total": 30,
+      "pass": 30,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "global": {
+      "total": 114,
+      "pass": 104,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 10,
+      "exitCode": 0
+    }
+  },
+  "preAtlas": {
+    "backend": {
+      "total": 394,
+      "pass": 394,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 0,
+      "exitCode": 0
+    },
+    "frontend": {
+      "total": 114,
+      "pass": 104,
+      "fail": 0,
+      "skipped": 0,
+      "todo": 10,
+      "exitCode": 0
+    }
+  },
+  "buildWeb": {
+    "result": "PASS",
+    "exitCode": 0
+  },
+  "realIntegration": {
+    "connection": "SUCCESS",
+    "checks": [
+      {
+        "group": "rbac",
+        "operation": "login:superadmin",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:admin",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:manager",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:sales",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:purchasing",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:warehouse",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:finance",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:hr",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:auditor",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:user",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "create-product",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "create-service",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "list",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "detail-product",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "detail-service",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "update-product",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "update-service",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "search-name",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "search-sku",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "search-barcode",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "filter-PRODUCT",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "filter-SERVICE",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "page1",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "page2",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "status-inactive",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "status-active",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "duplicate-sku",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "duplicate-barcode",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-negativePrice",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-negativeCost",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-precision",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-numericPrice",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-type",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-massAssignment",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-stock",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-serviceBarcode",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-serviceInventory",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "type-change-blocked",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "type-change-clear",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "type-change-back",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-query",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-id",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "missing-id",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "no-token",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid-token",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "forbidden",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin:GET/products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin:GET/products/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin:GET/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin:POST/products",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin:PATCH/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin:PATCH/products/:id/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin:DELETE/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin:GET/products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin:GET/products/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin:GET/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin:POST/products",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin:PATCH/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin:PATCH/products/:id/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin:DELETE/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager:GET/products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager:GET/products/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager:GET/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager:POST/products",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager:PATCH/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager:PATCH/products/:id/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager:DELETE/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales:GET/products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales:GET/products/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales:GET/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales:POST/products",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales:PATCH/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales:PATCH/products/:id/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales:DELETE/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing:GET/products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing:GET/products/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing:GET/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing:POST/products",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing:PATCH/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing:PATCH/products/:id/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing:DELETE/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse:GET/products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse:GET/products/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse:GET/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse:POST/products",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse:PATCH/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse:PATCH/products/:id/status",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse:DELETE/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance:GET/products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance:GET/products/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance:GET/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance:POST/products",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance:PATCH/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance:PATCH/products/:id/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance:DELETE/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr:GET/products",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr:GET/products/search",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr:GET/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr:POST/products",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr:PATCH/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr:PATCH/products/:id/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr:DELETE/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor:GET/products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor:GET/products/search",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor:GET/products/:id",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor:POST/products",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor:PATCH/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor:PATCH/products/:id/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor:DELETE/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user:GET/products",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user:GET/products/search",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user:GET/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user:POST/products",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user:PATCH/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user:PATCH/products/:id/status",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user:DELETE/products/:id",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "self-elevation",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing-delete-via-status",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "soft-delete",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "deleted-detail",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "after-delete",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "inactive-block",
+        "http": 404,
+        "result": "PASS"
+      }
+    ],
+    "created": 17,
+    "cleaned": 17,
+    "failedStep": null,
+    "success": true,
+    "exitCode": 0,
+    "total": 122,
+    "pass": 122,
+    "fail": 0,
+    "domainChecks": 40,
+    "rbacChecks": 82
+  },
+  "previousConnectionAttempts": [
+    {
+      "connection": "FAILED",
+      "checks": [],
+      "created": 0,
+      "cleaned": 0,
+      "failedStep": "CONNECT",
+      "success": false,
+      "exitCode": 1
+    },
+    {
+      "connection": "FAILED",
+      "checks": [],
+      "created": 0,
+      "cleaned": 0,
+      "failedStep": "CONNECT",
+      "success": false,
+      "exitCode": 1
+    }
+  ],
+  "connectionRecovery": "Awaited user confirmation of QA access readiness; no credential or TLS changes made by implementation",
+  "realRoles": {
+    "superadmin": {
+      "get": 200,
+      "post": 201,
+      "patch": 200,
+      "delete": 200,
+      "result": "PASS"
+    },
+    "admin": {
+      "get": 200,
+      "post": 201,
+      "patch": 200,
+      "delete": 200,
+      "result": "PASS"
+    },
+    "manager": {
+      "get": 200,
+      "post": 201,
+      "patch": 200,
+      "delete": 403,
+      "result": "PASS"
+    },
+    "sales": {
+      "get": 200,
+      "post": 403,
+      "patch": 403,
+      "delete": 403,
+      "result": "PASS"
+    },
+    "purchasing": {
+      "get": 200,
+      "post": 201,
+      "patch": 200,
+      "delete": 403,
+      "result": "PASS"
+    },
+    "warehouse": {
+      "get": 200,
+      "post": 201,
+      "patch": 200,
+      "delete": 403,
+      "result": "PASS"
+    },
+    "finance": {
+      "get": 200,
+      "post": 403,
+      "patch": 403,
+      "delete": 403,
+      "result": "PASS"
+    },
+    "hr": {
+      "get": 403,
+      "post": 403,
+      "patch": 403,
+      "delete": 403,
+      "result": "PASS"
+    },
+    "auditor": {
+      "get": 200,
+      "post": 403,
+      "patch": 403,
+      "delete": 403,
+      "result": "PASS"
+    },
+    "user": {
+      "get": 403,
+      "post": 403,
+      "patch": 403,
+      "delete": 403,
+      "result": "PASS"
+    }
+  },
+  "mongodb": {
+    "connection": "SUCCESS",
+    "environment": "Previously authorized exclusive Atlas QA database",
+    "apiCreated": 17,
+    "apiCleaned": 17,
+    "e2eCreated": 24,
+    "e2eCleaned": 24,
+    "totalCreated": 41,
+    "totalCleaned": 41
+  },
+  "e2e": {
+    "mode": "AUTOMATED",
+    "result": "PASS",
+    "manualSteps": 0,
+    "flows": [
+      "login",
+      "list mixed PRODUCT/SERVICE",
+      "page2 then page1",
+      "create PRODUCT",
+      "detail PRODUCT",
+      "edit PRODUCT name and exact price",
+      "create SERVICE using dynamic form",
+      "detail SERVICE",
+      "edit SERVICE name and exact price",
+      "search marker",
+      "filter category and SERVICE",
+      "deactivate SERVICE",
+      "verify MongoDB persistence of both edited records",
+      "reactivate SERVICE",
+      "cancel then confirm SERVICE logical deletion",
+      "filter PRODUCT",
+      "deactivate and logically delete PRODUCT",
+      "clear filters: 21 seeds remain",
+      "logout and close browser",
+      "verify both deleted documents in Atlas",
+      "cleanup 24 owned fixtures"
+    ],
+    "persisted": [
+      {
+        "type": "PRODUCT",
+        "edited": true,
+        "price": "0.1234",
+        "unit": "kg",
+        "status": "deleted"
+      },
+      {
+        "type": "SERVICE",
+        "edited": true,
+        "price": "125.1234",
+        "unit": "hour",
+        "status": "deleted"
+      }
+    ],
+    "credentialsManifestRemoved": true,
+    "temporaryServersStopped": true,
+    "nativeExecution": false,
+    "loginEntryRetry": "First browser entry submitted incomplete fields; explicit fill succeeded without authentication code changes"
+  },
+  "security": {
+    "historyBlobs": 349,
+    "workingFiles": 261,
+    "knownSecretMatches": 0,
+    "patternCandidates": 0,
+    "forbiddenFiles": 0,
+    "findings": [],
+    "result": "PASS",
+    "finalFilesReviewed": 263,
+    "finalKnownSecretMatches": 0
+  },
+  "regressionScope": "M03/M04 isolated suites and global regression rerun; their historical Atlas runners not repeated",
+  "limitations": [
+    "Android/iOS not executed",
+    "10 global frontend TODO outside M05",
+    "No stock, inventory movements, warehouses, lots or serials",
+    "No advanced price lists or complete tax engine",
+    "Country currency catalog membership not validated",
+    "Explicit Role documents require authorized administrative grants; not migrated automatically",
+    "No public restore or reuse of deleted identifiers",
+    "Browser E2E executed via agent automation, not standalone CI suite"
+  ],
+  "commands": {
+    "backendCwd": "apps/backend",
+    "frontendCwd": "apps/frontend",
+    "m05Backend": "node ../../node_modules/mocha/bin/mocha.js \"tests/products*.test.js\" src/modules/products/products.test.js",
+    "m05Frontend": "node ../../node_modules/jest/bin/jest.js products --watch=false --runInBand",
+    "backendGlobal": "node ../../node_modules/mocha/bin/mocha.js \"tests/**/*.test.js\" \"src/**/*.test.js\"",
+    "frontendGlobal": "node ../../node_modules/jest/bin/jest.js --watch=false --runInBand",
+    "realFromRoot": "node apps/backend/scripts/validate-m05-real.cjs",
+    "uiSetup": "node apps/backend/scripts/m05-ui-fixture.cjs setup",
+    "uiVerify": "node apps/backend/scripts/m05-ui-fixture.cjs verify",
+    "uiCleanup": "node apps/backend/scripts/m05-ui-fixture.cjs cleanup",
+    "buildFromRoot": "node apps/frontend/scripts/web.cjs --build"
+  },
+  "codeHead": "9831dce3ea070dff30bd02573580971a4927988c"
+}

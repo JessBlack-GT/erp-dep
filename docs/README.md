@@ -206,7 +206,7 @@ npm test
 
 ### Estado de módulos
 
-M03 y M04 cuentan con evidencia QA aprobada; los demás estados se conservan según su alcance documentado. Véanse [M03](qa/M03-VALIDATION.md) y [M04](qa/M04-VALIDATION.md).
+M03 y M04 cuentan con evidencia QA aprobada en el baseline. M05 está aprobado en su rama de desarrollo, pendiente de integración a main. Véanse [M03](qa/M03-VALIDATION.md), [M04](qa/M04-VALIDATION.md) y [M05](qa/M05-VALIDATION.md).
 
 | Módulo | Estado |
 |--------|--------|
@@ -214,7 +214,7 @@ M03 y M04 cuentan con evidencia QA aprobada; los demás estados se conservan seg
 | M02 - Dashboard | Estructura preparada |
 | M03 - Clientes | APROBADO |
 | M04 - Proveedores | APROBADO |
-| M05 - Productos | Estructura preparada |
+| M05 - Productos y servicios | APROBADO en rama M05 |
 | M06 - Inventario | Estructura preparada |
 | M07 - Ventas | Estructura preparada |
 | M08 - Compras | Estructura preparada |

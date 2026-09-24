@@ -58,14 +58,16 @@ MONGODB_DB_NAME=erp-db
 - **Campos principales**: name, email, phone, address, category, status
 - **Relaciones**: referencias a purchases
 
-### Módulo M05 - Productos
+### Módulo M05 - Productos y servicios
 
 #### products
 - **Propósito**: Catálogo de productos y servicios
-- **Campos principales**: name, description, price, category, sku, stock, status
-- **Relaciones**: referencia a categories, inventory
+- **Campos principales**: name, type (PRODUCT/SERVICE), sku, barcode, description, category, unit, price, cost, currency, taxCategory, trackInventory, status
+- **Importes**: cadenas decimales exactas de cuatro posiciones; no números de punto flotante.
+- **Alcance**: catálogo maestro sin stock ni movimientos. category es una clasificación textual; trackInventory solo es metadato. Véase [M05](../modules/PRODUCTS-SERVICES.md).
 
 #### categories
+- **Estado**: diseño futuro; no se implementa colección independiente en M05.
 - **Propósito**: Categorías de productos
 - **Campos principales**: name, description, parent, status
 
