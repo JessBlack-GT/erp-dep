@@ -1,47 +1,54 @@
 /**
  * ============================================
- * ERP-SYSTEM - Theme (Tema)
+ * YJ NEXO ERP - Design System Central Theme
  * ============================================
  */
 
-export const colors = {
-  primary: '#1976D2',
-  secondary: '#424242',
-  accent: '#FF6F00',
-  success: '#4CAF50',
-  error: '#D32F2F',
-  warning: '#F57C00',
-  info: '#0288D1',
-  background: '#F5F5F5',
-  surface: '#FFFFFF',
-  text: '#212121',
-  textSecondary: '#757575',
-  disabled: '#BDBDBD',
-  border: '#E0E0E0',
-};
+import { colors, brandPalette, neutralPalette, semanticColors } from './colors';
+import { typography, typographyScale, fontFamilies, fontWeights, fontSizes, lineHeights } from './typography';
+import { spacing, spacingScale } from './spacing';
+import { radius } from './radius';
+import { shadows } from './shadows';
+import { breakpoints, mediaQueries } from './breakpoints';
+import { zIndex } from './zIndex';
+import { componentTokens } from './components';
 
-export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-};
-
-export const typography = {
-  h1: { fontSize: 32, fontWeight: 'bold' },
-  h2: { fontSize: 24, fontWeight: 'bold' },
-  h3: { fontSize: 20, fontWeight: '600' },
-  body: { fontSize: 16, fontWeight: 'normal' },
-  caption: { fontSize: 12, fontWeight: 'normal' },
-  button: { fontSize: 16, fontWeight: '600' },
+export {
+  colors,
+  brandPalette,
+  neutralPalette,
+  semanticColors,
+  typography,
+  typographyScale,
+  fontFamilies,
+  fontWeights,
+  fontSizes,
+  lineHeights,
+  spacing,
+  spacingScale,
+  radius,
+  shadows,
+  breakpoints,
+  mediaQueries,
+  zIndex,
+  componentTokens,
 };
 
 export const theme = {
   colors,
-  spacing,
+  brandPalette,
+  neutralPalette,
+  semanticColors,
   typography,
+  typographyScale,
+  spacing,
+  spacingScale,
+  radius,
+  shadows,
+  breakpoints,
+  mediaQueries,
+  zIndex,
+  components: componentTokens,
 };
 
 export default theme;
