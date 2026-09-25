@@ -1,0 +1,1330 @@
+{
+  "module": "M06",
+  "verdict": "APROBADO",
+  "date": "2026-09-25",
+  "baseline": "b166e88532ca0eca6df0455f78b10113ecec013c",
+  "branch": "codex/m06-inventory",
+  "validatedImplementationCommit": "c345e1f0797a7b588defe94f0e626001be51c42f",
+  "scope": {
+    "web": true,
+    "backend": true,
+    "atlasQa": true,
+    "nativeAndroidIos": "not executed; existing platform validation pending",
+    "M07": "not started",
+    "main": "not merged"
+  },
+  "dependenciesChanged": [],
+  "commands": [
+    {
+      "cwd": "apps/backend",
+      "command": "node ../../node_modules/mocha/bin/mocha.js \"tests/**/*.test.js\" \"src/**/*.test.js\" --reporter json --reporter-option output=../../tmp/m06-final-backend.json",
+      "total": 527,
+      "passed": 527,
+      "failed": 0,
+      "omitted": 0,
+      "exitCode": 0
+    },
+    {
+      "cwd": "apps/frontend",
+      "command": "node ../../node_modules/jest/bin/jest.js --watch=false --runInBand --json --outputFile=../../tmp/m06-final-frontend.json",
+      "total": 148,
+      "passed": 139,
+      "failed": 0,
+      "omitted": 9,
+      "exitCode": 0
+    },
+    {
+      "cwd": ".",
+      "command": "node apps/frontend/scripts/web.cjs --build",
+      "exitCode": 0,
+      "result": "PASS"
+    },
+    {
+      "cwd": ".",
+      "command": "node apps/backend/scripts/validate-m06-real.cjs",
+      "exitCode": 0,
+      "checks": 132,
+      "result": "PASS"
+    },
+    {
+      "cwd": ".",
+      "command": "node apps/backend/scripts/m06-ui-fixture.cjs setup|verify-entry|verify-exit|verify-transfer|verify-adjustment|cleanup",
+      "exitCodes": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "note": "Separate commands, not shell pipelines; UI interactions automated through Codex browser."
+    },
+    {
+      "cwd": ".",
+      "command": "node apps/backend/scripts/validate-m05-real.cjs",
+      "exitCode": 0,
+      "checks": 122,
+      "created": 17,
+      "cleaned": 17,
+      "result": "PASS"
+    }
+  ],
+  "preAtlas": {
+    "backend": {
+      "total": 522,
+      "passed": 522,
+      "failed": 0,
+      "omitted": 0,
+      "exitCode": 0
+    },
+    "frontend": {
+      "total": 140,
+      "passed": 131,
+      "failed": 0,
+      "omitted": 9,
+      "exitCode": 0
+    },
+    "web": "PASS"
+  },
+  "isolated": {
+    "backendDomain": {
+      "total": 69,
+      "passed": 69,
+      "failed": 0,
+      "omitted": 0,
+      "exitCode": 0
+    },
+    "backendRbac": {
+      "total": 65,
+      "passed": 65,
+      "failed": 0,
+      "omitted": 0,
+      "exitCode": 0
+    },
+    "frontendUI": {
+      "total": 24,
+      "passed": 24,
+      "failed": 0,
+      "omitted": 0,
+      "exitCode": 0
+    },
+    "frontendApi": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "omitted": 0,
+      "exitCode": 0
+    },
+    "frontendNavigation": {
+      "total": 2,
+      "passed": 2,
+      "failed": 0,
+      "omitted": 0,
+      "exitCode": 0
+    }
+  },
+  "global": {
+    "backend": {
+      "total": 527,
+      "passed": 527,
+      "failed": 0,
+      "omitted": 0,
+      "exitCode": 0
+    },
+    "frontend": {
+      "total": 148,
+      "passed": 139,
+      "failed": 0,
+      "omitted": 9,
+      "exitCode": 0
+    },
+    "web": {
+      "result": "PASS",
+      "exitCode": 0
+    }
+  },
+  "regression": {
+    "M03": {
+      "backend": {
+        "total": 47,
+        "passed": 47,
+        "failed": 0,
+        "omitted": 0,
+        "exitCode": 0
+      },
+      "frontend": {
+        "total": 18,
+        "passed": 18,
+        "failed": 0,
+        "omitted": 0,
+        "exitCode": 0
+      },
+      "verdict": "APROBADO"
+    },
+    "M04": {
+      "backend": {
+        "total": 89,
+        "passed": 89,
+        "failed": 0,
+        "omitted": 0,
+        "exitCode": 0
+      },
+      "frontend": {
+        "total": 30,
+        "passed": 30,
+        "failed": 0,
+        "omitted": 0,
+        "exitCode": 0
+      },
+      "verdict": "APROBADO"
+    },
+    "M05": {
+      "backend": {
+        "total": 111,
+        "passed": 111,
+        "failed": 0,
+        "omitted": 0,
+        "exitCode": 0
+      },
+      "frontend": {
+        "total": 33,
+        "passed": 33,
+        "failed": 0,
+        "omitted": 0,
+        "exitCode": 0
+      },
+      "verdict": "APROBADO"
+    }
+  },
+  "sharedRbac": {
+    "total": 57,
+    "passed": 57,
+    "failed": 0,
+    "omitted": 0,
+    "exitCode": 0
+  },
+  "atlas": {
+    "environment": "authorized-exclusive-QA",
+    "connection": "SUCCESS",
+    "checks": [
+      {
+        "group": "rbac",
+        "operation": "login:superadmin",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:admin",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:manager",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:sales",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:purchasing",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:warehouse",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:finance",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:hr",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:auditor",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "login:user",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "warehouse A",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "warehouse B",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "stock initial",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "entry",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "exit",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "insufficient exit",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "transfer",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "insufficient transfer",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "positive adjustment",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "negative adjustment",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "idempotent replay",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "idempotent mismatch",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "reject service",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "reject untracked",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "reject inactive",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid product ID",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "missing product",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "missing warehouse",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "same warehouse",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid quantity 0",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid quantity -1",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid quantity 1.00001",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid quantity NaN",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid quantity Infinity",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid quantity 1",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "mass assignment createdBy",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "mass assignment quantityUnits",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "mass assignment role",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "mass assignment requestHash",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "warehouse inactive",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "inactive warehouse",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "warehouse reactivate",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "duplicate warehouse",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "eligible products",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "read /warehouses",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "read /balances/product/6ab6a9dcbdf06533ee02ba1e",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "read /balances",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "read /movements",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "read /movements",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "history page",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid pagination",
+        "http": 400,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "no token",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "invalid token",
+        "http": 401,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "immutable PATCHmovements",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "immutable PUTmovements",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "immutable DELETEmovements",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "immutable PATCHbalances",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "immutable PUTbalances",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "immutable DELETEbalances",
+        "http": 404,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "transaction rollback",
+        "http": 500,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "raceExit seed",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "concurrency",
+        "operation": "raceExit concurrent 1",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "concurrency",
+        "operation": "raceExit concurrent 0",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "raceTransfer seed",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "concurrency",
+        "operation": "raceTransfer concurrent 1",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "concurrency",
+        "operation": "raceTransfer concurrent 0",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "concurrency",
+        "operation": "concurrent retry A",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "concurrency",
+        "operation": "concurrent retry B",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin read",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin ENTRY",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin EXIT",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin TRANSFER",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin ADJUSTMENT",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "superadmin warehouse.manage",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin read",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin ENTRY",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin EXIT",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin TRANSFER",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin ADJUSTMENT",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "admin warehouse.manage",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager read",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager ENTRY",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager EXIT",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager TRANSFER",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager ADJUSTMENT",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "manager warehouse.manage",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales read",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales ENTRY",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales EXIT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales TRANSFER",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales ADJUSTMENT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "sales warehouse.manage",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing read",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing ENTRY",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing EXIT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing TRANSFER",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing ADJUSTMENT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "purchasing warehouse.manage",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse read",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse ENTRY",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse EXIT",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse TRANSFER",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse ADJUSTMENT",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "warehouse warehouse.manage",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance read",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance ENTRY",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance EXIT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance TRANSFER",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance ADJUSTMENT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "finance warehouse.manage",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr read",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr ENTRY",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr EXIT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr TRANSFER",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr ADJUSTMENT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "hr warehouse.manage",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor read",
+        "http": 200,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor ENTRY",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor EXIT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor TRANSFER",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor ADJUSTMENT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "auditor warehouse.manage",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user read",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user ENTRY",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user EXIT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user TRANSFER",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user ADJUSTMENT",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "rbac",
+        "operation": "user warehouse.manage",
+        "http": 403,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "prevent conversion with history",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "api",
+        "operation": "prevent disabling tracking with history",
+        "http": 409,
+        "result": "PASS"
+      },
+      {
+        "group": "concurrency",
+        "operation": "entry versus catalog change",
+        "http": 201,
+        "result": "PASS"
+      },
+      {
+        "group": "concurrency",
+        "operation": "catalog versus entry",
+        "http": 409,
+        "result": "PASS"
+      }
+    ],
+    "concurrency": [
+      {
+        "scenario": "raceExit",
+        "initial": "10.0000",
+        "simultaneous": 2,
+        "quantity": "8.0000",
+        "http": [
+          409,
+          201
+        ],
+        "source": "2.0000",
+        "destination": null,
+        "ledgerCount": 2,
+        "result": "PASS"
+      },
+      {
+        "scenario": "raceTransfer",
+        "initial": "10.0000",
+        "simultaneous": 2,
+        "quantity": "8.0000",
+        "http": [
+          409,
+          201
+        ],
+        "source": "2.0000",
+        "destination": "8.0000",
+        "ledgerCount": 2,
+        "result": "PASS"
+      },
+      {
+        "scenario": "same idempotency key",
+        "simultaneous": 2,
+        "http": [
+          201,
+          200
+        ],
+        "final": "0.1000",
+        "ledgerCount": 1,
+        "result": "PASS"
+      },
+      {
+        "scenario": "entry versus SERVICE conversion",
+        "simultaneous": 2,
+        "http": [
+          201,
+          409
+        ],
+        "finalType": "PRODUCT",
+        "ledgerCount": 1,
+        "result": "PASS"
+      }
+    ],
+    "reconciliation": [
+      {
+        "initial": 0,
+        "entries": 201005,
+        "exits": -31004,
+        "transfers": -50004,
+        "adjustments": 1004,
+        "expected": 121001,
+        "actual": 121001,
+        "unit": "scaled-1/10000",
+        "result": "PASS"
+      },
+      {
+        "initial": 0,
+        "entries": 0,
+        "exits": 0,
+        "transfers": 50004,
+        "adjustments": 0,
+        "expected": 50004,
+        "actual": 50004,
+        "unit": "scaled-1/10000",
+        "result": "PASS"
+      },
+      {
+        "initial": 0,
+        "entries": 100000,
+        "exits": -80000,
+        "transfers": 0,
+        "adjustments": 0,
+        "expected": 20000,
+        "actual": 20000,
+        "unit": "scaled-1/10000",
+        "result": "PASS"
+      },
+      {
+        "initial": 0,
+        "entries": 100000,
+        "exits": 0,
+        "transfers": -80000,
+        "adjustments": 0,
+        "expected": 20000,
+        "actual": 20000,
+        "unit": "scaled-1/10000",
+        "result": "PASS"
+      },
+      {
+        "initial": 0,
+        "entries": 0,
+        "exits": 0,
+        "transfers": 80000,
+        "adjustments": 0,
+        "expected": 80000,
+        "actual": 80000,
+        "unit": "scaled-1/10000",
+        "result": "PASS"
+      },
+      {
+        "initial": 0,
+        "entries": 1000,
+        "exits": 0,
+        "transfers": 0,
+        "adjustments": 0,
+        "expected": 1000,
+        "actual": 1000,
+        "unit": "scaled-1/10000",
+        "result": "PASS"
+      },
+      {
+        "initial": 0,
+        "entries": 10000,
+        "exits": 0,
+        "transfers": 0,
+        "adjustments": 0,
+        "expected": 10000,
+        "actual": 10000,
+        "unit": "scaled-1/10000",
+        "result": "PASS"
+      }
+    ],
+    "created": {
+      "products": 8,
+      "warehouses": 2,
+      "movements": 28,
+      "balances": 7,
+      "users": 10
+    },
+    "cleaned": {
+      "products": 8,
+      "warehouses": 2,
+      "movements": 28,
+      "balances": 7,
+      "users": 10
+    },
+    "success": true
+  },
+  "e2e": {
+    "mode": "AUTOMATED",
+    "environment": "authorized-exclusive-QA",
+    "stages": [
+      {
+        "stage": "verify-entry",
+        "ledgerCount": 1,
+        "northUnits": 100000,
+        "southUnits": 0,
+        "reconciliation": "PASS"
+      },
+      {
+        "stage": "verify-exit",
+        "ledgerCount": 2,
+        "northUnits": 70000,
+        "southUnits": 0,
+        "reconciliation": "PASS"
+      },
+      {
+        "stage": "verify-transfer",
+        "ledgerCount": 3,
+        "northUnits": 50000,
+        "southUnits": 20000,
+        "reconciliation": "PASS"
+      },
+      {
+        "stage": "verify-adjustment",
+        "ledgerCount": 4,
+        "northUnits": 45000,
+        "southUnits": 20000,
+        "reconciliation": "PASS"
+      }
+    ],
+    "success": true,
+    "created": {
+      "products": 1,
+      "warehouses": 2,
+      "movements": 4,
+      "balances": 2,
+      "users": 1
+    },
+    "cleaned": {
+      "movements": 4,
+      "balances": 2,
+      "warehouses": 2,
+      "products": 1,
+      "users": 1
+    },
+    "date": "2026-09-24",
+    "flow": [
+      "LOGIN",
+      "INVENTORY",
+      "BALANCES",
+      "ENTRY 10",
+      "BALANCE 10",
+      "EXIT 3",
+      "BALANCE 7",
+      "TRANSFER 2",
+      "SOURCE 5 / DESTINATION 2",
+      "ADJUSTMENT -0.5",
+      "SOURCE 4.5 / DESTINATION 2",
+      "HISTORY 4",
+      "FILTER TRANSFER 1",
+      "LOGOUT"
+    ],
+    "browser": "Codex in-app browser",
+    "frontendMocks": false
+  },
+  "cleanup": {
+    "allM06Runs": {
+      "products": {
+        "created": 16,
+        "cleaned": 16
+      },
+      "warehouses": {
+        "created": 6,
+        "cleaned": 6
+      },
+      "movements": {
+        "created": 59,
+        "cleaned": 59
+      },
+      "balances": {
+        "created": 15,
+        "cleaned": 15
+      },
+      "users": {
+        "created": 21,
+        "cleaned": 21
+      }
+    },
+    "preliminaryApi": {
+      "checks": 128,
+      "created": {
+        "products": 7,
+        "warehouses": 2,
+        "movements": 27,
+        "balances": 6,
+        "users": 10
+      },
+      "cleaned": {
+        "products": 7,
+        "warehouses": 2,
+        "movements": 27,
+        "balances": 6,
+        "users": 10
+      },
+      "result": "PASS"
+    },
+    "finalApi": {
+      "created": {
+        "products": 8,
+        "warehouses": 2,
+        "movements": 28,
+        "balances": 7,
+        "users": 10
+      },
+      "cleaned": {
+        "products": 8,
+        "warehouses": 2,
+        "movements": 28,
+        "balances": 7,
+        "users": 10
+      }
+    },
+    "web": {
+      "created": {
+        "products": 1,
+        "warehouses": 2,
+        "movements": 4,
+        "balances": 2,
+        "users": 1
+      },
+      "cleaned": {
+        "movements": 4,
+        "balances": 2,
+        "warehouses": 2,
+        "products": 1,
+        "users": 1
+      }
+    },
+    "additionalM05Regression": {
+      "created": 17,
+      "cleaned": 17
+    }
+  },
+  "security": {
+    "envIgnored": true,
+    "mongoDbEnvIgnored": true,
+    "localCredentialsManifestRemoved": true,
+    "secretsDetected": false,
+    "scan": {
+      "historyBlobs": 409,
+      "workingFiles": 278,
+      "findings": 0,
+      "scope": "All reachable Git blobs and non-ignored working files; known local values plus private-key, GitHub/AWS and MongoDB patterns. Finite detection, not a guarantee for unknown formats."
+    },
+    "authentication": "401 validated",
+    "authorization": "10 roles isolated and real",
+    "massAssignment": "400",
+    "userSpoofing": "400",
+    "roleElevation": "403 common identity API regression",
+    "movementMutation": "404 public routes; model hooks reject",
+    "directBalanceMutation": "404",
+    "negativeStock": "409",
+    "internalError": "500 sanitized and rollback confirmed",
+    "catalogLifecycle": "409 after history; concurrent entry/conversion serialized"
+  },
+  "commits": [
+    "a3dd7c1 feat(inventory): add warehouses and atomic stock movements",
+    "687887a feat(rbac): authorize inventory operations with central policy",
+    "ae7ff59 feat(inventory): add inventory frontend workflow",
+    "eb13958 test(inventory): cover domain authorization and frontend flows",
+    "79be316 test(inventory): validate atomicity concurrency and QA reconciliation",
+    "c345e1f fix(inventory): preserve product eligibility across concurrent catalog changes"
+  ],
+  "publication": {
+    "target": "origin/codex/m06-inventory",
+    "policy": "Push after successful validation; delivery response verifies final local/remote SHA. No merge."
+  }
+}

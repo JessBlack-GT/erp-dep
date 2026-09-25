@@ -75,17 +75,18 @@ MONGODB_DB_NAME=erp-db
 
 #### warehouses
 - **Propósito**: Almacenes de la empresa
-- **Campos principales**: name, location, capacity, status
+- **Campos principales**: code único, name, description, location, status, createdBy, updatedBy, timestamps. Capacity queda como extensión futura.
 
 #### inventoryBalances
 - **Propósito**: Stock actual por producto/almacén
-- **Campos principales**: productId, warehouseId, quantity, reserved, available
+- **Campos principales**: productId, warehouseId, quantityUnits entero escalado 1/10000 y timestamps. Índice único por producto/almacén. La API devuelve quantity/available como texto decimal; reservas fuera de alcance.
 - **Relaciones**: productos, almacenes
 
 #### inventoryMovements
 - **Propósito**: Registro de movimientos de inventario
-- **Campos principales**: productId, warehouseId, type, quantity, reference, date
+- **Campos principales**: productId, sourceWarehouseId, destinationWarehouseId, type, quantityUnits, reason, reference, notes, createdBy, createdAt, idempotencyKey, requestHash privado.
 - **Relaciones**: productos, almacenes, ventas, compras
+- **Estado**: M06 implementado; ventas/compras son referencias futuras. Movimientos inmutables y balances actualizados juntos mediante transacción. Ver [Inventario](../modules/INVENTORY.md).
 
 ### Módulo M07 - Ventas
 

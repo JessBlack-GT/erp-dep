@@ -11,7 +11,7 @@
 | M03 | Clientes                | Administración de clientes.                | APROBADO |
 | M04 | Proveedores             | Administración de proveedores.             | APROBADO |
 | M05 | Productos y servicios   | Catálogo de productos y servicios.         | APROBADO |
-| M06 | Inventario              | Existencias y movimientos.                 | Estructura preparada |
+| M06 | Inventario              | Existencias y movimientos.                 | APROBADO en codex/m06-inventory |
 | M07 | Ventas                  | Cotizaciones, pedidos y ventas.            | Estructura preparada |
 | M08 | Compras                 | Solicitudes y órdenes de compra.           | Estructura preparada |
 | M09 | Finanzas y gastos       | Registros financieros básicos.             | Estructura preparada |
@@ -81,6 +81,8 @@ Los módulos NO deben comunicarse directamente entre sí. Toda la comunicación 
 Si un módulo necesita datos de otro:
 - Se consulta a través de la API
 - O se utiliza un evento/emisor
+
+M06 requiere una coordinación transaccional interna entre catálogo e inventario: los repositorios M05/M06 comparten el documento Product como bloqueo y consultan su historial en la misma sesión MongoDB. Esta excepción conserva la coherencia ante cambios de elegibilidad y no introduce llamadas HTTP dentro de una transacción. Véase [Inventario](INVENTORY.md).
 
 ## Reglas para Desarrolladores de Módulos
 

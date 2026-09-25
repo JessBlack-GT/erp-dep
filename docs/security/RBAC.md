@@ -87,3 +87,7 @@ node ../../node_modules/jest/bin/jest.js --runTestsByPath tests/rbac.test.js --w
 El runner real requiere `.env` local ignorado y confirmación exacta de base QA con `M03_QA_DATABASE`. Rechaza colisiones con documentos Role de los nombres usados y no los sobrescribe. Crea usuarios/roles/clientes sintéticos, usa login y HTTP reales, verifica que denegaciones no modifican el cliente y limpia únicamente IDs/marcadores propios. Emite `RBAC_RESULT` sin secretos. El límite de solicitudes se eleva solo dentro del proceso QA y de pruebas aisladas para ejecutar la matriz completa; no cambia el límite predeterminado de la aplicación.
 
 Cobertura: los diez roles, los cuatro permisos independientes, las ocho rutas, 401/403, claims falsificados/obsoletos, revocación de Role, usuarios inactivos/eliminados, autoelevación vía API de usuarios y bypass de borrado por PATCH. Consultar `../qa/M03-VALIDATION.md` para cantidades y resultados de esta ejecución.
+
+## M06 — Inventario
+
+Se añaden `inventory.read`, `inventory.entry`, `inventory.exit`, `inventory.transfer`, `inventory.adjust` e `inventory.warehouse.manage`. La matriz completa y la decisión de administración de almacenes están en [Inventario](../modules/INVENTORY.md#rbac). Los permisos anteriores no cambian. Los documentos Role existentes conservan prioridad, sin ampliación automática de permisos persistidos. La identidad auditada se obtiene del usuario autenticado actual.

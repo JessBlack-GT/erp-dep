@@ -79,3 +79,7 @@ Dashboard y otros módulos futuros no están registrados en la navegación.
 Register/ResetPassword, la biblioteca de componentes comunes y el entorno Expo
 Android/iOS siguen pendientes. Una prueba con mocks o una compilación web no
 acredita ejecución nativa, autenticación real ni persistencia.
+
+## M06 — Inventario
+
+La rama `codex/m06-inventory` implementa almacenes, existencias y movimientos con transacciones e idempotencia. [Diseño](docs/modules/INVENTORY.md), [validación QA](docs/qa/M06-VALIDATION.md) y [resultados](docs/qa/M06-results.json). El baseline de main continúa en M05; M06 no está integrado a main.

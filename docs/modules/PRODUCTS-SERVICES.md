@@ -99,3 +99,7 @@ Las pruebas aisladas cubren dominio, HTTP con persistencia simulada, RBAC, UI, A
 ## Fuera de alcance
 
 Stock real, movimientos, almacenes, transferencias, kardex, lotes, series, reservas, valoración, conversiones complejas, listas avanzadas de precios, promociones, descuentos, motor fiscal completo y contabilidad. Android/iOS requieren validación nativa independiente; la implementación mantiene componentes React Native y React Native Web. No se desarrolla M06.
+
+## Integración M06 en rama de desarrollo
+
+M06 aplica una protección transaccional al catálogo: una vez que un PRODUCT tiene movimientos, no puede convertirse en SERVICE ni desactivar trackInventory (409), incluso si su saldo es cero. M05 y M06 bloquean el mismo documento Product para resolver carreras entrada/conversión. No se añaden campos de stock a Product. La condición se valida de nuevo contra Atlas QA; ver [Inventario](INVENTORY.md).

@@ -215,7 +215,7 @@ M03, M04 y M05 cuentan con evidencia QA aprobada y están integrados en el basel
 | M03 - Clientes | APROBADO |
 | M04 - Proveedores | APROBADO |
 | M05 - Productos y servicios | APROBADO |
-| M06 - Inventario | Estructura preparada |
+| M06 - Inventario | APROBADO en codex/m06-inventory; [diseño](modules/INVENTORY.md), [QA](qa/M06-VALIDATION.md) |
 | M07 - Ventas | Estructura preparada |
 | M08 - Compras | Estructura preparada |
 | M09 - Finanzas | Estructura preparada |
