@@ -25,7 +25,7 @@
 
 ## Convenciones de Módulos
 
-**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO** tras integrar M06. El siguiente trabajo será **YJ Nexo — UI/UX + Brand System**, comenzando posteriormente por **UI-01: Brand System + Design Tokens**. No se inicia ningún módulo ni rama visual en esta integración. Véase [baseline funcional](../qa/M06-INTEGRATION.md).
+**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO**. **YJ Nexo — UI-01: Brand System + Design Tokens** ha sido completamente **APROBADA E INTEGRADA EN MAIN**. Siguiente fase planificada: **UI-02: Base Components**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
 
 Cada módulo debe seguir la estructura estándar:
 
