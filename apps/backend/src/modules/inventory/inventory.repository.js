@@ -39,10 +39,19 @@ class InventoryRepository {
       .lean();
   }
   product(id, session) {
-    return Product.findById(id).session(session).lean();
+    // A write lock coordinates eligibility with concurrent catalog changes.
+    return Product.findOneAndUpdate(
+      { _id: id },
+      { $inc: { __v: 1 } },
+      { new: true, session, timestamps: false },
+    ).lean();
   }
   warehouse(id, session) {
-    return Warehouse.findById(id).session(session).lean();
+    return Warehouse.findOneAndUpdate(
+      { _id: id },
+      { $inc: { __v: 1 } },
+      { new: true, session, timestamps: false },
+    ).lean();
   }
   async change(productId, warehouseId, delta, session) {
     const identity = { productId, warehouseId };

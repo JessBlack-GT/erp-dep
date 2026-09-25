@@ -286,3 +286,56 @@ describe('M06 transaction orchestration', () => {
     expect(stock).eq(20000);
   });
 });
+
+describe('M06 catalog lifecycle coordination', () => {
+  const mongoose = require('mongoose'),
+    Product = require('../products/products.model'),
+    catalog = require('../products/products.repository');
+  afterEach(() => sinon.restore());
+  for (const set of [
+    { type: 'SERVICE', trackInventory: false },
+    { trackInventory: false },
+  ])
+    it(
+      'blocks eligibility removal after history ' + JSON.stringify(set),
+      async () => {
+        sinon
+          .stub(mongoose.connection, 'transaction')
+          .callsFake((work) => work({}));
+        sinon
+          .stub(Product, 'findOneAndUpdate')
+          .resolves({ _id: p, type: 'PRODUCT', trackInventory: true });
+        sinon
+          .stub(mongoose.connection, 'collection')
+          .returns({ findOne: async () => ({ _id: p }) });
+        await rejects(catalog.update(p, set), 409);
+        expect(Product.findOneAndUpdate.calledOnce).eq(true);
+      },
+    );
+  it('allows conversion without history inside the same transaction', async () => {
+    sinon
+      .stub(mongoose.connection, 'transaction')
+      .callsFake((work) => work({}));
+    const write = sinon.stub(Product, 'findOneAndUpdate');
+    write
+      .onFirstCall()
+      .resolves({ _id: p, type: 'PRODUCT', trackInventory: true });
+    write.onSecondCall().resolves({ _id: p, type: 'SERVICE' });
+    sinon
+      .stub(mongoose.connection, 'collection')
+      .returns({ findOne: async () => null });
+    expect(
+      (await catalog.update(p, { type: 'SERVICE', trackInventory: false }))
+        .type,
+    ).eq('SERVICE');
+    expect(write.firstCall.args[1]).deep.eq({ $inc: { __v: 1 } });
+  });
+  it('catalog lock is acquired with the movement transaction session', async () => {
+    const session = {},
+      query = { lean: async () => ({ _id: p }) },
+      lock = sinon.stub(Product, 'findOneAndUpdate').returns(query);
+    await repo.product(p, session);
+    expect(lock.firstCall.args[2].session).eq(session);
+    expect(lock.firstCall.args[1]).deep.eq({ $inc: { __v: 1 } });
+  });
+});

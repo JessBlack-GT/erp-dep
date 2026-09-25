@@ -155,6 +155,7 @@ async function main() {
       'raceExit',
       'raceTransfer',
       'raceRetry',
+      'raceCatalog',
     ]) {
       const _id = new mongoose.Types.ObjectId();
       productIds.push(_id);
@@ -304,7 +305,10 @@ async function main() {
       200,
       token,
     );
-    assert.equal(eligible.data.length, 4);
+    assert.equal(eligible.data.length, 5);
+    assert.ok(
+      eligible.data.every((p) => p.price === undefined && p.cost === undefined),
+    );
     assert.ok(
       eligible.data.every(
         (p) =>
@@ -500,6 +504,68 @@ async function main() {
         'rbac',
       );
     }
+    await http(
+      'prevent conversion with history',
+      'PATCH',
+      '/products/' + products.normal._id,
+      409,
+      token,
+      { type: 'SERVICE', trackInventory: false },
+    );
+    await http(
+      'prevent disabling tracking with history',
+      'PATCH',
+      '/products/' + products.normal._id,
+      409,
+      token,
+      { trackInventory: false },
+    );
+    const catalogRace = await Promise.all([
+      post(
+        'entry versus catalog change',
+        movement('ENTRY', '1', products.raceCatalog),
+        [201, 400],
+        token,
+        'concurrency',
+      ),
+      http(
+        'catalog versus entry',
+        'PATCH',
+        '/products/' + products.raceCatalog._id,
+        [200, 409],
+        token,
+        { type: 'SERVICE', trackInventory: false },
+        'concurrency',
+      ),
+    ]);
+    const catalogProduct = await Product.findById(
+      products.raceCatalog._id,
+    ).lean();
+    const catalogLedger = await Movement.countDocuments({
+      productId: products.raceCatalog._id,
+    });
+    if (catalogRace[0].status === 201) {
+      assert.equal(catalogRace[1].status, 409);
+      assert.equal(catalogProduct.type, 'PRODUCT');
+      assert.equal(catalogProduct.trackInventory, true);
+      assert.equal(catalogLedger, 1);
+    } else {
+      assert.equal(catalogRace[1].status, 200);
+      assert.equal(catalogProduct.type, 'SERVICE');
+      assert.equal(catalogLedger, 0);
+      assert.equal(
+        await Balance.countDocuments({ productId: products.raceCatalog._id }),
+        0,
+      );
+    }
+    report.concurrency.push({
+      scenario: 'entry versus SERVICE conversion',
+      simultaneous: 2,
+      http: catalogRace.map((r) => r.status),
+      finalType: catalogProduct.type,
+      ledgerCount: catalogLedger,
+      result: 'PASS',
+    });
     // Ledger reconciliation includes every created product/warehouse pair, before cleanup.
     const movements = await Movement.find({
       productId: { $in: productIds },
