@@ -4,6 +4,12 @@
 
 ## Qué es ERP-SYSTEM
 
+Estado estable: **M03, M04, M05 y M06 APROBADOS e integrados en main**. **M07 NO INICIADO**.
+**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO.**
+FUNCTIONAL BASELINE BEFORE UI/UX: integración M06 y commit documental de estado; véase [registro](qa/M06-INTEGRATION.md).
+**SIGUIENTE ETAPA: YJ Nexo — UI/UX + Brand System. UI-01: Brand System + Design Tokens.**
+La fase visual y su rama aún no se han iniciado. Se conserva el stack React Native / React Native Web / Node.js-Express / MongoDB Atlas.
+
 **ERP-SYSTEM** es un sistema empresarial de planificación de recursos (ERP) diseñado para centralizar las operaciones de una organización mediante módulos conectados entre sí.
 
 ### Objetivo General
@@ -215,8 +221,8 @@ M03, M04 y M05 cuentan con evidencia QA aprobada y están integrados en el basel
 | M03 - Clientes | APROBADO |
 | M04 - Proveedores | APROBADO |
 | M05 - Productos y servicios | APROBADO |
-| M06 - Inventario | APROBADO en codex/m06-inventory; [diseño](modules/INVENTORY.md), [QA](qa/M06-VALIDATION.md) |
-| M07 - Ventas | Estructura preparada |
+| M06 - Inventario | APROBADO e integrado en main; [diseño](modules/INVENTORY.md), [QA](qa/M06-VALIDATION.md) |
+| M07 - Ventas | NO INICIADO; solo scaffolding preexistente |
 | M08 - Compras | Estructura preparada |
 | M09 - Finanzas | Estructura preparada |
 | M10 - RRHH | Estructura preparada |

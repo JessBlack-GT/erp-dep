@@ -11,8 +11,8 @@
 | M03 | Clientes                | Administración de clientes.                | APROBADO |
 | M04 | Proveedores             | Administración de proveedores.             | APROBADO |
 | M05 | Productos y servicios   | Catálogo de productos y servicios.         | APROBADO |
-| M06 | Inventario              | Existencias y movimientos.                 | APROBADO en codex/m06-inventory |
-| M07 | Ventas                  | Cotizaciones, pedidos y ventas.            | Estructura preparada |
+| M06 | Inventario              | Existencias y movimientos.                 | APROBADO e integrado en main |
+| M07 | Ventas                  | Cotizaciones, pedidos y ventas.            | NO INICIADO; scaffolding preexistente |
 | M08 | Compras                 | Solicitudes y órdenes de compra.           | Estructura preparada |
 | M09 | Finanzas y gastos       | Registros financieros básicos.             | Estructura preparada |
 | M10 | Recursos humanos        | Información laboral autorizada.            | Estructura preparada |
@@ -24,6 +24,8 @@
 | M16 | Integraciones           | Conexión con servicios externos.           | Arquitectura contemplada |
 
 ## Convenciones de Módulos
+
+**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO** tras integrar M06. El siguiente trabajo será **YJ Nexo — UI/UX + Brand System**, comenzando posteriormente por **UI-01: Brand System + Design Tokens**. No se inicia ningún módulo ni rama visual en esta integración. Véase [baseline funcional](../qa/M06-INTEGRATION.md).
 
 Cada módulo debe seguir la estructura estándar:
 

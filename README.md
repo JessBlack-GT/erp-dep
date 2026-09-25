@@ -1,7 +1,7 @@
-# ERP — baseline aprobado M03 + M04 + M05
+# ERP — baseline funcional aprobado M03 + M04 + M05 + M06
 
 Base local importada con autorización desde `ERP-SYSTEM`. El remoto estaba vacío.
-Rama estable: `main`. M03 Clientes, M04 Proveedores y M05 Productos y servicios: **APROBADO**.
+Rama estable: `main`. M03 Clientes, M04 Proveedores, M05 Productos y servicios y M06 Inventario: **APROBADO**.
 RBAC centralizado activo, MongoDB Atlas QA y E2E Web validados.
 Android/iOS nativo pendiente de validación.
 
@@ -11,6 +11,18 @@ Evidencia: [M03](docs/qa/M03-VALIDATION.md), [M04](docs/qa/M04-VALIDATION.md) y
 **M05 — Productos y servicios** está integrado en el baseline estable.
 [Evidencia M05](docs/qa/M05-VALIDATION.md) y [catálogo](docs/modules/PRODUCTS-SERVICES.md).
 La rama `codex/m05-products-services` se conserva como referencia de la entrega aprobada.
+
+## FUNCTIONAL BASELINE BEFORE UI/UX
+
+**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO.** M07: **NO INICIADO**.
+M06 se integró por fast-forward preservando su HEAD aprobado `0ff9336390fce066870f678f7f4cd181c0df0ba8`.
+El commit de estado posterior a esa integración establece el baseline funcional para el trabajo visual.
+Ver [registro de integración y regresión](docs/qa/M06-INTEGRATION.md).
+
+**SIGUIENTE ETAPA: YJ Nexo — UI/UX + Brand System.**
+UI-01: Brand System + Design Tokens. La rama UI-01 todavía no se ha creado.
+Se conserva React Native, React Native Web, Node.js/Express y MongoDB Atlas.
+Kotlin solo ante una necesidad nativa real posterior; no se migra el frontend a Jetpack Compose.
 
 ## Instalación y pruebas
 
@@ -80,6 +92,6 @@ Register/ResetPassword, la biblioteca de componentes comunes y el entorno Expo
 Android/iOS siguen pendientes. Una prueba con mocks o una compilación web no
 acredita ejecución nativa, autenticación real ni persistencia.
 
-## M06 — Inventario
+## M06 — Inventario integrado
 
-La rama `codex/m06-inventory` implementa almacenes, existencias y movimientos con transacciones e idempotencia. [Diseño](docs/modules/INVENTORY.md), [validación QA](docs/qa/M06-VALIDATION.md) y [resultados](docs/qa/M06-results.json). El baseline de main continúa en M05; M06 no está integrado a main.
+M06 está integrado en `main`: almacenes, existencias y movimientos con transacciones e idempotencia. [Diseño](docs/modules/INVENTORY.md), [validación QA](docs/qa/M06-VALIDATION.md) y [resultados](docs/qa/M06-results.json). La rama local/remota `codex/m06-inventory` se conserva como evidencia histórica.
