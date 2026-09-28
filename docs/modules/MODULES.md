@@ -25,7 +25,7 @@
 
 ## Convenciones de Módulos
 
-**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO**. **YJ Nexo — UI-01: Brand System + Design Tokens** ha sido completamente **APROBADA E INTEGRADA EN MAIN**. Siguiente fase planificada: **UI-02: Base Components**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
+**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO**. **YJ Nexo — UI-01 (Brand System)** y **UI-02 (Base Components)** han sido completamente **APROBADAS E INTEGRADAS EN MAIN**. Siguiente fase planificada: **UI-03: Web App Shell**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
 
 Cada módulo debe seguir la estructura estándar:
 
