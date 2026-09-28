@@ -10,11 +10,11 @@ Este documento define la secuencia estratégica de desarrollo de la interfaz de 
 
 | Fase | Título de la Fase | Ámbito / Entregables Clave | Estado |
 |---|---|---|---|
-| **UI-01** | **Brand System + Design Tokens** | Integración de assets YJ Nexo, extracción técnica de color, tokens centralizados, theme export, pruebas de fundación y documentación. | **COMPLETADA** |
-| **UI-02** | **Base Components** | Componentes atómicos (Text, Button, IconButton, Input, TextArea, Card, StatCard, Badge, StatusBadge, Auxiliary, Showcase). | **COMPLETADA** |
-| **UI-03** | **Web App Shell** | Layout estructural Web: Sidebar Navy YJ Nexo, Topbar, Breadcrumbs, User Menu y contenedor responsive. | **COMPLETADA** |
-| **UI-04** | **Authentication Experience** | Pantalla de Login rediseñada, integración de la marca oficial YJ Nexo, estados de validación y respuesta responsive. | PENDIENTE |
-| **UI-05** | **Dashboard** | Pantalla principal (M02) con KPIs de resumen, accesos rápidos por rol y métricas visuales clave. | PENDIENTE |
+| **UI-01** | **Brand System + Design Tokens** | Integración de assets YJ Nexo, extracción técnica de color, tokens centralizados, theme export, pruebas de fundación y documentación. | **APROBADA** |
+| **UI-02** | **Base Components** | Componentes atómicos (Text, Button, IconButton, Input, TextArea, Card, StatCard, Badge, StatusBadge, Auxiliary, Showcase). | **APROBADA** |
+| **UI-03** | **Web App Shell** | Layout estructural Web: Sidebar Navy YJ Nexo, Topbar, Breadcrumbs, User Menu y contenedor responsive. | **APROBADA** |
+| **UI-04** | **Authentication Experience** | Pantalla de Login rediseñada, integración de la marca oficial YJ Nexo, estados de validación y respuesta responsive. | **APROBADA CON PENDIENTES** |
+| **UI-05** | **Dashboard** | Pantalla principal (M02) con KPIs de resumen, accesos rápidos por rol y métricas visuales clave. | **NO INICIADA** |
 | **UI-06** | **Customers Experience** | Rediseño de M03 (Clientes): Listado con Data Table, Filtros, Modal/Formulario y Vista de Detalle. | PENDIENTE |
 | **UI-07** | **Suppliers Experience** | Rediseño de M04 (Proveedores): Tabla de proveedores, acciones contextuales y formularios estructurados. | PENDIENTE |
 | **UI-08** | **Products & Services Experience** | Rediseño de M05 (Productos y Servicios): Catálogo visual, precios, categorías y gestión de items. | PENDIENTE |
@@ -55,3 +55,7 @@ Este documento define la secuencia estratégica de desarrollo de la interfaz de 
 3. **Control RBAC e Integración Reutilizable**: Enlaces filtrados por permisos reales (`usePermissions()`); UserMenu conectado a `logout()` real.
 4. **Responsive & Multiplataforma**: Modos Desktop Expanded, Desktop Collapsed y Mobile Web Drawer con soporte de gestos y overlay.
 5. **Pruebas y Verificación**: Suite Jest en `tests/shell.test.js` pasando 100% (23 suites pasar en frontend) + Web Build exitoso + Backend sin regresiones.
+
+## Resultado UI-04
+
+Implementación y regresión validadas: frontend 25 suites / 191 PASS / 9 TODO, backend 527 PASS, build web SUCCESS. Revisión visual desktop/tablet/mobile completada. E2E autenticado real: NOT EXECUTED; pendiente cuenta QA autorizada y validación en dispositivos nativos. Véase [AUTHENTICATION-EXPERIENCE.md](AUTHENTICATION-EXPERIENCE.md). No integrada a main. UI-05 — Dashboard: NO INICIADA.
