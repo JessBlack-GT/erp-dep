@@ -12,7 +12,7 @@ Este documento define la secuencia estratégica de desarrollo de la interfaz de 
 |---|---|---|---|
 | **UI-01** | **Brand System + Design Tokens** | Integración de assets YJ Nexo, extracción técnica de color, tokens centralizados, theme export, pruebas de fundación y documentación. | **COMPLETADA** |
 | **UI-02** | **Base Components** | Componentes atómicos (Text, Button, IconButton, Input, TextArea, Card, StatCard, Badge, StatusBadge, Auxiliary, Showcase). | **COMPLETADA** |
-| **UI-03** | **Web App Shell** | Layout estructural Web: Sidebar Navy YJ Nexo, Topbar, Breadcrumbs, User Menu y contenedor responsive. | PENDIENTE |
+| **UI-03** | **Web App Shell** | Layout estructural Web: Sidebar Navy YJ Nexo, Topbar, Breadcrumbs, User Menu y contenedor responsive. | **COMPLETADA** |
 | **UI-04** | **Authentication Experience** | Pantalla de Login rediseñada, integración de la marca oficial YJ Nexo, estados de validación y respuesta responsive. | PENDIENTE |
 | **UI-05** | **Dashboard** | Pantalla principal (M02) con KPIs de resumen, accesos rápidos por rol y métricas visuales clave. | PENDIENTE |
 | **UI-06** | **Customers Experience** | Rediseño de M03 (Clientes): Listado con Data Table, Filtros, Modal/Formulario y Vista de Detalle. | PENDIENTE |
@@ -44,3 +44,14 @@ Este documento define la secuencia estratégica de desarrollo de la interfaz de 
 3. **Exportación Pública**: Centralizada en `apps/frontend/src/components/common/index.js`.
 4. **Showcase Interno**: Implementado en `src/components/common/Showcase.js` para inspección visual de variantes y estados.
 5. **Pruebas y Verificación**: Suite Jest en `tests/components.test.js` pasando 100% + Web Build exitoso.
+
+---
+
+## Detalle de la Fase UI-03 (Web App Shell)
+
+### Objetivos Alcanzados en UI-03
+1. **Layout Estructural Creado**: `WebAppShell`, `Sidebar`, `Topbar`, `UserMenu`, `Breadcrumbs`, `PageContainer`.
+2. **Identidad YJ Nexo Integrada**: Sidebar en Navy YJ Nexo (`#101D36`) con logotipos oficiales PNG maestros (`horizontalDark` y `appIcon`).
+3. **Control RBAC e Integración Reutilizable**: Enlaces filtrados por permisos reales (`usePermissions()`); UserMenu conectado a `logout()` real.
+4. **Responsive & Multiplataforma**: Modos Desktop Expanded, Desktop Collapsed y Mobile Web Drawer con soporte de gestos y overlay.
+5. **Pruebas y Verificación**: Suite Jest en `tests/shell.test.js` pasando 100% (23 suites pasar en frontend) + Web Build exitoso + Backend sin regresiones.
