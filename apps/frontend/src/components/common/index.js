@@ -1,15 +1,20 @@
 /**
  * ============================================
- * ERP-SYSTEM - Componentes Comunes
+ * YJ NEXO ERP - Public Base Components Export
  * ============================================
  */
 
-// Exportar todos los componentes comunes reutilizables
-export { Button } from './Button';
-export { Input } from './Input';
-export { Card } from './Card';
 export { Text } from './Text';
-export { Spacer } from './Spacer';
+export { Button } from './Button';
+export { IconButton } from './IconButton';
+export { Input } from './Input';
+export { TextArea } from './TextArea';
+export { Card } from './Card';
+export { StatCard } from './StatCard';
+export { Badge } from './Badge';
+export { StatusBadge } from './StatusBadge';
 export { LoadingSpinner } from './LoadingSpinner';
+export { Spacer } from './Spacer';
 export { EmptyState } from './EmptyState';
 export { ErrorBoundary } from './ErrorBoundary';
+export { ComponentShowcase } from './Showcase';
