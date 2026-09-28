@@ -11,7 +11,7 @@ Este documento define la secuencia estratégica de desarrollo de la interfaz de 
 | Fase | Título de la Fase | Ámbito / Entregables Clave | Estado |
 |---|---|---|---|
 | **UI-01** | **Brand System + Design Tokens** | Integración de assets YJ Nexo, extracción técnica de color, tokens centralizados, theme export, pruebas de fundación y documentación. | **COMPLETADA** |
-| **UI-02** | **Base Components** | Componentes atómicos (Button, Input, Card, Text, Badge, StatusBadge, Spinner, Divider). | PENDIENTE |
+| **UI-02** | **Base Components** | Componentes atómicos (Text, Button, IconButton, Input, TextArea, Card, StatCard, Badge, StatusBadge, Auxiliary, Showcase). | **COMPLETADA** |
 | **UI-03** | **Web App Shell** | Layout estructural Web: Sidebar Navy YJ Nexo, Topbar, Breadcrumbs, User Menu y contenedor responsive. | PENDIENTE |
 | **UI-04** | **Authentication Experience** | Pantalla de Login rediseñada, integración de la marca oficial YJ Nexo, estados de validación y respuesta responsive. | PENDIENTE |
 | **UI-05** | **Dashboard** | Pantalla principal (M02) con KPIs de resumen, accesos rápidos por rol y métricas visuales clave. | PENDIENTE |
@@ -33,3 +33,14 @@ Este documento define la secuencia estratégica de desarrollo de la interfaz de 
 3. **Extracción de Colores Oficiales**: Análisis directo de los assets PNG confirmando el Navy Principal `#101D36`, Azul Acento `#316BDF` (Light) y `#64A0FF` (Dark), Blanco `#FFFFFF`, Slate Navy `#2E394F` y Borde `#E0E0E5`.
 4. **Sistema de Tokens**: Creación de los módulos de theme en `src/theme/` (colors, typography, spacing, radius, shadows, breakpoints, zIndex, components, index).
 5. **Verificación de Pruebas**: 21 suites Jest pasando (148 tests pasados, 9 TODOs, 0 fallos) + Build Web exitoso.
+
+---
+
+## Detalle de la Fase UI-02 (Base Components)
+
+### Objetivos Alcanzados en UI-02
+1. **Primitivas Base Creadas**: `Text`, `Button`, `IconButton`, `Input`, `TextArea`, `Card`, `StatCard`, `Badge`, `StatusBadge`.
+2. **Componentes Auxiliares**: `LoadingSpinner`, `Spacer`, `EmptyState`, `ErrorBoundary`.
+3. **Exportación Pública**: Centralizada en `apps/frontend/src/components/common/index.js`.
+4. **Showcase Interno**: Implementado en `src/components/common/Showcase.js` para inspección visual de variantes y estados.
+5. **Pruebas y Verificación**: Suite Jest en `tests/components.test.js` pasando 100% + Web Build exitoso.
