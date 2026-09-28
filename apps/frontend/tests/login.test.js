@@ -19,18 +19,18 @@ describe('Login and real auth context with mocked API', () => {
   });
   it('validates required fields without sending credentials', async () => {
     const ui = render(<AuthProvider><Session /></AuthProvider>);
-    await waitFor(() => expect(ui.getByText('Entrar')).toBeTruthy());
-    fireEvent.press(ui.getByText('Entrar'));
-    expect(ui.getByText('Introduce email y contraseña')).toBeTruthy();
+    await waitFor(() => expect(ui.getByText('Iniciar sesión')).toBeTruthy());
+    fireEvent.press(ui.getByText('Iniciar sesión'));
+    expect(ui.getByText('Introduce tu correo electrónico.')).toBeTruthy();
     expect(authService.login).not.toHaveBeenCalled();
   });
   it('unwraps the HTTP envelope, stores the session and restores it on remount', async () => {
     authService.login.mockResolvedValue({ data: { success: true, data: { accessToken: 'fictional-access', refreshToken: 'fictional-refresh', user: { email: 'qa@example.com' } } } });
     const ui = render(<AuthProvider><Session /></AuthProvider>);
-    await waitFor(() => expect(ui.getByText('Entrar')).toBeTruthy());
-    fireEvent.changeText(ui.getByLabelText('Email'), 'qa@example.com');
+    await waitFor(() => expect(ui.getByText('Iniciar sesión')).toBeTruthy());
+    fireEvent.changeText(ui.getByLabelText('Correo electrónico'), 'qa@example.com');
     fireEvent.changeText(ui.getByLabelText('Contraseña'), 'fictional-password');
-    fireEvent.press(ui.getByText('Entrar'));
+    fireEvent.press(ui.getByText('Iniciar sesión'));
     await waitFor(() => expect(ui.getByText('Authenticated')).toBeTruthy());
     expect(await AsyncStorage.getItem('accessToken')).toBe('fictional-access');
     ui.unmount();
@@ -40,10 +40,10 @@ describe('Login and real auth context with mocked API', () => {
   it('shows a failed login without storing a session', async () => {
     authService.login.mockRejectedValue({ response: { status: 401 } });
     const ui = render(<AuthProvider><Session /></AuthProvider>);
-    await waitFor(() => expect(ui.getByText('Entrar')).toBeTruthy());
-    fireEvent.changeText(ui.getByLabelText('Email'), 'qa@example.com');
+    await waitFor(() => expect(ui.getByText('Iniciar sesión')).toBeTruthy());
+    fireEvent.changeText(ui.getByLabelText('Correo electrónico'), 'qa@example.com');
     fireEvent.changeText(ui.getByLabelText('Contraseña'), 'fictional-password');
-    fireEvent.press(ui.getByText('Entrar'));
+    fireEvent.press(ui.getByText('Iniciar sesión'));
     await waitFor(() => expect(ui.getByText('Credenciales inválidas')).toBeTruthy());
     expect(await AsyncStorage.getItem('accessToken')).toBeNull();
   });
