@@ -25,7 +25,7 @@
 
 ## Convenciones de Módulos
 
-**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO**. **YJ Nexo — UI-01 (Brand System)**, **UI-02 (Base Components)** y **UI-03 (Web App Shell)** han sido completamente **APROBADAS E INTEGRADAS EN MAIN**. Siguiente fase planificada: **UI-04: Authentication Experience**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
+**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO**. **YJ Nexo — UI-01 (Brand System)**, **UI-02 (Base Components)** y **UI-03 (Web App Shell)** han sido completamente **APROBADAS E INTEGRADAS EN MAIN**. **UI-04 (Authentication Experience)** está **APROBADA CON PENDIENTES E INTEGRADA EN MAIN**. Pendientes aceptados: E2E autenticado real con cuenta QA autorizada y validación nativa Android/iOS. Siguiente fase: **UI-05 — Dashboard: NO INICIADA**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
 
 Cada módulo debe seguir la estructura estándar:
 

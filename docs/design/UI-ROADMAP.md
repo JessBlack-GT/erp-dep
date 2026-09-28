@@ -58,4 +58,23 @@ Este documento define la secuencia estratégica de desarrollo de la interfaz de 
 
 ## Resultado UI-04
 
-Implementación y regresión validadas: frontend 25 suites / 191 PASS / 9 TODO, backend 527 PASS, build web SUCCESS. Revisión visual desktop/tablet/mobile completada. E2E autenticado real: NOT EXECUTED; pendiente cuenta QA autorizada y validación en dispositivos nativos. Véase [AUTHENTICATION-EXPERIENCE.md](AUTHENTICATION-EXPERIENCE.md). No integrada a main. UI-05 — Dashboard: NO INICIADA.
+Implementación y regresión validadas: frontend 25 suites / 191 PASS / 9 TODO, backend 527 PASS, build web SUCCESS. Revisión visual desktop/tablet/mobile completada. E2E autenticado real: NOT EXECUTED; pendiente cuenta QA autorizada y validación en dispositivos nativos. Véase [AUTHENTICATION-EXPERIENCE.md](AUTHENTICATION-EXPERIENCE.md). Integrada en main mediante fast-forward; commits aprobados preservados. UI-05 — Dashboard: NO INICIADA.
+
+## UI-04 INTEGRATED BASELINE
+
+Integración del 2026-09-28: baseline anterior `a109204b33d5267d7e3974767dcd692d9c257475`
+→ HEAD aprobado UI-04 `f50bdb65e5e6c8242e261e0eaf318eb3e9f06c33` mediante fast-forward.
+Commits preservados: `7a1e604`, `d5e1bf8`, `f50bdb6`.
+El commit documental `docs(project): record UI-04 integrated baseline` que incorpora
+esta sección identifica el nuevo baseline oficial de main para comenzar UI-05.
+Su SHA completo se registra en el reporte de integración después de crear el commit.
+
+Regresión post-integración: frontend **25 suites, 200 casos: 191 PASS, 0 FAIL,
+9 TODO**; backend **527 PASS, 0 FAIL**; build web **SUCCESS**. Todos con exit 0.
+Jest emitió un aviso de act(...) en components.test.js, sin fallos de pruebas.
+
+UI-01, UI-02 y UI-03: **APROBADAS**. UI-04: **APROBADA CON PENDIENTES**.
+Se conservan y aceptan E2E autenticado real y validación nativa Android/iOS;
+no se intentaron resolver durante esta integración.
+La rama codex/ui-04-auth-experience se conserva local y remotamente.
+UI-05 — Dashboard: **NO INICIADA**; sin rama creada. M07: **NO INICIADO**.

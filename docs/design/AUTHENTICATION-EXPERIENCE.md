@@ -104,7 +104,7 @@ son explícitamente ficticios. No se versionaron credenciales QA.
 Pruebas verifican que el shell no aparece antes de autenticación, que no se
 persisten contraseñas y que logout elimina las claves de sesión.
 
-Sin merge a main, sin force push. UI-05 — Dashboard: **NO INICIADA**.
+Fase publicada inicialmente sin integrar. Integrada posteriormente en main el 2026-09-28 mediante fast-forward, sin squash, rebase ni force push. Los tres commits aprobados y la rama de fase se conservan. Regresión post-integración: 25 suites frontend, 191 PASS y 9 TODO; backend 527 PASS; build web SUCCESS (exit 0 en los tres comandos). Los pendientes E2E real y Android/iOS siguen aceptados y sin resolver. Véase UI-ROADMAP.md, sección UI-04 INTEGRATED BASELINE. UI-05 — Dashboard: **NO INICIADA**.
 
 ## Archivos
 
