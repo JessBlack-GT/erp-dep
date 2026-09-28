@@ -32,6 +32,8 @@ export function Input({
   accessibilityLabel,
   style,
   inputStyle,
+  errorStyle,
+  size = 'medium',
   onFocus,
   onBlur,
   ...props
@@ -80,6 +82,7 @@ export function Input({
       <View
         style={[
           styles.inputWrapper,
+          size === 'large' && { height: componentTokens.button.heightLarge },
           { borderColor: wrapperBorderColor, backgroundColor: wrapperBg },
           isFocused && styles.focusedGlow,
         ]}
@@ -116,7 +119,7 @@ export function Input({
         <Text
           variant="caption"
           color="error"
-          style={styles.errorText}
+          style={[styles.errorText, errorStyle]}
           accessibilityRole="alert"
           testID={testID ? `${testID}-error` : undefined}
         >
