@@ -6,13 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import {
-  View,
-  TouchableOpacity,
-  Modal,
-  TouchableWithoutFeedback,
-  StyleSheet,
-} from 'react-native';
+import { View, TouchableOpacity, Modal, TouchableWithoutFeedback, StyleSheet } from 'react-native';
 import { Text } from '../common/Text';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
@@ -27,12 +21,13 @@ export function UserMenu({ onNavigate, style, testID }) {
   const userEmail = user?.email || '';
   const userRole = user?.role ? String(user.role).toUpperCase() : 'USUARIO';
 
-  const initials = userName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(part => part[0]?.toUpperCase())
-    .join('') || 'U';
+  const initials =
+    userName
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'U';
 
   const handleToggle = () => setIsOpen(!isOpen);
 
@@ -41,7 +36,8 @@ export function UserMenu({ onNavigate, style, testID }) {
     try {
       await logout();
     } catch (err) {
-      console.error('Error al cerrar sesión:', err);
+      // Axios errors can contain authorization headers; never log the object.
+      console.warn('No se pudo confirmar el cierre remoto de sesión.');
     }
   };
 

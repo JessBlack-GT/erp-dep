@@ -1,3 +1,4 @@
+jest.mock('../src/hooks/usePermissions', () => ({ usePermissions: () => () => false }));
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { useAuth } from '../src/context/AuthContext';
@@ -10,9 +11,7 @@ jest.mock('@react-navigation/native-stack', () => ({
     const { View, Text } = require('react-native');
     return {
       Navigator: ({ children }) => <View>{children}</View>,
-      Screen: ({ name, component }) => (
-        <Text>{`${name}:${typeof component}`}</Text>
-      ),
+      Screen: ({ name, component }) => <Text>{`${name}:${typeof component}`}</Text>,
     };
   },
 }));

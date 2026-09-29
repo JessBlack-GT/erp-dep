@@ -7,10 +7,11 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { sessionEvents } from './sessionEvents';
 
-const BASE_URL = process.env.PUBLIC_API_BASE_URL || (Platform.OS === 'web'
-  ? 'http://localhost:3000/api/v1'
-  : 'http://10.0.2.2:3000/api/v1');
+const BASE_URL =
+  process.env.PUBLIC_API_BASE_URL ||
+  (Platform.OS === 'web' ? 'http://localhost:3000/api/v1' : 'http://10.0.2.2:3000/api/v1');
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -33,7 +34,7 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Interceptor para manejar errores de respuesta
@@ -42,9 +43,11 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+      sessionEvents.emit('invalid');
     }
+    if (error.response?.status === 403) sessionEvents.emit('permissions');
     return Promise.reject(error);
-  }
+  },
 );
 
 // ============================================
@@ -56,6 +59,7 @@ export const authService = {
   refreshToken: (refreshToken) => apiClient.post('/auth/refresh', { refreshToken }),
   logout: () => apiClient.post('/auth/logout'),
   getMe: () => apiClient.get('/auth/me'),
+  changePassword: (data) => apiClient.post('/auth/password', data),
 };
 
 // ============================================
@@ -68,6 +72,14 @@ export const userService = {
   update: (id, data) => apiClient.patch(`/users/${id}`, data),
   delete: (id) => apiClient.delete(`/users/${id}`),
   getProfile: () => apiClient.get('/users/profile/me'),
+  changeStatus: (id, status) => apiClient.patch(`/users/${id}/status`, { status }),
+  assignRole: (id, role) => apiClient.patch(`/users/${id}/role`, { role }),
+};
+export const roleService = {
+  getAll: () => apiClient.get('/roles'),
+  permissions: () => apiClient.get('/roles/permissions'),
+  create: (data) => apiClient.post('/roles', data),
+  update: (name, data) => apiClient.patch('/roles/' + encodeURIComponent(name), data),
 };
 
 // ============================================
@@ -94,7 +106,7 @@ export const productService = {
   update: (id, data) => apiClient.patch(`/products/${id}`, data),
   delete: (id) => apiClient.delete(`/products/${id}`),
   changeStatus: (id, status) => apiClient.patch(`/products/${id}/status`, { status }),
-  search: q => apiClient.get('/products/search', {params:{q}}),
+  search: (q) => apiClient.get('/products/search', { params: { q } }),
 };
 
 // ============================================
@@ -133,11 +145,11 @@ export const reportService = {
 export default apiClient;
 
 export const supplierService = {
- getAll: params => apiClient.get('/suppliers', {params}),
- getById: id => apiClient.get('/suppliers/'+id),
- create: data => apiClient.post('/suppliers',data),
- update: (id,data) => apiClient.patch('/suppliers/'+id,data),
- changeStatus: (id,status) => apiClient.patch('/suppliers/'+id+'/status',{status}),
- delete: id => apiClient.delete('/suppliers/'+id),
- search: q => apiClient.get('/suppliers/search',{params:{q}}),
+  getAll: (params) => apiClient.get('/suppliers', { params }),
+  getById: (id) => apiClient.get('/suppliers/' + id),
+  create: (data) => apiClient.post('/suppliers', data),
+  update: (id, data) => apiClient.patch('/suppliers/' + id, data),
+  changeStatus: (id, status) => apiClient.patch('/suppliers/' + id + '/status', { status }),
+  delete: (id) => apiClient.delete('/suppliers/' + id),
+  search: (q) => apiClient.get('/suppliers/search', { params: { q } }),
 };

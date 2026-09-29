@@ -1,3 +1,4 @@
+jest.mock('../src/hooks/usePermissions', () => ({ usePermissions: () => () => false }));
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { useAuth } from '../src/context/AuthContext';
@@ -19,7 +20,8 @@ describe('M03 registration in MainNavigator (native navigation mocked)', () => {
   it('registers all customer screens for an authenticated session', () => {
     useAuth.mockReturnValue({ isAuthenticated: true, loading: false });
     const screen = render(<MainNavigator />);
-    for (const name of ['Customers', 'CustomerDetail', 'CustomerForm']) expect(screen.getByText(`${name}:function`)).toBeTruthy();
+    for (const name of ['Customers', 'CustomerDetail', 'CustomerForm'])
+      expect(screen.getByText(`${name}:function`)).toBeTruthy();
   });
   it('does not expose customer screens while unauthenticated or loading', () => {
     useAuth.mockReturnValue({ isAuthenticated: false, loading: false });

@@ -23,6 +23,9 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { semanticColors, spacing, radius, zIndex } from '../../theme';
 
 export const NAV_ITEMS = [
+  { id: 'Users', label: 'Usuarios', icon: '👤', permission: 'users.read', route: 'Users' },
+  { id: 'Roles', label: 'Roles y permisos', icon: '🔐', permission: 'roles.read', route: 'Roles' },
+  { id: 'Password', label: 'Mi seguridad', icon: '🔑', permission: null, route: 'Password' },
   {
     id: 'Dashboard',
     label: 'Panel Principal',
@@ -72,9 +75,7 @@ export function Sidebar({
 }) {
   const can = usePermissions();
 
-  const visibleNavItems = NAV_ITEMS.filter(
-    item => !item.permission || can(item.permission)
-  );
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.permission || can(item.permission));
 
   const handleItemPress = (route) => {
     if (onSelectRoute) {
@@ -162,12 +163,7 @@ export function Sidebar({
   // Mobile Drawer Mode
   if (isMobile) {
     return (
-      <Modal
-        visible={mobileOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={onCloseMobile}
-      >
+      <Modal visible={mobileOpen} transparent animationType="fade" onRequestClose={onCloseMobile}>
         <TouchableWithoutFeedback onPress={onCloseMobile}>
           <View style={styles.mobileBackdrop}>
             <TouchableWithoutFeedback>
