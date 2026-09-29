@@ -8,10 +8,9 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { sessionEvents } from './sessionEvents';
+import { resolveApiBase } from './apiBase';
 
-const BASE_URL =
-  process.env.PUBLIC_API_BASE_URL ||
-  (Platform.OS === 'web' ? 'http://localhost:3000/api/v1' : 'http://10.0.2.2:3000/api/v1');
+const BASE_URL = resolveApiBase(process.env.PUBLIC_API_BASE_URL, Platform.OS, __DEV__);
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
