@@ -14,11 +14,18 @@ describe('Global application bootstrap', () => {
     expect(mongoose.connection.readyState).to.equal(0);
     await request(app).get('/api/v1/ready').expect(503);
   });
-  it('protects role scaffolding and returns explicit 501 after authentication', async () => {
+  it('protects role administration and denies authenticated users without permission', async () => {
     await request(app).get('/api/v1/roles').expect(401);
-    const token = jwt.sign({ id: 'qa-bootstrap', role: 'user' }, config.jwtSecret);
-    const result = await request(app).get('/api/v1/roles').set('Authorization', `Bearer ${token}`).expect(501);
-    expect(result.body.code).to.equal('ROLES_NOT_IMPLEMENTED');
+    const id = '507f1f77bcf86cd799439011';
+    sinon
+      .stub(require('../src/security/rbac'), 'resolveAccess')
+      .resolves({ id, role: 'user', permissions: [], sessionVersion: 0 });
+    const token = jwt.sign({ id }, config.jwtSecret);
+    const result = await request(app)
+      .get('/api/v1/roles')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+    expect(result.body.success).to.equal(false);
   });
   it('protects auth profile and logout endpoints', async () => {
     await request(app).get('/api/v1/auth/me').expect(401);
@@ -29,10 +36,19 @@ describe('Global application bootstrap', () => {
     const repo = require('../src/modules/customers/customers.repository');
     sinon.stub(repo, 'findAll').resolves([]);
     const id = '507f1f77bcf86cd799439011';
-    sinon.stub(require('../src/modules/users/users.model'), 'findById').returns({ select: () => ({ lean: async () => ({ _id: id, role: 'auditor', status: 'active' }) }) });
-    sinon.stub(require('../src/modules/roles/roles.model'), 'findOne').returns({ lean: async () => null });
+    sinon
+      .stub(require('../src/modules/users/users.model'), 'findById')
+      .returns({
+        select: () => ({ lean: async () => ({ _id: id, role: 'auditor', status: 'active' }) }),
+      });
+    sinon
+      .stub(require('../src/modules/roles/roles.model'), 'findOne')
+      .returns({ lean: async () => null });
     const token = jwt.sign({ id }, config.jwtSecret);
-    const result = await request(app).get('/api/v1/customers').set('Authorization', `Bearer ${token}`).expect(200);
+    const result = await request(app)
+      .get('/api/v1/customers')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
     expect(result.body).to.deep.equal({ success: true, data: [] });
   });
 });

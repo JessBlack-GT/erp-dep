@@ -22,6 +22,9 @@ function authenticateToken(req, res, next) {
     }
 
     const decoded = jwt.verify(token, config.jwtSecret);
+    if (decoded.kind && decoded.kind !== 'access')
+      return res.status(401).json({ success: false, error: 'Token inválido' });
+    req.sessionVersion = decoded.sv ?? 0;
     req.user = {
       id: decoded.id,
       email: decoded.email,
@@ -56,11 +59,21 @@ function authenticateOptional(req, res, next) {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    if (!token) { req.user = null; return next(); }
+    if (!token) {
+      req.user = null;
+      return next();
+    }
     const decoded = jwt.verify(token, config.jwtSecret);
-    req.user = { id: decoded.id, email: decoded.email, role: decoded.role, permissions: decoded.permissions || [] };
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      role: decoded.role,
+      permissions: decoded.permissions || [],
+    };
     req.token = token;
-  } catch (error) { req.user = null; }
+  } catch (error) {
+    req.user = null;
+  }
   next();
 }
 

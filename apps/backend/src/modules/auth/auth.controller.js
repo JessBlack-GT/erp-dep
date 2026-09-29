@@ -34,3 +34,7 @@ exports.logout = asyncHandler(async (req, res) => {
 exports.getMe = asyncHandler(async (req, res) => {
   res.json({ success: true, data: req.user });
 });
+exports.changePassword = asyncHandler(async (req, res) => {
+  await authService.changePassword(req.user.id, req.body, req.user.sessionVersion || 0);
+  res.json({ success: true, message: 'Contraseña actualizada; inicie sesión nuevamente' });
+});
