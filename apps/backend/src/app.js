@@ -11,16 +11,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const dotenv = require('dotenv');
+const { config } = require('./config/environment');
 const rateLimit = require('express-rate-limit');
 const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/requestLogger');
 const routes = require('./routes');
 const { corsOptions } = require('./config/cors');
 
-dotenv.config();
-
 const app = express();
+app.set('trust proxy', config.trustProxyHops);
 
 // ============================================
 // Middlewares globales
@@ -37,13 +36,14 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging
-if (process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test' && config.nodeEnv !== 'production') {
   app.use(morgan('dev'));
 }
 app.use(requestLogger);
 
 // Rate Limiting
 const limiter = rateLimit({
+  skip: (req) => req.method === 'GET' && ['/v1/health', '/v1/ready'].includes(req.path),
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
   message: {

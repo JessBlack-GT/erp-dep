@@ -9,7 +9,13 @@
 const dotenv = require('dotenv');
 const { logger } = require('../shared/utils/logger');
 
-dotenv.config({ path: require('path').resolve(__dirname, '../../.env') });
+if (process.env.NODE_ENV !== 'production')
+  dotenv.config({ path: require('path').resolve(__dirname, '../../.env') });
+const productionErrors = require('./production').productionErrors(process.env);
+if (productionErrors.length) {
+  logger.error('Configuración de producción inválida: ' + productionErrors.join(', '));
+  process.exit(1);
+}
 
 const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -29,8 +35,13 @@ const config = {
   bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS) || 12,
 
   // CORS
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  corsOriginFrontend: process.env.CORS_ORIGIN_FRONTEND || 'http://localhost:8081',
+  corsOrigin:
+    process.env.CORS_ORIGIN ||
+    (process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:3000'),
+  corsOriginFrontend:
+    process.env.CORS_ORIGIN_FRONTEND ||
+    (process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:8081'),
+  trustProxyHops: Number(process.env.TRUST_PROXY_HOPS || 0),
 
   // Rate Limiting
   rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX) || 100,

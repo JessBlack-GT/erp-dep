@@ -19,10 +19,10 @@ async function startServer() {
     await connectDB();
 
     // Iniciar servidor
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info(`ERP-SYSTEM Backend ejecutandose en puerto ${PORT}`);
       logger.info(`Entorno: ${NODE_ENV}`);
-      logger.info(`API disponible en: http://localhost:${PORT}/api/v1`);
+      logger.info('API disponible en /api/v1');
     });
 
     // Manejo de errores no capturados

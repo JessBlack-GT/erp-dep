@@ -20,6 +20,7 @@ if (!MONGODB_URI) {
 }
 
 const dbOptions = {
+  ...(config.nodeEnv === 'production' ? { tls: true } : {}),
   dbName: MONGODB_DB_NAME,
   maxPoolSize: 50,
   minPoolSize: 10,

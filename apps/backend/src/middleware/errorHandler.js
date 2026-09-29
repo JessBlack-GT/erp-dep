@@ -54,7 +54,41 @@ function errorHandler(err, req, res, next) {
   const error = err.message || 'Error interno del servidor';
   const isProduction = config.nodeEnv === 'production';
 
-  logger.error({ message: err.message, path: req.path, method: req.method, userId: req.user?.id, code: err.code });
+  logger.error(
+    isProduction
+      ? { message: 'Request failed', method: req.method, status: statusCode }
+      : {
+          message: err.message,
+          path: req.path,
+          method: req.method,
+          userId: req.user?.id,
+          code: err.code,
+        },
+  );
+
+  if (isProduction) {
+    const status =
+      err.name === 'ValidationError' || err.name === 'CastError'
+        ? 400
+        : err.code === 11000
+          ? 409
+          : err.name === 'JsonWebTokenError'
+            ? 401
+            : [400, 401, 403, 404, 409, 429, 503].includes(statusCode)
+              ? statusCode
+              : 500;
+    const messages = {
+      400: 'Datos inválidos',
+      401: 'No autorizado',
+      403: 'Acceso prohibido',
+      404: 'Recurso no encontrado',
+      409: 'Conflicto con un registro existente',
+      429: 'Demasiadas solicitudes',
+      503: 'Servicio no disponible',
+      500: 'Error interno del servidor',
+    };
+    return res.status(status).json({ success: false, error: messages[status] });
+  }
 
   const errorResponse = {
     success: false,
@@ -66,17 +100,44 @@ function errorHandler(err, req, res, next) {
   };
 
   if (err.name === 'ValidationError') {
-    return res.status(400).json({ success: false, error: 'Error de validación', details: err.errors || err.message, timestamp: new Date().toISOString() });
+    return res
+      .status(400)
+      .json({
+        success: false,
+        error: 'Error de validación',
+        details: err.errors || err.message,
+        timestamp: new Date().toISOString(),
+      });
   }
   if (err.name === 'CastError') {
-    return res.status(400).json({ success: false, error: 'ID inválido', message: 'El identificador proporcionado no es válido', timestamp: new Date().toISOString() });
+    return res
+      .status(400)
+      .json({
+        success: false,
+        error: 'ID inválido',
+        message: 'El identificador proporcionado no es válido',
+        timestamp: new Date().toISOString(),
+      });
   }
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || 'campo';
-    return res.status(409).json({ success: false, error: `Ya existe un registro con ${field}`, timestamp: new Date().toISOString() });
+    return res
+      .status(409)
+      .json({
+        success: false,
+        error: `Ya existe un registro con ${field}`,
+        timestamp: new Date().toISOString(),
+      });
   }
   if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({ success: false, error: 'Token inválido', message: 'Inicie sesión de nuevo', timestamp: new Date().toISOString() });
+    return res
+      .status(401)
+      .json({
+        success: false,
+        error: 'Token inválido',
+        message: 'Inicie sesión de nuevo',
+        timestamp: new Date().toISOString(),
+      });
   }
 
   res.status(statusCode).json(errorResponse);
@@ -88,4 +149,13 @@ function asyncHandler(fn) {
   };
 }
 
-module.exports = { errorHandler, asyncHandler, AppError, NotFoundError, UnauthorizedError, ForbiddenError, ValidationError, ConflictError };
+module.exports = {
+  errorHandler,
+  asyncHandler,
+  AppError,
+  NotFoundError,
+  UnauthorizedError,
+  ForbiddenError,
+  ValidationError,
+  ConflictError,
+};

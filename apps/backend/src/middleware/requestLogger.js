@@ -17,7 +17,9 @@ function requestLogger(req, res, next) {
     delete sanitizedBody.token;
     delete sanitizedBody.refreshToken;
     delete sanitizedBody.confirmPassword;
-    logger.info(`${method} ${originalUrl} ${statusCode} ${duration}ms - IP: ${ip}`);
+    const target =
+      process.env.NODE_ENV === 'production' ? req.route?.path || 'unmatched' : originalUrl;
+    logger.info(`${method} ${target} ${statusCode} ${duration}ms - IP: ${ip}`);
   });
   next();
 }
