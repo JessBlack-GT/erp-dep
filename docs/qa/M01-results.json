@@ -1,0 +1,581 @@
+{
+  "module": "M01",
+  "date": "2026-09-29",
+  "verdict": "APROBADO",
+  "branch": "codex/m01-users-security-completion",
+  "baseline": "0fb14c6b64d96d41ff85bb01d82876214dd621f5",
+  "mergedToMain": false,
+  "dependenciesChanged": false,
+  "backend": {
+    "command": "npm.cmd test --workspace=apps/backend -- --reporter json --reporter-option output=../../tmp/m01-backend.json",
+    "suites": 62,
+    "tests": 617,
+    "passes": 617,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-09-29T16:33:47.240Z",
+    "end": "2026-09-29T16:33:51.010Z",
+    "duration": 3770,
+    "exitCode": 0
+  },
+  "frontend": {
+    "command": "npm.cmd test --workspace=apps/frontend -- --json --outputFile=../../tmp/m01-frontend.json",
+    "suites": 28,
+    "passed": 222,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 9,
+    "exitCode": 0
+  },
+  "build": {
+    "command": "npm.cmd run build:web --workspace=apps/frontend",
+    "success": true,
+    "exitCode": 0
+  },
+  "api": {
+    "command": "node apps/backend/scripts/validate-m01-real.cjs",
+    "environment": "authorized-exclusive-QA",
+    "connection": true,
+    "checks": [
+      {
+        "label": "login superadmin",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "login admin",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "login user",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "anonymous",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "invalid JWT",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "expired JWT",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "denied reader",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "effective identity",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "roles listing",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "registered permissions",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "create custom role",
+        "status": 201,
+        "pass": true
+      },
+      {
+        "label": "duplicate role",
+        "status": 409,
+        "pass": true
+      },
+      {
+        "label": "reject internal role fields",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "reject wildcard grant",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "protect system superadmin",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system admin",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system manager",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system sales",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system purchasing",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system warehouse",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system finance",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system hr",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system auditor",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "protect system user",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "create user",
+        "status": 201,
+        "pass": true
+      },
+      {
+        "label": "duplicate email",
+        "status": 409,
+        "pass": true
+      },
+      {
+        "label": "reject payload _id",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "reject payload permissions",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "reject payload sessionVersion",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "reject payload createdBy",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "reject payload updatedBy",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "reject payload isSystem",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "reject payload $set",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "invalid create",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "invalid password",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "invalid ID",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "missing user",
+        "status": 404,
+        "pass": true
+      },
+      {
+        "label": "search filters page one",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "search filters page two",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "role filter",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "invalid pagination",
+        "status": 400,
+        "pass": true
+      },
+      {
+        "label": "detail",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "edit",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "self elevation",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "third party elevation",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "superadmin edit protection",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "last superadmin deactivate",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "last superadmin demote",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "last superadmin delete",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "login qa_m01_1790700716526_0e2ac4f6_custom",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "custom role read M03",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "custom role denied admin",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "revoke persisted permission",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "same token permission revoked",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "grant persisted permission",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "same token current grant",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "role deactivation",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "inactive role denied",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "role activation",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "assign role",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "old token after role change",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "old refresh after role change",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "login sales",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "deactivate user",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "inactive user access",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "inactive user login",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "activate user",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "login sales",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "refresh current session",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "restored identity",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "logout",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "token after logout",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "refresh after logout",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "login sales",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "wrong current password",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "password change",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "token after password change",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "old password rejected",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "login sales",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "limited administrative role",
+        "status": 201,
+        "pass": true
+      },
+      {
+        "label": "limited administrator",
+        "status": 201,
+        "pass": true
+      },
+      {
+        "label": "login qa_m01_1790700716526_0e2ac4f6_limited",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "grant beyond authority",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "assign beyond authority",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "label": "soft delete",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "deleted user login",
+        "status": 401,
+        "pass": true
+      },
+      {
+        "label": "M03-M06 smoke /customers",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "M03-M06 smoke /suppliers",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "M03-M06 smoke /products",
+        "status": 200,
+        "pass": true
+      },
+      {
+        "label": "M03-M06 smoke /inventory/balances",
+        "status": 200,
+        "pass": true
+      }
+    ],
+    "created": {
+      "users": 5,
+      "roles": 2
+    },
+    "cleaned": {
+      "users": 5,
+      "roles": 2
+    },
+    "success": true,
+    "exitCode": 0
+  },
+  "e2e": {
+    "success": true,
+    "environment": "authorized-exclusive-QA",
+    "persistedChecks": [
+      "user edit",
+      "role assignment",
+      "inactive status",
+      "custom role permissions",
+      "admin logout revocation",
+      "expired reader token: local logout and reload verified in browser"
+    ],
+    "webFlows": [
+      "login",
+      "restore after reload",
+      "users list",
+      "create user",
+      "detail",
+      "edit",
+      "assign role",
+      "deactivate",
+      "roles list",
+      "create custom role",
+      "admin logout",
+      "restricted user denial",
+      "reader logout",
+      "logout persists after reload"
+    ],
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 900
+      },
+      {
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "width": 390,
+        "height": 844
+      }
+    ],
+    "native": "NOT_EXECUTED",
+    "execution": "guided-browser-real-api-and-atlas",
+    "created": {
+      "users": 4,
+      "roles": 1
+    },
+    "cleaned": {
+      "users": 4,
+      "roles": 1
+    }
+  },
+  "security": {
+    "historyBlobs": 525,
+    "workingFiles": 345,
+    "findings": [],
+    "forbiddenTracked": [],
+    "success": true
+  },
+  "limits": [
+    "Android/iOS NOT EXECUTED",
+    "Password recovery email not implemented; secure future contract documented",
+    "AsyncStorage is not encrypted",
+    "Logout revokes all devices, no per-device session management",
+    "Superadmin lifecycle prohibited by API",
+    "Dashboard link debt retained; UI-05 paused",
+    "Existing formatter configuration requires no-config workaround"
+  ],
+  "nextModule": {
+    "id": "M14",
+    "status": "NO INICIADO"
+  },
+  "ui05": "PAUSADA",
+  "implementationCommits": [
+    "1676411",
+    "d7a407f",
+    "88249bd",
+    "b4de288"
+  ]
+}

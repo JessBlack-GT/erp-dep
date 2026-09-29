@@ -34,15 +34,21 @@ MONGODB_DB_NAME=erp-db
 
 #### users
 - **Propósito**: Almacenar información de usuarios del sistema
-- **Campos principales**: email, password (hash), firstName, lastName, role, status, permissions
+- **Campos principales**: email, password (hash), firstName, lastName, role (string), status, sessionVersion, createdBy, updatedBy. permissions heredado se conserva pero no autoriza.
 - **Índices**: email (único), role, status
-- **Relaciones**: referencia a roles, creadoPor/actualizadoPor (self-reference)
+- **Relaciones**: role contiene Role.name, no ObjectId; createdBy/updatedBy referencian User._id.
 
 #### roles
 - **Propósito**: Definir roles y permisos del sistema
-- **Campos principales**: name, description, permissions, status, isSystem
+- **Campos principales**: name, description, permissions, status, isSystem, createdBy, updatedBy, timestamps
 - **Índices**: name (único), status
-- **Relaciones**: user.role referencia a roles._id
+- **Relaciones**: User.role corresponde a Role.name. Roles base pueden resolverse desde la matriz central sin documento persistido.
+
+M01 (2026-09-29): sessionVersion es interno, no se devuelve en DTO. Ausencia
+heredada equivale a cero; logout/rol/estado/contraseña incrementan la versión.
+No se requiere migración destructiva. Las escrituras administrativas usan
+transacciones de Atlas/replica set; no hay seed ni ampliación automática de roles
+existentes. Véase [Usuarios y seguridad](../modules/USERS-SECURITY.md).
 
 ### Módulo M03 - Clientes
 

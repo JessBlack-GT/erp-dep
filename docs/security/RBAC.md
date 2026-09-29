@@ -1,10 +1,10 @@
-# RBAC del ERP — M03, M04 y M05
+# RBAC del ERP — M01 y M03–M06
 
 ## Inspección y arquitectura
 
-Existían `User` (rol string y permisos individuales), `Role` (nombre único, permisos string y estado), repositorio de roles y middleware de roles/permisos. No existía modelo `Permission`, resolución de permisos mediante Role ni autorización en Clientes. `/roles` era y sigue siendo un endpoint autenticado que responde 501: no se ha creado una consola de administración ni CRUD de roles. No se duplicaron modelos.
+En la inspección inicial de M03 existían `User` (rol string y permisos individuales), `Role` (nombre único, permisos string y estado), repositorio de roles y middleware de roles/permisos. No existía modelo `Permission`, resolución de permisos mediante Role ni autorización en Clientes. `/roles` respondía 501. M01 sustituye ese stub por administración protegida de roles personalizados y consola de Usuarios/Roles, sin duplicar modelos. Véase la sección M01 al final.
 
-Antes de esta fase los JWT transportaban email, rol y permisos individuales. Las rutas de usuarios permitían escrituras a cualquier usuario autenticado: esto habría permitido autoasignarse un rol privilegiado. Ahora la administración de usuarios exige identidad vigente y rol administrativo mediante una política centralizada. `/users/profile/me` sigue disponible para el propio usuario activo.
+Antes de M03 los JWT transportaban email, rol y permisos individuales. Las rutas de usuarios permitían escrituras a cualquier usuario autenticado. M03 añadió una restricción administrativa central; M01 la sustituye por permisos explícitos users.* y defensas transaccionales. `/users/profile/me` sigue disponible para el propio usuario activo con sesión vigente.
 
 Inspección real de la base QA autorizada: colecciones `users`, `roles`, `customers`; cero usuarios y roles al inicio. No hay colección Permission. No se inspeccionaron ni migraron bases de producción.
 
@@ -16,7 +16,7 @@ Flujo actual:
 4. Si existe Role, sus permisos sustituyen la matriz predeterminada; un Role inactivo/eliminado concede cero permisos. Si no existe, usa la política inicial centralizada de `src/security/rbac.js`.
 5. Permiso válido: continúa. Falta de permiso: 403. Fallo de lectura de autorización: 503 genérico, cerrado por defecto.
 
-La relación usuario→rol usa el nombre string existente, sin migración destructiva a ObjectId. Los permisos son identificadores del catálogo central; no necesitan otra colección para este alcance. Las modificaciones de Role se realizan mediante un canal administrativo de DB autorizado; no se expone un endpoint para que el usuario envíe o edite sus propios permisos. No hay escritura automática de roles durante el arranque.
+La relación usuario→rol usa el nombre string existente, sin migración destructiva a ObjectId. Los permisos son identificadores del catálogo central; no necesitan otra colección para este alcance. M01 permite administrar roles personalizados mediante roles.manage, limitado al ámbito vigente del actor. Los roles del sistema permanecen protegidos y no se permite editar la propia fuente de permisos. No hay escritura automática de roles durante el arranque.
 
 ## Matriz inicial aprobada
 
@@ -66,7 +66,7 @@ M04 registra `suppliers.read`, `suppliers.create`, `suppliers.update` y `supplie
 
 M05 registra `products.read`, `products.create`, `products.update` y `products.delete` para el catálogo PRODUCT/SERVICE. La [matriz M05](../modules/PRODUCTS-SERVICES.md) concede lectura/alta/edición a warehouse y purchasing, pero no eliminación. No agrega `services.*` ni altera los permisos Customers/Suppliers. Los documentos Role explícitos mantienen su prioridad y no se modifican automáticamente.
 
-No se registraron todavía permisos `inventory.*`, `sales.*`, `purchases.*`, `finance.*`, `hr.*`, `reports.*`, `audit.*` ni `settings.*`.
+M06 registró inventory.* y M01 registra users.* y roles.*. Siguen sin registrarse sales.*, purchases.*, finance.*, hr.*, reports.*, audit.* ni settings.*.
 
 ## Verificación
 
@@ -91,3 +91,25 @@ Cobertura: los diez roles, los cuatro permisos independientes, las ocho rutas, 4
 ## M06 — Inventario
 
 Se añaden `inventory.read`, `inventory.entry`, `inventory.exit`, `inventory.transfer`, `inventory.adjust` e `inventory.warehouse.manage`. La matriz completa y la decisión de administración de almacenes están en [Inventario](../modules/INVENTORY.md#rbac). Los permisos anteriores no cambian. Los documentos Role existentes conservan prioridad, sin ampliación automática de permisos persistidos. La identidad auditada se obtiene del usuario autenticado actual.
+
+## M01 — Usuarios y seguridad (2026-09-29)
+
+M01 agrega users.read, users.create, users.update, users.status,
+users.assignRole, roles.read y roles.manage: 25 permisos explícitos totales.
+Admin/superadmin por defecto los reciben; los demás roles preservan exactamente
+su matriz M03–M06. Role persistido sigue teniendo prioridad, sin migración ni
+ampliación automática. El estado del alias super_admin se consulta también para
+usuarios con nombre canónico cuando no existe Role superadmin.
+
+Toda ruta administrativa usa authenticateToken + requirePermission. La versión
+JWT se contrasta con sessionVersion persistida; logout revoca todos los tokens
+anteriores, y los cambios de permisos se aplican en la siguiente solicitud.
+Las escrituras vuelven a comprobar actor/rol dentro de una transacción. Los diez
+roles base son inmutables; un admin no puede asignar superadmin ni otorgar
+permisos superiores a los propios. No puede modificar su propio rol/estado.
+La API prohíbe toda degradación/desactivación/eliminación de superadmin, evitando
+el riesgo de perder la última cuenta operativa por cambios simultáneos.
+
+Arquitectura, endpoints y límites: [M01](../modules/USERS-SECURITY.md).
+Pruebas finales: [QA M01](../qa/M01-VALIDATION.md): backend 617 PASS,
+frontend 222 PASS + 9 TODO anteriores, API real 90 checks, E2E autenticado y build.

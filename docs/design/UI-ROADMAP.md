@@ -78,3 +78,16 @@ Se conservan y aceptan E2E autenticado real y validación nativa Android/iOS;
 no se intentaron resolver durante esta integración.
 La rama codex/ui-04-auth-experience se conserva local y remotamente.
 UI-05 — Dashboard: **NO INICIADA**; sin rama creada. M07: **NO INICIADO**.
+
+## Cierre funcional M01 — 2026-09-29 (posterior al baseline UI-04)
+
+M01 **APROBADO en rama**, sin integración a main en esta fase.
+Regresión final: backend 617 PASS; frontend 222 PASS, 0 FAIL, 9 TODO previos;
+build web exitoso. E2E web autenticado real de UI-04 **RESUELTO** en QA exclusiva,
+con limpieza íntegra de fixtures. UI-01–04 conservadas. Android/iOS:
+**NOT EXECUTED**, pendientes no obligatorios para M01.
+La deuda del enlace Dashboard permanece; no se implementó esa pantalla.
+Siguiente módulo funcional: **M14 — Configuración, NO INICIADO**.
+**UI-05 — Dashboard: PAUSADA**. M13/M07/M08 no iniciados.
+Detalles: [Usuarios y seguridad](../modules/USERS-SECURITY.md) y
+[QA M01](../qa/M01-VALIDATION.md).

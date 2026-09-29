@@ -6,7 +6,7 @@
 
 | ID  | Módulo                  | Responsabilidad                            | Estado       |
 | --- | ----------------------- | ------------------------------------------ | ------------ |
-| M01 | Usuarios y seguridad    | Usuarios, roles, permisos y autenticación. | Estructura completa |
+| M01 | Usuarios y seguridad    | Usuarios, roles, permisos y autenticación. | APROBADO en rama; pendiente integración a main |
 | M02 | Panel principal         | Resumen general de las operaciones.        | Estructura preparada |
 | M03 | Clientes                | Administración de clientes.                | APROBADO |
 | M04 | Proveedores             | Administración de proveedores.             | APROBADO |
@@ -25,7 +25,7 @@
 
 ## Convenciones de Módulos
 
-**DESARROLLO FUNCIONAL TEMPORALMENTE CONGELADO**. **YJ Nexo — UI-01 (Brand System)**, **UI-02 (Base Components)** y **UI-03 (Web App Shell)** han sido completamente **APROBADAS E INTEGRADAS EN MAIN**. **UI-04 (Authentication Experience)** está **APROBADA CON PENDIENTES E INTEGRADA EN MAIN**. Pendientes aceptados: E2E autenticado real con cuenta QA autorizada y validación nativa Android/iOS. Siguiente fase: **UI-05 — Dashboard: NO INICIADA**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
+**M01 APROBADO** el 2026-09-29 en `codex/m01-users-security-completion`, sin merge a main. Véase [Usuarios y seguridad](USERS-SECURITY.md) y [QA M01](../qa/M01-VALIDATION.md). **UI-01–03 APROBADAS E INTEGRADAS EN MAIN**; UI-04 conserva su baseline histórico, con el E2E autenticado real ahora resuelto por M01. Android/iOS siguen NOT EXECUTED y no son obligatorios en esta fase. Siguiente módulo funcional: **M14 — Configuración: NO INICIADO**. **UI-05 — Dashboard: PAUSADA**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
 
 Cada módulo debe seguir la estructura estándar:
 

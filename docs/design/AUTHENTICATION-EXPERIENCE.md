@@ -113,3 +113,16 @@ tests/auth-navigation.test.js (bajo apps/frontend), este documento.
 Modificados: apps/frontend/src/features/auth/LoginScreen.js,
 apps/frontend/src/components/common/Input.js, apps/frontend/tests/login.test.js,
 docs/design/UI-ROADMAP.md.
+
+## Actualización M01 — 2026-09-29
+
+El resultado UI-04 anterior es evidencia histórica de su integración.
+M01 resuelve ahora el pendiente **E2E web autenticado real**, con cuentas
+sintéticas autorizadas en la base QA exclusiva: login, shell, administración,
+permisos denegados, logout y restauración. Fixtures creados y limpiados.
+Se conserva el sistema visual UI-01–04. Véase [QA M01](../qa/M01-VALIDATION.md).
+Android/iOS permanecen **NOT EXECUTED**; no fueron obligatorios para M01.
+AuthContext valida refresh/me, invalida por 401 y actualiza permisos por 403;
+logout del backend revoca todas las sesiones mediante versión persistida.
+AsyncStorage sigue sin cifrado; no se implementó recuperación por correo.
+UI-05 permanece **PAUSADA**. M14 es el siguiente módulo, **NO INICIADO**.
