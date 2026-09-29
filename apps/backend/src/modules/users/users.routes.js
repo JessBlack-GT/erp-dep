@@ -1,29 +1,15 @@
-/**
- * ============================================
- * ERP-SYSTEM - Rutas de Usuarios
- * ============================================
- */
-
-const express = require('express');
-const router = express.Router();
-const userController = require('./users.controller');
+const router = require('express').Router();
+const c = require('./users.controller');
 const { authenticateToken } = require('../../middleware/authenticate');
-const { requireSystemAdmin, requireCurrentUser } = require('../../middleware/authorize');
-const { validateRequest } = require('../../middleware/validateRequest');
-
-// Todas las rutas de usuarios requieren autenticación
+const { requirePermission, requireCurrentUser } = require('../../middleware/authorize');
 router.use(authenticateToken);
-router.get('/profile/me', requireCurrentUser, userController.getProfile);
-router.use(requireSystemAdmin);
-
-router.route('/')
-  .get(userController.getUsers)
-  .post(validateRequest, userController.createUser);
-
-router.route('/:id')
-  .get(userController.getUserById)
-  .patch(validateRequest, userController.updateUser)
-  .delete(userController.deleteUser);
-
-
+router.get('/profile/me', requireCurrentUser, c.profile);
+router.get('/', requirePermission('users.read'), c.list);
+router.get('/:id', requirePermission('users.read'), c.detail);
+router.post('/', requirePermission('users.create'), c.create);
+router.patch('/:id', requirePermission('users.update'), c.mutate('update'));
+router.patch('/:id/status', requirePermission('users.status'), c.mutate('status'));
+router.patch('/:id/role', requirePermission('users.assignRole'), c.mutate('assignRole'));
+router.delete('/:id', requirePermission('users.status'), c.mutate('status'));
+router.use(require('../auth/security-errors'));
 module.exports = router;
