@@ -5,7 +5,7 @@
   "main": "src/app/App.js",
   "scripts": {
     "start": "node scripts/web.cjs",
-    "android": "expo run:android",
+    "android": "react-native run-android --port 8082 --no-packager",
     "ios": "expo run:ios",
     "web": "node scripts/web.cjs",
     "test": "jest --watch=false --runInBand",
@@ -14,7 +14,9 @@
     "lint:fix": "eslint src/ --ext .js,.jsx --fix",
     "format": "prettier --write src/",
     "test:m03": "jest --watch=false --runInBand customers",
-    "build:web": "node scripts/web.cjs --build"
+    "build:web": "node scripts/web.cjs --build",
+    "start:native": "react-native start --port 8082",
+    "bundle:android": "react-native bundle --platform android --dev true --entry-file index.js --bundle-output ../../tmp/android/index.android.bundle --assets-dest ../../tmp/android --max-workers 2"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.21.0",
@@ -26,10 +28,10 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.72.17",
-    "react-native-gesture-handler": "^2.12.0",
+    "react-native-gesture-handler": "2.16.2",
     "react-native-paper": "^5.12.0",
     "react-native-safe-area-context": "^4.6.0",
-    "react-native-screens": "^3.22.0",
+    "react-native-screens": "3.35.0",
     "react-native-vector-icons": "^10.0.0",
     "react-native-web": "^0.19.0",
     "yup": "^1.2.0",
@@ -39,6 +41,7 @@
     "@babel/core": "^7.23.0",
     "@babel/plugin-transform-runtime": "^7.23.0",
     "@babel/runtime": "^7.23.0",
+    "@react-native/metro-config": "0.72.12",
     "@testing-library/jest-native": "^5.4.0",
     "@testing-library/react-native": "^12.1.0",
     "esbuild": "^0.28.2",

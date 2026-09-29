@@ -79,3 +79,10 @@ ios/
 *service-account*.json
 *.p12
 *.pfx
+
+# Local Android tools, caches and signing material
+**/local.properties
+**/.gradle/
+**/.cxx/
+*.keystore
+*.jks
