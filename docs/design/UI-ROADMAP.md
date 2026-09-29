@@ -91,3 +91,17 @@ Siguiente módulo funcional: **M14 — Configuración, NO INICIADO**.
 **UI-05 — Dashboard: PAUSADA**. M13/M07/M08 no iniciados.
 Detalles: [Usuarios y seguridad](../modules/USERS-SECURITY.md) y
 [QA M01](../qa/M01-VALIDATION.md).
+
+## M01 integrado — baseline candidato a deploy (2026-09-29)
+
+M01 APROBADO E INTEGRADO EN MAIN por fast-forward del HEAD `61c2493`,
+con sus cinco commits y rama de fase conservados. Regresión post-integración:
+617 backend PASS, 222 frontend PASS, 9 TODO anteriores y build web SUCCESS;
+todos exit 0. UI-01, UI-02 y UI-03 APROBADAS. UI-04 APROBADA CON PENDIENTE
+NATIVO Android/iOS; E2E web autenticado RESUELTO POR M01.
+
+La próxima etapa temporal cambia a **PRODUCTION READINESS / DEPLOY**:
+preparación de Render y Cloudflare, **NOT STARTED**. No se despliega todavía.
+M14 permanece NO INICIADO y UI-05 PAUSADA. La deuda Dashboard permanece.
+Baseline identificado por el commit documental de integración; evidencia en
+[M01-VALIDATION](../qa/M01-VALIDATION.md#m01-integrated-deploy-baseline--2026-09-29).

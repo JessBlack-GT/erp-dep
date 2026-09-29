@@ -6,7 +6,7 @@
 
 | ID  | Módulo                  | Responsabilidad                            | Estado       |
 | --- | ----------------------- | ------------------------------------------ | ------------ |
-| M01 | Usuarios y seguridad    | Usuarios, roles, permisos y autenticación. | APROBADO en rama; pendiente integración a main |
+| M01 | Usuarios y seguridad    | Usuarios, roles, permisos y autenticación. | APROBADO E INTEGRADO EN MAIN |
 | M02 | Panel principal         | Resumen general de las operaciones.        | Estructura preparada |
 | M03 | Clientes                | Administración de clientes.                | APROBADO |
 | M04 | Proveedores             | Administración de proveedores.             | APROBADO |
@@ -25,7 +25,7 @@
 
 ## Convenciones de Módulos
 
-**M01 APROBADO** el 2026-09-29 en `codex/m01-users-security-completion`, sin merge a main. Véase [Usuarios y seguridad](USERS-SECURITY.md) y [QA M01](../qa/M01-VALIDATION.md). **UI-01–03 APROBADAS E INTEGRADAS EN MAIN**; UI-04 conserva su baseline histórico, con el E2E autenticado real ahora resuelto por M01. Android/iOS siguen NOT EXECUTED y no son obligatorios en esta fase. Siguiente módulo funcional: **M14 — Configuración: NO INICIADO**. **UI-05 — Dashboard: PAUSADA**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
+**M01 APROBADO E INTEGRADO EN MAIN** el 2026-09-29 mediante fast-forward; rama de fase conservada. M03, M04, M05 y M06 permanecen **APROBADOS**. Véase [Usuarios y seguridad](USERS-SECURITY.md) y [QA M01](../qa/M01-VALIDATION.md). **UI-01–03 APROBADAS**; **UI-04 APROBADA CON PENDIENTE NATIVO Android/iOS**. Su E2E web autenticado fue **RESUELTO POR M01**. Próxima etapa temporal: **PRODUCTION READINESS / DEPLOY — NO INICIADA** (Render y Cloudflare). **M14 — Configuración: NO INICIADO**. **UI-05 — Dashboard: PAUSADA**. Véase [UI-ROADMAP](../design/UI-ROADMAP.md).
 
 Cada módulo debe seguir la estructura estándar:
 

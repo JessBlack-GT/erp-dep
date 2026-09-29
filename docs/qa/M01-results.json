@@ -4,7 +4,7 @@
   "verdict": "APROBADO",
   "branch": "codex/m01-users-security-completion",
   "baseline": "0fb14c6b64d96d41ff85bb01d82876214dd621f5",
-  "mergedToMain": false,
+  "mergedToMain": true,
   "dependenciesChanged": false,
   "backend": {
     "command": "npm.cmd test --workspace=apps/backend -- --reporter json --reporter-option output=../../tmp/m01-backend.json",
@@ -577,5 +577,43 @@
     "d7a407f",
     "88249bd",
     "b4de288"
-  ]
+  ],
+  "integration": {
+    "date": "2026-09-29",
+    "status": "APROBADO E INTEGRADO",
+    "mainBefore": "0fb14c6b64d96d41ff85bb01d82876214dd621f5",
+    "approvedHead": "61c249359ca5c52b3b58078f960e16a079b85b59",
+    "method": "fast-forward",
+    "conflicts": 0,
+    "preservedCommits": [
+      "1676411",
+      "d7a407f",
+      "88249bd",
+      "b4de288",
+      "61c2493"
+    ],
+    "backend": {
+      "passed": 617,
+      "failed": 0,
+      "exitCode": 0
+    },
+    "frontend": {
+      "suites": 28,
+      "passed": 222,
+      "failed": 0,
+      "todo": 9,
+      "exitCode": 0
+    },
+    "build": {
+      "success": true,
+      "exitCode": 0
+    },
+    "heavyQaRepeated": false,
+    "fixturesCreated": 0,
+    "phaseBranchPreserved": true,
+    "next": "PRODUCTION READINESS + RENDER + CLOUDFLARE",
+    "nextStatus": "NOT STARTED",
+    "deployed": false,
+    "baselineIdentity": "Commit docs(project): record M01 integrated deploy baseline; final SHA supplied in integration report"
+  }
 }

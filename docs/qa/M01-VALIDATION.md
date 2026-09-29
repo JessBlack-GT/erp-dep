@@ -112,3 +112,34 @@ superadmin; Dashboard preexistente pendiente; configuración global de formato
 heredada pendiente. Push normal de la rama tras validación; main no integrado.
 Siguiente módulo funcional M14 — Configuración: **NO INICIADO**.
 UI-05 Dashboard: **PAUSADA**. M13/M07/M08 sin iniciar.
+
+## M01 INTEGRATED DEPLOY BASELINE — 2026-09-29
+
+Main anterior: `0fb14c6b64d96d41ff85bb01d82876214dd621f5`.
+HEAD M01 aprobado local/remoto: `61c249359ca5c52b3b58078f960e16a079b85b59`.
+Integración mediante fast-forward, sin conflictos, squash, rebase ni force push.
+Se preservan `1676411`, `d7a407f`, `88249bd`, `b4de288` y `61c2493`.
+La rama M01 se conserva local y remotamente.
+
+Regresión post-integración en main:
+
+| Comando | Resultado | Exit |
+|---|---|---:|
+| cmd /c "npm --prefix apps/backend test" | 617 PASS, 0 FAIL | 0 |
+| cmd /c "npm --prefix apps/frontend test" | 28 suites; 222 PASS, 0 FAIL, 9 TODO previos | 0 |
+| cmd /c "npm --prefix apps/frontend run build:web" | SUCCESS | 0 |
+
+Control de seguridad previo: 533 blobs históricos y 345 archivos de trabajo,
+sin hallazgos ni archivos sensibles versionados; solo plantilla .env.example.
+No se repitió API/Atlas/E2E pesado ni se crearon fixtures; su evidencia aprobada
+anterior sigue siendo aplicable porque la integración no modifica código.
+
+**M01 APROBADO E INTEGRADO**. M03–M06 siguen APROBADOS. UI-01–03 APROBADAS;
+UI-04 APROBADA CON PENDIENTE NATIVO Android/iOS. E2E web autenticado UI-04:
+RESUELTO POR M01. Próxima etapa temporal: PRODUCTION READINESS + RENDER +
+CLOUDFLARE, NOT STARTED. M14 NO INICIADO; UI-05 PAUSADA. Sin despliegue.
+
+El commit exclusivamente documental `docs(project): record M01 integrated deploy baseline`
+que incorpora esta sección identifica el DEPLOY CANDIDATE BASELINE. Su SHA final
+se entrega en el reporte de integración tras publicarlo y verificar HEAD = origin/main;
+no se escribe un SHA autorreferencial dentro del propio commit.

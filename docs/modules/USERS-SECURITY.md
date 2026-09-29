@@ -1,7 +1,11 @@
 # M01 — Usuarios y seguridad
 
-Estado funcional: **APROBADO**, validación del 2026-09-29. Rama
-`codex/m01-users-security-completion`, sin integración a main en esta fase.
+Estado funcional: **APROBADO E INTEGRADO EN MAIN**, integración del 2026-09-29.
+Rama `codex/m01-users-security-completion` conservada local y remotamente.
+Integración fast-forward del HEAD aprobado `61c249359ca5c52b3b58078f960e16a079b85b59`;
+regresión post-integración: backend 617 PASS, frontend 222 PASS y 9 TODO previos,
+build web SUCCESS, todos con exit 0. Próxima etapa temporal: production readiness
+y preparación de Render/Cloudflare, **NO INICIADA**; aún no se despliega.
 Evidencia: [QA M01](../qa/M01-VALIDATION.md).
 
 ## Arquitectura y compatibilidad
