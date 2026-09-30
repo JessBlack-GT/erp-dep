@@ -3,10 +3,152 @@
 Preparación del 2026-09-29. Base:
 `codex/deploy-readiness`, `1316138ccadb7b0d3756e5387428df27554a9c7d`.
 Rama de trabajo: `codex/android-emulator-readiness`. No merge, deploy ni módulos
-nuevos. Cierre actualizado el 2026-09-30: **ANDROID EMULATOR: APROBADO CON
-PENDIENTES**. APK, instalación, actividad nativa y ejecución JavaScript real
-comprobados; revisión visual/táctil y smoke autenticado pendientes. Los resultados
-de la preparación inicial se conservan abajo como antecedentes.
+nuevos. Última evaluación del 2026-09-30: **ANDROID EMULATOR: RECHAZADO**
+para integración por validación crítica incompleta: bloqueo recurrente del
+sistema del emulador. No se ha demostrado un defecto del código de YJ Nexo.
+APK, instalación, ejecución JavaScript, Login visible y validaciones vacías
+comprobados; autenticación y recorrido protegido siguen sin validar.
+La aprobación con pendientes anterior describía únicamente la preparación.
+Los resultados anteriores se conservan abajo como antecedentes.
+
+## Smoke Android real: Login comprobado, recorrido bloqueado (2026-09-30)
+
+### Contexto y alcance
+
+Inicio limpio en `efdfe0f62c8ce7fe6f71cc4a9939e40353b6edc4`, igual a
+`origin/codex/android-emulator-readiness` tras fetch. Se conserva esa rama;
+sin merge, despliegues, cambios funcionales, dependencias, RBAC o Java global.
+No se repiten las compilaciones y suites aprobadas: esta actualización es documental.
+
+Dispositivo existente `Pixel_7_YJNexo`, `emulator-5554`, Pixel 7 vertical,
+API 36 x86_64, captura 1080 × 2400. Se reutiliza el APK debug instalado de
+`com.yjnexo/.MainActivity`, SHA256
+`179C6F78CF9F78BBE141B3CAD9C947E07711754F46492995AD9F232547BFAA9D`.
+Build e instalación PASS son resultados previos, no una ejecución nueva.
+
+### Recuperación y evidencia
+
+- ADB reconoció el AVD. La primera captura mostró el launcher y el aviso
+  `System UI isn't responding`, antes de abrir el ERP.
+- El host tenía aproximadamente 417 MiB de RAM libres; no había daemons Gradle
+  activos que liberar. El usuario confirmó que liberó memoria. Esto sugiere
+  presión de recursos, pero no establece por sí solo una causa raíz definitiva.
+- Se reinició únicamente el AVD existente sin wipe ni snapshots nuevos,
+  conservando datos y APK. Su log registró `Boot completed in 218830 ms`.
+- `am start -W -n com.yjnexo/.MainActivity` terminó con exit 0 pero
+  **Status: timeout**, WaitTime 34923: ese exit code no se contó como éxito visual.
+  Una captura posterior sí mostró el Login completo y logcat registró
+  `Running "YJNexo"` a las 19:42:02 del reloj del dispositivo.
+- ADB screencap e input se usaron sobre el Android real. No se sustituyó la
+  interacción por tests JS, por el navegador web ni por inyección de sesión.
+- Pulsar Iniciar sesión con campos vacíos mostró ambos mensajes de validación.
+- Al intentar escribir texto ficticio volvió el ANR de System UI. Esperar no
+  lo resolvió; cerrar ese componente devolvió el Login, pero la siguiente
+  secuencia de entrada volvió a bloquearse y fue interrumpida. No se introdujo
+  la contraseña QA. No se pudo confirmar el texto solicitado ni Mostrar/Ocultar.
+
+Evidencias locales en `tmp/`, ignoradas por Git (no se publican como artefactos):
+`android-smoke-initial.png` (ANR inicial), `android-smoke-login.png` (splash),
+`android-smoke-login-loaded.png` (Login), `android-smoke-validation.png`
+(campos vacíos), `android-smoke-keyboard.png` y
+`android-smoke-wait-recovered.png` (ANR recurrente),
+`android-smoke-systemui-restart.png` (Login tras cerrar System UI),
+`android-smoke-logcat.txt` y `android-smoke-recovery.log`.
+La captura denominada keyboard muestra el bloqueo; **no acredita teclado PASS**.
+
+### Matriz solicitada
+
+PASS se limita a la evidencia indicada; no certifica partes posteriores del flujo.
+
+| CHECK | RESULT | EVIDENCE |
+|---|---|---|
+| APK / INSTALL | PASS | Compilación e instalación previas conservadas, sin repetición. |
+| BOOT | PASS | Mismo AVD; boot completo y captura del Login después del reinicio. |
+| Backend QA / Metro | PASS | health, ready y localhost:8082/status: HTTP 200 en esta continuación. |
+| 1. Aplicación abre | PASS | Login de com.yjnexo visible después del splash. |
+| 2. Sin blanco permanente | PASS | El splash termina y aparece el Login completo. |
+| 3. Sin crash | NOT EXECUTED | Sin crash de YJ Nexo identificado en la muestra; recorrido completo bloqueado. |
+| 4. Login visible | PASS | android-smoke-login-loaded.png. |
+| 5. Logo/marca | PASS | YJ Nexo visible en cabecera. |
+| 6. Inputs visibles | PASS | Correo y contraseña completos. |
+| 7. Teclado permite escribir | NOT EXECUTED | Intento bloqueado por ANR; escritura solicitada no confirmada. |
+| 8. Password show/hide | NOT EXECUTED | Secuencia interrumpida; sin evidencia del cambio. |
+| 9. Validaciones | PASS | Campos vacíos: mensajes de correo y contraseña requeridos; alcance limitado a ese caso. |
+| 10. Login QA válido | NOT EXECUTED | Cuenta preparada y luego limpiada; no se envió login. |
+| 11. Shell | NOT EXECUTED | Requiere autenticación. |
+| 12. Drawer/navegación | NOT EXECUTED | Requiere autenticación. |
+| 13. Dashboard sin crash | NOT EXECUTED | Requiere autenticación. |
+| 14. M03 Clientes | NOT EXECUTED | Requiere autenticación. |
+| 15. M04 Proveedores | NOT EXECUTED | Requiere autenticación. |
+| 16. M05 Productos/servicios | NOT EXECUTED | Requiere autenticación. |
+| 17. M06 Inventario | NOT EXECUTED | Requiere autenticación. |
+| 18. M01 Usuarios | NOT EXECUTED | Admin QA disponible durante el intento, sin sesión Android. |
+| 19. M01 Roles | NOT EXECUTED | Admin QA disponible durante el intento, sin sesión Android. |
+| 20. Acciones no autorizadas | NOT EXECUTED | No se ejercitó RBAC en Android; no se modificaron permisos. |
+| 21. Scroll | NOT EXECUTED | Sin comprobación fiable por bloqueo de entrada. |
+| 22. Botones táctiles | PASS | Iniciar sesión respondió y mostró validaciones; no extrapolable a otros botones. |
+| 23. Formularios utilizables | NOT EXECUTED | Validación vacía comprobada; teclado y edición no confirmados. |
+| 24. Volver Android | NOT EXECUTED | Recorrido bloqueado. |
+| 25. Rotación | NOT APPLICABLE | Excluida expresamente del criterio de bloqueo. |
+| 26. Logout | NOT EXECUTED | No hubo sesión autenticada. |
+| 27. Retorno al Login | NOT EXECUTED | No hubo logout. |
+| 28. Sesión protegida oculta | NOT EXECUTED | No hubo sesión protegida. |
+| 29. Cerrar/reabrir sesión | NOT EXECUTED | No hubo sesión que validar. |
+| 30. Sin errores internos/secretos UI | PASS | Login y validación visibles sin trazas ni secretos; módulos no inspeccionados. |
+
+### Revisión visual
+
+Login observado: marca legible, cabecera azul oscuro, acción azul, fondo blanco,
+texto de buen contraste aparente, márgenes consistentes, inputs y botón completos,
+sin cortes ni superposiciones propios de la app. No se midieron ratios WCAG.
+No se valida todavía teclado sobre inputs, scroll ni tamaño táctil de todos los
+controles. Cards, badges, drawer y encabezados de módulos: NOT EXECUTED.
+
+| SEVERITY | SCREEN | PROBLEM | EXPECTED | ACTUAL |
+|---|---|---|---|---|
+| Crítica para ejecutar QA; infraestructura | Android / Login | ANR recurrente de System UI bloquea interacción | Entrada estable y posibilidad de completar smoke | Aviso del sistema sobre el Login, comandos de entrada sin respuesta incluso tras recuperación. |
+| Baja; visual | Splash Android | Icono genérico Android de plantilla | Identidad YJ Nexo también en arranque | Captura del splash con icono Android; marca correcta dentro del Login. No corregido en esta fase. |
+
+### Logcat y clasificación de errores
+
+Muestra acotada obtenida con `adb logcat -d -t 500 ReactNativeJS:V
+AndroidRuntime:E ActivityManager:E '*:S'` (exit 0). Contiene ANR en
+`com.android.systemui` por input dispatch timeout y en
+`com.google.android.gms.persistent` por SIM_STATE_CHANGED. Son fallos del sistema,
+no se atribuyen a YJ Nexo. En esa muestra no se identificó FATAL EXCEPTION de
+com.yjnexo ni error ReactNativeJS; sí su mensaje de ejecución. No equivale a
+aprobar ausencia de crashes durante el recorrido no ejecutado.
+El log del emulador incluye UpdateLayeredWindowIndirect y advertencia de ANGLE
+en API >35: problemas/advertencias del host gráfico, no evidencia de fallo ERP.
+
+### MongoDB QA, credenciales y limpieza
+
+Conexión QA exitosa; entorno `authorized-exclusive-QA`. Health/ready HTTP 200.
+La configuración Android debug existente apunta a `http://10.0.2.2:3000/api/v1`;
+no se valida aún una petición autenticada desde Android. No se usó producción.
+
+Se reutilizó el mecanismo ya documentado en `docs/qa/M06-VALIDATION.md`:
+`node scripts/m06-ui-fixture.cjs setup` y `cleanup`, desde apps/backend,
+ambos exit 0. Cuenta sintética admin existente en RBAC, sin inventar roles.
+Creado = limpiado: **1 usuario, 1 producto, 2 almacenes, 0 movimientos,
+0 balances**. El manifiesto temporal de credenciales fue eliminado y su ausencia
+se comprobó. No se imprimieron contraseñas, tokens ni URI; `.env` y `tmp/`
+continúan ignorados. La limpieza quedó acotada a IDs y marcador del fixture.
+No es `QA ACCOUNT REQUIRED`: existe mecanismo autorizado; el bloqueo es Android.
+Revisión final `node tmp/m06-security-scan.cjs`: exit 0, 596 blobs históricos,
+386 archivos de trabajo, sin hallazgos ni archivos prohibidos versionados.
+`git diff --check`: exit 0. Único archivo modificado: este informe.
+
+### Cierre y pendientes
+
+Sin cambios de código: no se repiten regresiones pesadas. Se conserva la evidencia
+previa de APK, bundle, web y suites; no se usa para aprobar el smoke real.
+**No se cumplen los mínimos de aprobación del recorrido Android.** El rechazo
+es de la preparación para integración, por QA crítica incompleta, no un diagnóstico
+de defecto funcional del ERP. No procede «pendientes no críticos»: faltan login
+autenticado, shell, módulos, RBAC, teclado, back y logout/session.
+Para cerrar: disponer de un AVD estable y repetir únicamente los puntos no
+ejecutados con el fixture documentado, limpiándolo después. No integrar a main.
 
 ## Continuación: resolución del monorepo (2026-09-29)
 
