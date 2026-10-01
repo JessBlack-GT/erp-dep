@@ -17,10 +17,13 @@ const { errorHandler } = require('./middleware/errorHandler');
 const { requestLogger } = require('./middleware/requestLogger');
 const routes = require('./routes');
 const { corsOptions } = require('./config/cors');
+const { config } = require('./config/environment');
 
 dotenv.config();
 
 const app = express();
+// Set before all middleware; both rate limiters use Express's validated req.ip.
+app.set('trust proxy', config.trustProxyHops === 0 ? false : config.trustProxyHops);
 
 // ============================================
 // Middlewares globales

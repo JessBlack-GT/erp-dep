@@ -11,9 +11,16 @@ const { logger } = require('../shared/utils/logger');
 
 dotenv.config({ path: require('path').resolve(__dirname, '../../.env') });
 
+// Render terminates public requests at its reverse proxy. Direct local traffic trusts none.
+const proxyHops = process.env.TRUST_PROXY_HOPS ?? (process.env.RENDER === 'true' ? '1' : '0');
+if (!/^[0-5]$/.test(proxyHops)) {
+  throw new Error('TRUST_PROXY_HOPS debe ser un entero entre 0 y 5');
+}
+
 const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   port: process.env.PORT || 3000,
+  trustProxyHops: Number(proxyHops),
 
   // MongoDB
   mongodbUri: process.env.MONGODB_URI,

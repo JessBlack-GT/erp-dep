@@ -1,5 +1,31 @@
 # Correo y recuperación de contraseña
 
+### Proxy de Render y límites por IP
+
+Express configura `trust proxy` antes de montar los middlewares. En el servicio
+web con acceso directo mediante el proxy de Render, establecer `TRUST_PROXY_HOPS=1`.
+Si no se define, se usa 1 cuando Render proporciona `RENDER=true`, y 0 fuera de
+Render. Se aceptan únicamente enteros entre 0 y 5; 0 conserva `trust proxy=false`.
+No usar `true`: confiar en toda la cadena permitiría falsificar la IP del cliente.
+No aumentar el número sin verificar la topología; un proxy adicional o una ruta
+de acceso directa al proceso requiere revisar qué saltos son realmente confiables.
+
+Con un salto, Express obtiene la IP de la entrada situada más a la derecha en
+X-Forwarded-For y no confía en entradas anteriores aportadas por el cliente.
+El limitador global y el de recuperación siguen activos con sus cuotas originales.
+Referencias: https://expressjs.com/en/guide/behind-proxies/ y
+https://render.com/docs/environment-variables#render
+
+`ERR_ERL_UNEXPECTED_X_FORWARDED_FOR` indica que llegó X-Forwarded-For mientras
+Express mantenía `trust proxy=false`. En express-rate-limit 7, esa validación se
+registra y la petición puede continuar: no equivale a un fallo de Resend.
+El aviso «No se pudo completar la solicitud de recuperación de contraseña» procede
+del catch del servicio de recuperación y puede indicar configuración, persistencia
+o envío fallidos. Se conserva la respuesta genérica HTTP 200 para evitar enumeración.
+Tras desplegar, verificar que desaparece el error del proxy y comprobar la entrega
+real con una cuenta propia. Si persiste el aviso de recuperación, requiere un
+diagnóstico separado; esta corrección no cambia correo, tokens ni MongoDB.
+
 ### Transporte de correo Resend
 
 El backend dispone de `apps/backend/src/shared/services/email.js`, que exporta
