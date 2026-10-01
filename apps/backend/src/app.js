@@ -38,7 +38,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging
 if (process.env.NODE_ENV !== 'test') {
-  app.use(morgan('dev'));
+  app.use(morgan('dev', {
+    skip: (req) => /^\/api\/v1\/auth\/(forgot|reset)-password/.test(req.path),
+  }));
 }
 app.use(requestLogger);
 

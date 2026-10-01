@@ -5,4 +5,6 @@
  */
 
 export { LoginScreen } from './LoginScreen';
-// RegisterScreen and ResetPasswordScreen are future UI capabilities.
+export { ForgotPasswordScreen } from './ForgotPasswordScreen';
+export { ResetPasswordScreen } from './ResetPasswordScreen';
+// RegisterScreen remains a future UI capability.

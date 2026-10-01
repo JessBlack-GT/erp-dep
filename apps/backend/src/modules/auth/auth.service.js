@@ -16,8 +16,159 @@ const {
   ValidationError,
 } = require('../../shared/errors/appErrors');
 const validation = require('../users/users.validation');
+const crypto = require('crypto');
+const mongoose = require('mongoose');
+const PasswordResetToken = require('./password-reset-token.model');
+const emailService = require('../../shared/services/email');
+const { logger } = require('../../shared/utils/logger');
+const resetMessage =
+  'Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña.';
+const invalidReset = () =>
+  new ValidationError('El enlace de recuperación no es válido o ha expirado.');
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const escapeHtml = (value) =>
+  value.replace(
+    /[&<>"']/g,
+    (char) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[char],
+  );
 
 class AuthService {
+  async forgotPassword(email) {
+    if (typeof email !== 'string' || !validateEmail(email.trim()).valid || email.length > 254)
+      throw new ValidationError('Introduce un correo electrónico válido.');
+    const result = { success: true, message: resetMessage };
+    let tokenHash;
+    try {
+      const minutes = config.passwordResetTokenTtlMinutes;
+      const base = new URL(config.frontendAppUrl);
+      if (
+        !Number.isInteger(minutes) ||
+        minutes < 1 ||
+        minutes > 60 ||
+        base.username ||
+        base.password ||
+        base.search ||
+        base.hash ||
+        base.pathname !== '/' ||
+        (base.protocol !== 'https:' &&
+          !(
+            config.nodeEnv !== 'production' &&
+            base.protocol === 'http:' &&
+            ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)
+          ))
+      )
+        throw Error('Invalid recovery configuration');
+      const user = await User.findOne({ email: email.trim().toLowerCase(), status: 'active' });
+      if (!user) return result;
+      const token = crypto.randomBytes(32).toString('hex');
+      tokenHash = hashToken(token);
+      let created = false;
+      await mongoose.connection.transaction(async (session) => {
+        created = false;
+        // Serialize issuance and redemption on the same user, including when no tokens exist.
+        const locked = await User.findOneAndUpdate(
+          { _id: user._id, status: 'active' },
+          { $inc: { __v: 1 } },
+          { session, new: true },
+        );
+        if (!locked) return;
+        const now = new Date();
+        await PasswordResetToken.updateMany(
+          { userId: user._id, usedAt: null },
+          { $set: { usedAt: now } },
+          { session },
+        );
+        await PasswordResetToken.create(
+          [
+            {
+              userId: user._id,
+              tokenHash,
+              expiresAt: new Date(now.getTime() + minutes * 60000),
+            },
+          ],
+          { session },
+        );
+        created = true;
+      });
+      if (!created) return result;
+      const url = new URL('/reset-password', base);
+      url.searchParams.set('token', token);
+      const link = url.toString();
+      await emailService.sendEmail({
+        to: user.email,
+        subject: 'Restablecimiento de contraseña — YJ Nexo ERP',
+        text: `YJ Nexo ERP\n\nSolicitud para restablecer tu contraseña\n\nSe solicitó un cambio de contraseña para tu cuenta.\nRestablecer contraseña: ${link}\n\nEl enlace expira en ${minutes} minutos y solo puede utilizarse una vez.\nSi no hiciste esta solicitud, puedes ignorar este correo.`,
+        html: `<!doctype html><html lang="es"><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#0f172a"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:32px 16px"><table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px" cellspacing="0" cellpadding="0"><tr><td style="padding:28px;background:#0f172a;color:#ffffff;font-size:24px;font-weight:bold">YJ Nexo <span style="font-size:14px;font-weight:normal">ERP</span></td></tr><tr><td style="padding:32px"><h1 style="font-size:24px;line-height:1.3">Solicitud para restablecer tu contraseña</h1><p style="line-height:1.6">Se solicitó un cambio de contraseña para tu cuenta. Usa el siguiente botón para elegir una nueva contraseña.</p><p style="padding:16px 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#1d4ed8;color:#ffffff;padding:16px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Restablecer contraseña</a></p><p>El enlace expira en <strong>${minutes} minutos</strong> y solo puede utilizarse una vez.</p><p style="color:#475569;line-height:1.6">Si no hiciste esta solicitud, puedes ignorar este correo. Tu contraseña no cambiará.</p></td></tr></table></td></tr></table></body></html>`,
+      });
+    } catch (_) {
+      // Same public response for unknown users, database failures and provider failures.
+      if (tokenHash) {
+        try {
+          await PasswordResetToken.updateMany(
+            { tokenHash, usedAt: null },
+            { $set: { usedAt: new Date() } },
+          );
+        } catch (_) {
+          /* Expiration remains enforced even when cleanup is unavailable. */
+        }
+      }
+      logger.warn('No se pudo completar la solicitud de recuperación de contraseña');
+    }
+    return result;
+  }
+
+  async resetPassword(token, password) {
+    if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) throw invalidReset();
+    validation.password(password);
+    const tokenHash = hashToken(token);
+    // Reject invalid tokens before the expensive password hash. Recheck in the transaction.
+    const pending = await PasswordResetToken.findOne({
+      tokenHash,
+      usedAt: null,
+      expiresAt: { $gt: new Date() },
+    });
+    if (!pending) throw invalidReset();
+    const passwordHash = await bcrypt.hash(password, 12);
+    await mongoose.connection.transaction(async (session) => {
+      const user = await User.findOneAndUpdate(
+        { _id: pending.userId, status: 'active' },
+        { $inc: { __v: 1 } },
+        { session, new: true },
+      );
+      if (!user) throw invalidReset();
+      const now = new Date();
+      const consumed = await PasswordResetToken.findOneAndUpdate(
+        { tokenHash, userId: user._id, usedAt: null, expiresAt: { $gt: now } },
+        { $set: { usedAt: now } },
+        { session, new: true },
+      );
+      if (!consumed) throw invalidReset();
+      // updateOne avoids hashing the already-bcrypt-hashed password in the save hook.
+      const updated = await User.updateOne(
+        { _id: user._id, status: 'active' },
+        {
+          $set: { password: passwordHash, updatedBy: user._id },
+          $inc: { sessionVersion: 1 },
+        },
+        { session },
+      );
+      if (updated.modifiedCount !== 1) throw invalidReset();
+      await PasswordResetToken.updateMany(
+        { userId: user._id, usedAt: null },
+        { $set: { usedAt: now } },
+        { session },
+      );
+    });
+    return { success: true, message: 'Contraseña restablecida correctamente.' };
+  }
+
   /**
    * Registrar un nuevo usuario
    */

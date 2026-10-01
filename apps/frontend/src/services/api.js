@@ -54,6 +54,8 @@ apiClient.interceptors.response.use(
 // Servicio de Autenticación
 // ============================================
 export const authService = {
+  forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
+  resetPassword: (token, password) => apiClient.post('/auth/reset-password', { token, password }),
   login: (email, password) => apiClient.post('/auth/login', { email, password }),
   register: (data) => apiClient.post('/auth/register', data),
   refreshToken: (refreshToken) => apiClient.post('/auth/refresh', { refreshToken }),

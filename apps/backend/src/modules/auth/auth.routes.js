@@ -11,6 +11,17 @@ const { authenticateToken } = require('../../middleware/authenticate');
 const { requireCurrentUser } = require('../../middleware/authorize');
 const { validateRequest } = require('../../middleware/validateRequest');
 const { validateRequired, validateEmail } = require('../../shared/validators/validators');
+const rateLimit = require('express-rate-limit');
+
+const recoveryLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Demasiadas solicitudes. Inténtalo de nuevo más tarde.' },
+});
+router.post('/forgot-password', recoveryLimit, authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 // Registro
 router.post('/register', validateRequest, authController.register);

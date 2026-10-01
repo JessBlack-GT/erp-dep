@@ -37,6 +37,13 @@ const config = {
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
 
   // Email (opcional)
+  resendApiKey: process.env.RESEND_API_KEY,
+  emailFrom: process.env.EMAIL_FROM,
+  frontendAppUrl: process.env.FRONTEND_APP_URL || 'https://erp-dep.pages.dev',
+  passwordResetTokenTtlMinutes:
+    process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES === undefined
+      ? 15
+      : Number(process.env.PASSWORD_RESET_TOKEN_TTL_MINUTES),
   emailHost: process.env.EMAIL_HOST,
   emailPort: parseInt(process.env.EMAIL_PORT) || 587,
   emailUser: process.env.EMAIL_USER,

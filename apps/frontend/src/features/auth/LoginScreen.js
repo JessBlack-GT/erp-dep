@@ -5,7 +5,7 @@ import { semanticColors, spacing, radius } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import { AuthLayout } from './AuthLayout';
 
-export function LoginScreen() {
+export function LoginScreen({ navigation }) {
   const { login } = useAuth();
   const submitting = useRef(false);
   const [email, setEmail] = useState('');
@@ -57,6 +57,8 @@ export function LoginScreen() {
       rightElement={<Button variant="ghost" size="large" label={visible ? 'Ocultar' : 'Mostrar'}
         accessibilityLabel={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
         disabled={busy} onPress={() => setVisible(current => !current)} />} />
+    <Button variant="ghost" label="¿Olvidaste tu contraseña?" disabled={busy}
+      onPress={() => navigation.navigate('ForgotPassword')} />
     {!!error && <View style={styles.error}><Text accessibilityRole="alert" accessibilityLiveRegion="assertive">{error}</Text></View>}
     <Button label="Iniciar sesión" accessibilityLabel={busy ? 'Iniciando sesión' : 'Iniciar sesión'}
       size="large" fullWidth loading={busy} onPress={submit} testID="login-submit" />

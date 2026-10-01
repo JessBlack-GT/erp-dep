@@ -108,11 +108,17 @@ AsyncStorage se mantiene por compatibilidad y **no es almacenamiento cifrado**;
 para despliegue endurecido debe evaluarse cookie HttpOnly web y almacenamiento
 seguro nativo, CSP/TLS y política de duración de tokens.
 
-Recuperación por correo no implementada: falta proveedor e infraestructura.
-Contrato futuro: respuesta indistinguible para emails existentes/inexistentes,
-token aleatorio de un uso guardado como hash, TTL corto, rate limit, verificación
-fuera de banda, cambio atómico y revocación de todas las sesiones. No reutilizar
-JWT de acceso como enlace de recuperación. No se simula envío de correo.
+Recuperación por correo implementada con Resend mediante fetch HTTPS:
+`POST /api/v1/auth/forgot-password` recibe email y mantiene respuesta genérica
+para cuentas existentes/inexistentes/inactivas y fallos de envío; limita 5 solicitudes
+por IP cada 15 minutos. Solo se envía correo a cuentas activas.
+`POST /api/v1/auth/reset-password` recibe token y password. El token aleatorio
+de 32 bytes solo se almacena como SHA-256 en PasswordResetToken, con índice TTL
+y expiración verificada explícitamente (15 minutos por defecto). Emisión y consumo
+se serializan sobre el usuario mediante transacciones; un reset actualiza bcrypt,
+incrementa sessionVersion, consume el token e invalida los demás de forma atómica.
+No se reutiliza JWT como token de recuperación ni se inicia sesión automáticamente.
+La configuración y comprobación manual están en `docs/deployment/DEPLOYMENT.md`.
 
 ## Frontend y límites
 

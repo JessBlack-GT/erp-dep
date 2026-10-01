@@ -88,9 +88,14 @@ de roles implementada. Clientes y Proveedores aplican la política RBAC centrali
 documentada en [Seguridad](docs/security/RBAC.md).
 
 Dashboard y otros módulos futuros no están registrados en la navegación.
-Register/ResetPassword, la biblioteca de componentes comunes y el entorno Expo
+Register, la biblioteca de componentes comunes y el entorno Expo
 Android/iOS siguen pendientes. Una prueba con mocks o una compilación web no
 acredita ejecución nativa, autenticación real ni persistencia.
+
+La recuperación de contraseña dispone de pantallas ForgotPassword/ResetPassword,
+enlaces web y endpoints públicos con tokens de un uso y envío real por Resend.
+Requiere configurar el remitente y la API key en el backend; véase
+[despliegue y prueba manual](docs/deployment/DEPLOYMENT.md#recuperación-de-contraseña).
 
 ## M06 — Inventario integrado
 

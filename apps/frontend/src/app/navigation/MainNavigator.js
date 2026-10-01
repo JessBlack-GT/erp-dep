@@ -3,6 +3,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import { WebAppShell } from '../../components/layout/WebAppShell';
 import { LoginScreen } from '../../features/auth/LoginScreen';
+import { ForgotPasswordScreen } from '../../features/auth/ForgotPasswordScreen';
+import { ResetPasswordScreen } from '../../features/auth/ResetPasswordScreen';
 import { CustomersScreen, CustomerDetailScreen, CustomerForm } from '../../features/customers';
 import { SuppliersScreen, SupplierDetailScreen, SupplierForm } from '../../features/suppliers';
 import { ProductsScreen, ProductDetailScreen, ProductForm } from '../../features/products';
@@ -149,6 +151,16 @@ export function MainNavigator() {
           <Stack.Screen name="Password" component={PasswordWithShell} />
         </>
       )}
+      <Stack.Screen
+        name="ForgotPassword"
+        component={ForgotPasswordScreen}
+        options={{ title: 'Recuperar contraseña' }}
+      />
+      <Stack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+        options={{ title: 'Restablecer contraseña' }}
+      />
     </Stack.Navigator>
   );
 }

@@ -9,6 +9,14 @@ const { asyncHandler } = require('../../middleware/errorHandler');
 const { validateRequest } = require('../../middleware/validateRequest');
 const { validateRequired, validateEmail } = require('../../shared/validators/validators');
 
+exports.forgotPassword = asyncHandler(async (req, res) => {
+  res.json(await authService.forgotPassword(req.body?.email));
+});
+
+exports.resetPassword = asyncHandler(async (req, res) => {
+  res.json(await authService.resetPassword(req.body?.token, req.body?.password));
+});
+
 exports.login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const result = await authService.login(email, password);
