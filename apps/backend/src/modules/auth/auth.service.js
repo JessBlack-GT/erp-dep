@@ -26,6 +26,39 @@ const resetMessage =
 const invalidReset = () =>
   new ValidationError('El enlace de recuperación no es válido o ha expirado.');
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const diagnosticCode = (value) => {
+  if (typeof value === 'string' && /^[a-zA-Z0-9_.-]{1,80}$/.test(value)) return value;
+  return Number.isInteger(value) && Math.abs(value) <= 999999 ? value : undefined;
+};
+const safeDiagnosticMessage = (value) => {
+  if (typeof value !== 'string') return undefined;
+  let message = value;
+  for (const secret of [
+    config.resendApiKey,
+    config.mongodbUri,
+    config.jwtSecret,
+    config.jwtRefreshSecret,
+    config.emailPass,
+  ]) {
+    if (typeof secret === 'string' && secret.length > 0) {
+      message = message.split(secret).join('[redacted]');
+    }
+  }
+  return (
+    message
+      .replace(/[\r\n\t]+/g, ' ')
+      .replace(/[\u0000-\u001f\u007f]/g, '')
+      .replace(/\bBearer\s+[^\s,;]+/gi, 'Bearer [redacted]')
+      .replace(/\b(?:re|rk|sk)_[a-zA-Z0-9_-]{8,}\b/g, '[redacted]')
+      .replace(/https?:\/\/[^\s"'<>]+/gi, '[redacted-url]')
+      .replace(/\bmongodb(?:\+srv)?:\/\/[^\s"'<>]+/gi, '[redacted-database-uri]')
+      .replace(/[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/g, '[redacted-email]')
+      .replace(/\b[a-f0-9]{32,}\b/gi, '[redacted-token]')
+      .replace(/\beyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\b/g, '[redacted-token]')
+      .replace(/("?(?:password|token|secret|authorization)"?\s*[:=]\s*"?)[^\s,;"}]+/gi, '$1[redacted]')
+      .slice(0, 240) || undefined
+  );
+};
 const escapeHtml = (value) =>
   value.replace(
     /[&<>"']/g,
@@ -44,6 +77,8 @@ class AuthService {
     if (typeof email !== 'string' || !validateEmail(email.trim()).valid || email.length > 254)
       throw new ValidationError('Introduce un correo electrónico válido.');
     const result = { success: true, message: resetMessage };
+    const startedAt = Date.now();
+    let stage = 'recovery_configuration';
     let tokenHash;
     try {
       const minutes = config.passwordResetTokenTtlMinutes;
@@ -65,14 +100,18 @@ class AuthService {
           ))
       )
         throw Error('Invalid recovery configuration');
+      stage = 'user_lookup';
       const user = await User.findOne({ email: email.trim().toLowerCase(), status: 'active' });
       if (!user) return result;
+      stage = 'token_generation';
       const token = crypto.randomBytes(32).toString('hex');
       tokenHash = hashToken(token);
       let created = false;
+      stage = 'transaction_start';
       await mongoose.connection.transaction(async (session) => {
         created = false;
         // Serialize issuance and redemption on the same user, including when no tokens exist.
+        stage = 'user_lock';
         const locked = await User.findOneAndUpdate(
           { _id: user._id, status: 'active' },
           { $inc: { __v: 1 } },
@@ -80,11 +119,13 @@ class AuthService {
         );
         if (!locked) return;
         const now = new Date();
+        stage = 'invalidate_existing_tokens';
         await PasswordResetToken.updateMany(
           { userId: user._id, usedAt: null },
           { $set: { usedAt: now } },
           { session },
         );
+        stage = 'token_creation';
         await PasswordResetToken.create(
           [
             {
@@ -96,18 +137,21 @@ class AuthService {
           { session },
         );
         created = true;
+        stage = 'transaction_commit';
       });
       if (!created) return result;
+      stage = 'reset_url_generation';
       const url = new URL('/reset-password', base);
       url.searchParams.set('token', token);
       const link = url.toString();
+      stage = 'email_configuration';
       await emailService.sendEmail({
         to: user.email,
         subject: 'Restablecimiento de contraseña — YJ Nexo ERP',
         text: `YJ Nexo ERP\n\nSolicitud para restablecer tu contraseña\n\nSe solicitó un cambio de contraseña para tu cuenta.\nRestablecer contraseña: ${link}\n\nEl enlace expira en ${minutes} minutos y solo puede utilizarse una vez.\nSi no hiciste esta solicitud, puedes ignorar este correo.`,
         html: `<!doctype html><html lang="es"><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#0f172a"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:32px 16px"><table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px" cellspacing="0" cellpadding="0"><tr><td style="padding:28px;background:#0f172a;color:#ffffff;font-size:24px;font-weight:bold">YJ Nexo <span style="font-size:14px;font-weight:normal">ERP</span></td></tr><tr><td style="padding:32px"><h1 style="font-size:24px;line-height:1.3">Solicitud para restablecer tu contraseña</h1><p style="line-height:1.6">Se solicitó un cambio de contraseña para tu cuenta. Usa el siguiente botón para elegir una nueva contraseña.</p><p style="padding:16px 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#1d4ed8;color:#ffffff;padding:16px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Restablecer contraseña</a></p><p>El enlace expira en <strong>${minutes} minutos</strong> y solo puede utilizarse una vez.</p><p style="color:#475569;line-height:1.6">Si no hiciste esta solicitud, puedes ignorar este correo. Tu contraseña no cambiará.</p></td></tr></table></td></tr></table></body></html>`,
       });
-    } catch (_) {
+    } catch (error) {
       // Same public response for unknown users, database failures and provider failures.
       if (tokenHash) {
         try {
@@ -119,7 +163,28 @@ class AuthService {
           /* Expiration remains enforced even when cleanup is unavailable. */
         }
       }
-      logger.warn('No se pudo completar la solicitud de recuperación de contraseña');
+      const errorStage = [
+        'email_configuration',
+        'resend_request',
+        'resend_response',
+        'resend_timeout',
+      ].includes(error?.stage)
+        ? error.stage
+        : stage;
+      const httpStatus = Number.isInteger(error?.httpStatus)
+        ? error.httpStatus
+        : Number.isInteger(error?.status)
+          ? error.status
+          : undefined;
+      logger.warn('No se pudo completar la solicitud de recuperación de contraseña', {
+        stage: errorStage,
+        errorName: diagnosticCode(error?.name),
+        errorCode: diagnosticCode(error?.code),
+        httpStatus,
+        providerCode: diagnosticCode(error?.providerCode),
+        providerMessage: safeDiagnosticMessage(error?.providerMessage),
+        durationMs: Math.max(0, Date.now() - startedAt),
+      });
     }
     return result;
   }

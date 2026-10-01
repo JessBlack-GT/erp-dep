@@ -21,9 +21,19 @@ describe('Password recovery: isolated persistence and email', () => {
     previous = {
       frontendAppUrl: config.frontendAppUrl,
       passwordResetTokenTtlMinutes: config.passwordResetTokenTtlMinutes,
+      resendApiKey: config.resendApiKey,
+      mongodbUri: config.mongodbUri,
+      jwtSecret: config.jwtSecret,
+      jwtRefreshSecret: config.jwtRefreshSecret,
+      emailPass: config.emailPass,
     };
     config.frontendAppUrl = 'https://erp-dep.pages.dev';
     config.passwordResetTokenTtlMinutes = 15;
+    config.resendApiKey = 'resend-test-secret';
+    config.mongodbUri = 'mongodb://db-user:db-password@db.example/erp';
+    config.jwtSecret = 'jwt-test-secret';
+    config.jwtRefreshSecret = 'refresh-test-secret';
+    config.emailPass = 'smtp-test-secret';
     sinon.stub(logger, 'warn');
     mail = sinon.stub(email, 'sendEmail').resolves({ id: 'mock-message' });
     lookup = sinon
@@ -64,6 +74,7 @@ describe('Password recovery: isolated persistence and email', () => {
     assert.equal(message.to, 'person@example.com');
     assert.match(message.html, /Restablecer contraseña/);
     assert.match(message.html, /15 minutos/);
+    sinon.assert.notCalled(logger.warn);
     assert.equal(result.token, undefined);
     sinon.assert.callOrder(lock, invalidate, create, mail);
     assert.deepEqual(create.firstCall.args[1].session, { testSession: true });
@@ -84,19 +95,75 @@ describe('Password recovery: isolated persistence and email', () => {
     assert.equal(mail.called, false);
   });
 
-  it('conceals provider failures and invalidates the undelivered token without logging secrets', async () => {
-    mail.rejects(Error('sensitive provider details'));
-    const result = await service.forgotPassword('person@example.com');
-    assert.equal(result.success, true);
-    assert.equal(invalidate.callCount, 2);
-    assert.equal(invalidate.lastCall.args[0].tokenHash, create.firstCall.args[0][0].tokenHash);
-    assert.equal(JSON.stringify(logger.warn.args).includes('sensitive'), false);
+  for (const status of [401, 403, 422, 429]) {
+    it(`logs safe stage and provider diagnostics for Resend HTTP ${status}`, async () => {
+      mail.rejects(
+        Object.assign(new Error('Resend error'), {
+          code: 'EMAIL_PROVIDER_ERROR',
+          stage: 'resend_response',
+          httpStatus: status,
+          providerCode: 'validation_error',
+          providerMessage: `Invalid API key resend-test-secret password=private-password token=${'b'.repeat(64)} https://erp-dep.pages.dev/reset-password?token=${'c'.repeat(64)} mongodb://db-user:db-password@db.example/erp`,
+        }),
+      );
+      const result = await service.forgotPassword('person@example.com');
+      assert.deepEqual(result, {
+        success: true,
+        message:
+          'Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña.',
+      });
+      assert.equal(invalidate.callCount, 2);
+      const logged = logger.warn.firstCall.args[1];
+      assert.equal(logged.stage, 'resend_response');
+      assert.equal(logged.errorCode, 'EMAIL_PROVIDER_ERROR');
+      assert.equal(logged.httpStatus, status);
+      assert.equal(logged.providerCode, 'validation_error');
+      assert.match(logged.providerMessage, /Invalid API key/);
+      assert.equal(typeof logged.durationMs, 'number');
+      const serialized = JSON.stringify(logger.warn.args);
+      for (const secret of [
+        'resend-test-secret',
+        'private-password',
+        'b'.repeat(64),
+        'c'.repeat(64),
+        'erp-dep.pages.dev/reset-password',
+        'mongodb://db-user:db-password@db.example/erp',
+        'person@example.com',
+        'jwt-test-secret',
+        'refresh-test-secret',
+        'smtp-test-secret',
+      ]) {
+        assert.equal(serialized.includes(secret), false, `logged secret: ${secret}`);
+      }
+    });
+  }
+
+  it('logs MongoDB user lookup failures without exposing connection details', async () => {
+    lookup.rejects(
+      Object.assign(new Error('mongodb://db-user:db-password@db.example/erp'), { code: 11000 }),
+    );
+    assert.equal((await service.forgotPassword('person@example.com')).success, true);
+    assert.equal(mail.called, false);
+    assert.equal(logger.warn.firstCall.args[1].stage, 'user_lookup');
+    assert.equal(logger.warn.firstCall.args[1].errorCode, 11000);
+    assert.equal(JSON.stringify(logger.warn.args).includes('db-password'), false);
+  });
+
+  it('logs token creation failures separately from the transaction', async () => {
+    create.rejects(new Error('private database detail'));
+    assert.equal((await service.forgotPassword('person@example.com')).success, true);
+    assert.equal(mail.called, false);
+    assert.equal(logger.warn.firstCall.args[1].stage, 'token_creation');
+    assert.equal(JSON.stringify(logger.warn.args).includes('private database detail'), false);
   });
 
   it('conceals database failure without sending', async () => {
     transaction.rejects(Error('private database detail'));
     assert.equal((await service.forgotPassword('person@example.com')).success, true);
     assert.equal(mail.called, false);
+    assert.equal(logger.warn.firstCall.args[1].stage, 'transaction_start');
+    assert.equal(typeof logger.warn.firstCall.args[1].durationMs, 'number');
+    assert.equal(JSON.stringify(logger.warn.args).includes('private database detail'), false);
   });
 
   it('validates email before persistence or email', async () => {

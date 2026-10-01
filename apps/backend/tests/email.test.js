@@ -66,35 +66,54 @@ describe('Resend email transport (no real network)', () => {
     assert.equal(request.called, false);
   });
 
-  for (const status of [401, 403, 429, 500]) {
-    it(`rejects HTTP ${status} without exposing the response body`, async () => {
-      const json = sinon.stub().resolves({ message: 'sensitive provider details' });
-      request.resolves({ ok: false, status, json });
-      await assert.rejects(sendEmail(message), {
-        code: 'EMAIL_PROVIDER_ERROR',
-        message: 'Resend rechazó el envío de correo',
+  for (const status of [401, 403, 422, 429]) {
+    it(`preserves HTTP ${status} and safe provider diagnostics`, async () => {
+      const json = sinon.stub().resolves({
+        name: 'validation_error',
+        message: `Invalid API key test-only-placeholder for person@example.com: https://example.com/reset?token=${'a'.repeat(64)}`,
       });
-      assert.equal(json.called, false);
+      request.resolves({ ok: false, status, json });
+      await assert.rejects(sendEmail(message), (error) => {
+        assert.equal(error.code, 'EMAIL_PROVIDER_ERROR');
+        assert.equal(error.stage, 'resend_response');
+        assert.equal(error.httpStatus, status);
+        assert.equal(error.status, status);
+        assert.equal(error.providerCode, 'validation_error');
+        assert.match(error.providerMessage, /Invalid API key/);
+        assert.doesNotMatch(error.message, /test-only-placeholder|person@example.com|https:\/\/|a{32}/);
+        assert.doesNotMatch(error.providerMessage, /test-only-placeholder|person@example.com|https:\/\/|a{32}/);
+        assert.match(error.message, new RegExp(`HTTP ${status}`));
+        return true;
+      });
+      assert.equal(json.calledOnce, true);
       assert.equal(request.callCount, 1);
     });
   }
 
   it('does not report success for malformed responses', async () => {
     request.resolves({ ok: true, json: async () => ({}) });
-    await assert.rejects(sendEmail(message), { code: 'EMAIL_PROVIDER_ERROR' });
+    await assert.rejects(sendEmail(message), {
+      code: 'EMAIL_PROVIDER_ERROR',
+      stage: 'resend_response',
+      httpStatus: undefined,
+    });
     request.resolves({
       ok: true,
       json: async () => {
         throw Error('private response');
       },
     });
-    await assert.rejects(sendEmail(message), { code: 'EMAIL_SEND_FAILED' });
+    await assert.rejects(sendEmail(message), {
+      code: 'EMAIL_PROVIDER_ERROR',
+      stage: 'resend_response',
+    });
   });
 
   it('sanitizes network failures and does not retry ambiguous sends', async () => {
     request.rejects(new Error('private transport details'));
     await assert.rejects(sendEmail(message), {
       code: 'EMAIL_SEND_FAILED',
+      stage: 'resend_request',
       message: 'No se pudo completar el envío con Resend',
     });
     assert.equal(request.callCount, 1);
@@ -108,7 +127,10 @@ describe('Resend email transport (no real network)', () => {
           signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
         }),
     );
-    const result = assert.rejects(sendEmail(message), { code: 'EMAIL_TIMEOUT' });
+    const result = assert.rejects(sendEmail(message), {
+      code: 'EMAIL_TIMEOUT',
+      stage: 'resend_timeout',
+    });
     await clock.tickAsync(10000);
     await result;
     assert.equal(clock.countTimers(), 0);
