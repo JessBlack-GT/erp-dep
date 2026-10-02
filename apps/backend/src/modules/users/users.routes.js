@@ -2,6 +2,7 @@ const router = require('express').Router();
 const c = require('./users.controller');
 const { authenticateToken } = require('../../middleware/authenticate');
 const { requirePermission, requireCurrentUser } = require('../../middleware/authorize');
+router.use(require('./users.diagnostics').requestDiagnostics);
 router.use(authenticateToken);
 router.get('/profile/me', requireCurrentUser, c.profile);
 router.get('/', requirePermission('users.read'), c.list);

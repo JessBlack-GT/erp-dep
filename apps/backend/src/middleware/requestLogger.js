@@ -10,6 +10,7 @@ function requestLogger(req, res, next) {
   const startTime = Date.now();
   const { method, originalUrl, ip } = req;
   res.on('finish', () => {
+    if (req.userCreationDiagnostics) return;
     const duration = Date.now() - startTime;
     const { statusCode } = res;
     const sanitizedBody = { ...req.body };

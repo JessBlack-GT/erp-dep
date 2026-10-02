@@ -11,7 +11,9 @@ function requireAccess(check) {
   return async (req, res, next) => {
     if (!req.user?.id) return res.status(401).json({ success: false, error: 'No autenticado' });
     try {
+      req.userCreationDiagnostics?.mark('database_lookup');
       const access = await rbac.resolveAccess(req.user.id);
+      req.userCreationDiagnostics?.mark('authorization');
       if (!access) return res.status(401).json({ success: false, error: 'Sesión no válida' });
       if ((req.sessionVersion ?? 0) !== (access.sessionVersion || 0))
         return res.status(401).json({ success: false, error: 'Sesión revocada' });
@@ -19,7 +21,8 @@ function requireAccess(check) {
         return res.status(403).json({ success: false, error: 'Sin permisos suficientes' });
       req.user = access;
       next();
-    } catch (_) {
+    } catch (error) {
+      req.userCreationDiagnostics?.error(req.userCreationDiagnostics.stage, error);
       // Fail closed without exposing database or authentication details.
       return res.status(503).json({ success: false, error: 'Autorización no disponible' });
     }

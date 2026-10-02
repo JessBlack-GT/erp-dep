@@ -36,8 +36,13 @@ userSchema.index({ status: 1 });
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
+    const hash = async () => {
+      const salt = await bcrypt.genSalt(12);
+      this.password = await bcrypt.hash(this.password, salt);
+    };
+    if (this.$locals.creationDiagnostics) await this.$locals.creationDiagnostics.run('password_hash', hash);
+    else await hash();
+    this.$locals.creationDiagnostics?.mark('user_save');
     next();
   } catch (error) {
     next(error);

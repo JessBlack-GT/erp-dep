@@ -1,5 +1,6 @@
 // Never expose database values, hashes, tokens or stack traces, even in development.
 module.exports = (err, req, res, next) => {
+  req.userCreationDiagnostics?.error(req.userCreationDiagnostics.stage, err);
   const status =
     err.code === 11000
       ? 409

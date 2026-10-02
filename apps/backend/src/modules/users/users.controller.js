@@ -10,7 +10,7 @@ exports.profile = asyncHandler(async (req, res) =>
   res.json({ success: true, data: await service.getProfile(req.user.id) }),
 );
 exports.create = asyncHandler(async (req, res) =>
-  res.status(201).json({ success: true, data: await service.create(req.body, req.user) }),
+  res.status(201).json({ success: true, data: await service.create(req.body, req.user, req.userCreationDiagnostics) }),
 );
 exports.mutate = (action) =>
   asyncHandler(async (req, res) =>

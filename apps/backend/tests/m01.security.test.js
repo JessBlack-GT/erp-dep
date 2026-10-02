@@ -229,6 +229,7 @@ describe('M01 protected targets and role management', () => {
     return doc;
   }
   it('creates a user with actor metadata and no password exposure', async () => {
+    sinon.stub(require('../src/shared/services/email'), 'sendEmail').resolves({ id: 'mock-welcome' });
     sinon.stub(User.prototype, 'save').callsFake(async function () {
       return this;
     });

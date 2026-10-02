@@ -40,17 +40,20 @@ async function assignable(name, actor, session) {
     throw new ForbiddenError('No puede asignar este rol');
   return selected;
 }
-async function transaction(actor, permission, operation) {
+async function transaction(actor, permission, operation, trace) {
   let result;
   await mongoose.connection.transaction(async (session) => {
+    trace?.mark('database_lookup');
     // Actor/role locks serialize authorization changes with administrative writes.
     const current = await User.findOneAndUpdate(
       { _id: actor.id, status: 'active' },
       { $inc: { __v: 1 } },
       { new: true, session, timestamps: false },
     ).select('+sessionVersion');
+    trace?.mark('authorization');
     if (!current || (current.sessionVersion || 0) !== (actor.sessionVersion || 0))
       throw new UnauthorizedError('Sesión revocada');
+    trace?.mark('database_lookup');
     const selected = await role(current.role, session);
     const fresh = {
       ...actor,
@@ -61,6 +64,7 @@ async function transaction(actor, permission, operation) {
           ? selected.permissions.filter((p) => rbac.PERMISSIONS.includes(p))
           : [],
     };
+    trace?.mark('authorization');
     if (!rbac.hasPermission(fresh, permission)) throw new ForbiddenError();
     result = await operation(session, fresh);
   });

@@ -2,6 +2,8 @@ const User = require('./users.model');
 const v = require('./users.validation');
 const admin = require('../../security/administration');
 const rbac = require('../../security/rbac');
+const emailService = require('../../shared/services/email');
+const { createDiagnostics } = require('./users.diagnostics');
 const { NotFoundError, ForbiddenError, ValidationError } = require('../../shared/errors/appErrors');
 const publicUser = (user) => {
   const data = user.toObject ? user.toObject() : user;
@@ -46,23 +48,42 @@ class UserService {
     if (!user) throw new NotFoundError('Usuario no encontrado');
     return publicUser(user);
   }
-  async create(data, actor) {
-    const fields = v.payload(data, true);
-    if (fields.role !== 'user' && !rbac.hasPermission(actor, 'users.assignRole'))
-      throw new ForbiddenError();
-    return admin.transaction(actor, 'users.create', async (session, fresh) => {
-      if (fields.role !== 'user' && !rbac.hasPermission(fresh, 'users.assignRole'))
+  async create(data, actor, trace = createDiagnostics()) {
+    const fields = await trace.run('validation', () => v.payload(data, true));
+    await trace.run('authorization', () => {
+      if (fields.role !== 'user' && !rbac.hasPermission(actor, 'users.assignRole'))
         throw new ForbiddenError();
-      const selected = await admin.assignable(fields.role, fresh, session);
-      const user = new User({
+    });
+    const saved = await trace.run('database_transaction', () => admin.transaction(actor, 'users.create', async (session, fresh) => {
+      await trace.run('authorization', () => {
+        if (fields.role !== 'user' && !rbac.hasPermission(fresh, 'users.assignRole'))
+          throw new ForbiddenError();
+      });
+      const selected = await trace.run('database_lookup', () => admin.assignable(fields.role, fresh, session));
+      const user = await trace.run('user_create', () => new User({
         ...fields,
         role: selected.name,
         createdBy: actor.id,
         updatedBy: actor.id,
-      });
-      await user.save({ session });
+      }));
+      user.$locals.creationDiagnostics = trace;
+      await trace.run('user_save', () => user.save({ session }));
+      trace.mark('database_commit');
       return publicUser(user);
-    });
+    }, trace));
+    // Outside the retryable transaction: save AND commit have succeeded.
+    // A failed/uncertain commit must never send a welcome message.
+    try {
+      const message = await trace.run('welcome_email_prepare', () => ({
+        to: saved.email,
+        subject: 'Bienvenido a YJ Nexo ERP',
+        text: `Hola, ${saved.firstName} ${saved.lastName}.\n\nTu cuenta ha sido creada correctamente en YJ Nexo ERP.\nYa puedes ingresar al sistema.`,
+      }));
+      await trace.run('welcome_email_send', () => emailService.sendEmail(message));
+    } catch (_) {
+      // Already logged by run(). Preserve the committed account and normal DTO.
+    }
+    return saved;
   }
   async mutate(id, data, actor, action) {
     v.id(id);

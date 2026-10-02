@@ -34,6 +34,7 @@ function authenticateToken(req, res, next) {
     req.token = token;
     next();
   } catch (error) {
+    req.userCreationDiagnostics?.error('authentication', error);
     if (error.name === 'TokenExpiredError') {
       logger.warn('Token expirado');
       return res.status(401).json({
@@ -50,7 +51,7 @@ function authenticateToken(req, res, next) {
         message: 'Credenciales no válidas',
       });
     }
-    logger.error('Error en authenticateToken:', error.message);
+    if (!req.userCreationDiagnostics) logger.error('Error en authenticateToken:', error.message);
     return res.status(500).json({ success: false, error: 'Error de autenticación' });
   }
 }
