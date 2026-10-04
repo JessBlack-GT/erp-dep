@@ -1,12 +1,16 @@
 // Never expose database values, hashes, tokens or stack traces, even in development.
 module.exports = (err, req, res, next) => {
   req.userCreationDiagnostics?.error(req.userCreationDiagnostics.stage, err);
+  const invalidRegistration = /^\/register\/?$/.test(req.path) &&
+    err instanceof require('mongoose').Error.ValidationError;
   const status =
     err.code === 11000
       ? 409
-      : err.isOperational && [400, 401, 403, 404, 409].includes(err.statusCode)
-        ? err.statusCode
-        : 500;
+      : invalidRegistration
+        ? 400
+        : err.isOperational && [400, 401, 403, 404, 409].includes(err.statusCode)
+          ? err.statusCode
+          : 500;
   res
     .status(status)
     .json({
@@ -16,6 +20,6 @@ module.exports = (err, req, res, next) => {
           ? 'Error interno del servidor'
           : status === 409
             ? 'Conflicto con un registro existente'
-            : err.message,
+            : invalidRegistration ? 'Datos de registro inválidos' : err.message,
     });
 };

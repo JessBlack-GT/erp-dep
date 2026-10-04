@@ -12,6 +12,7 @@ const { requireCurrentUser } = require('../../middleware/authorize');
 const { validateRequest } = require('../../middleware/validateRequest');
 const { validateRequired, validateEmail } = require('../../shared/validators/validators');
 const rateLimit = require('express-rate-limit');
+const { authLimiter } = require('../../middleware/rateLimiter');
 
 const recoveryLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -27,7 +28,7 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/register', validateRequest, authController.register);
 
 // Login y logout
-router.post('/login', validateRequest, authController.login);
+router.post('/login', authLimiter, validateRequest, authController.login);
 router.post('/logout', authenticateToken, requireCurrentUser, authController.logout);
 router.post('/password', authenticateToken, requireCurrentUser, authController.changePassword);
 router.post('/refresh', authController.refreshToken);

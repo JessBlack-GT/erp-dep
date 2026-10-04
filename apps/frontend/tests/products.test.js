@@ -50,6 +50,16 @@ const draw = (child, permissions = all) =>
       {child}
     </AuthContext.Provider>,
   );
+beforeAll(() => {
+  // React Native exposes lazy getters. Resolve the screen primitives and
+  // Testing Library's host-detection primitives during suite setup, so cold
+  // Babel compilation is not charged to the first asynchronous interaction.
+  const native = require('react-native');
+  for (const name of [
+    'View', 'Text', 'TextInput', 'Image', 'Switch', 'ScrollView', 'Modal',
+    'Button', 'FlatList', 'TouchableOpacity', 'ActivityIndicator',
+  ]) void native[name];
+});
 beforeEach(() => {
   jest.resetAllMocks();
   jest.useFakeTimers();

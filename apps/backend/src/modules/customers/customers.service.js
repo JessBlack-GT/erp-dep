@@ -120,7 +120,9 @@ class CustomerService {
     delete updateData._id;
     delete updateData.__v;
 
-    return customerRepository.updateById(id, updateData);
+    const updated = await customerRepository.updateById(id, updateData);
+    if (!updated) throw new NotFoundError('Cliente no encontrado', 'Customer');
+    return updated;
   }
 
   /**
@@ -131,7 +133,9 @@ class CustomerService {
     if (!Object.values(STATUS).includes(status)) throw new ValidationError('Estado inválido');
     if (status === STATUS.DELETED) throw new ValidationError('Utilice la operación de eliminación');
     await this.getById(id);
-    return customerRepository.updateStatus(id, status);
+    const updated = await customerRepository.updateStatus(id, status);
+    if (!updated) throw new NotFoundError('Cliente no encontrado', 'Customer');
+    return updated;
   }
 
   /**
@@ -139,7 +143,9 @@ class CustomerService {
    */
   async delete(id) {
     await this.getById(id);
-    return customerRepository.softDelete(id);
+    const deleted = await customerRepository.softDelete(id);
+    if (!deleted) throw new NotFoundError('Cliente no encontrado', 'Customer');
+    return deleted;
   }
 
   /**

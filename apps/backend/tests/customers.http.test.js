@@ -135,9 +135,9 @@ describe('M03 persistence query and model contracts (no database)', () => {
     expect(chain.limit.calledWith(5)).to.equal(true);
   });
   it('soft delete writes only status', async () => {
-    const update = sinon.stub(Customer, 'findByIdAndUpdate').resolves(customer);
+    const update = sinon.stub(Customer, 'findOneAndUpdate').resolves(customer);
     await repo.softDelete(id);
-    expect(update.firstCall.args).to.deep.equal([id, { status: 'deleted' }, { new: true }]);
+    expect(update.firstCall.args).to.deep.equal([{ _id: id, status: { $ne: 'deleted' } }, { status: 'deleted' }, { new: true }]);
   });
   it('validates model fields without persistence', () => {
     const invalid = new Customer({ status: 'not-a-status', type: 'not-a-type' }).validateSync();

@@ -26,13 +26,7 @@ export const NAV_ITEMS = [
   { id: 'Users', label: 'Usuarios', icon: '👤', permission: 'users.read', route: 'Users' },
   { id: 'Roles', label: 'Roles y permisos', icon: '🔐', permission: 'roles.read', route: 'Roles' },
   { id: 'Password', label: 'Mi seguridad', icon: '🔑', permission: null, route: 'Password' },
-  {
-    id: 'Dashboard',
-    label: 'Panel Principal',
-    icon: '📊',
-    permission: null, // Public for authenticated users
-    route: 'Dashboard',
-  },
+  // Dashboard pendiente: agregar el enlace cuando exista una pantalla registrada.
   {
     id: 'Customers',
     label: 'Clientes',

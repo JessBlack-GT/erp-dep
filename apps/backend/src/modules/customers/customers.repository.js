@@ -14,6 +14,8 @@ class CustomerRepository {
     const skip = (page - 1) * limit;
 
     const query = { status: { $ne: 'deleted' }, ...filters };
+    // Explicit filters must never reintroduce deleted customers.
+    if (filters.status === 'deleted') query.status = { $in: [] };
     const literalSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     // Busqueda por texto
@@ -36,7 +38,7 @@ class CustomerRepository {
 
   async findById(id) {
     if (!validateObjectId(id).valid) throw new ValidationError('ID inválido');
-    return Customer.findById(id);
+    return Customer.findOne({ _id: id, status: { $ne: 'deleted' } });
   }
 
   async findByEmail(email) {
@@ -54,17 +56,17 @@ class CustomerRepository {
 
   async updateById(id, updateData) {
     if (!validateObjectId(id).valid) throw new ValidationError('ID inválido');
-    return Customer.findByIdAndUpdate(id, updateData, { new: true, runValidators: true });
+    return Customer.findOneAndUpdate({ _id: id, status: { $ne: 'deleted' } }, updateData, { new: true, runValidators: true });
   }
 
   async updateStatus(id, status) {
     if (!validateObjectId(id).valid) throw new ValidationError('ID inválido');
-    return Customer.findByIdAndUpdate(id, { status }, { new: true, runValidators: true });
+    return Customer.findOneAndUpdate({ _id: id, status: { $ne: 'deleted' } }, { status }, { new: true, runValidators: true });
   }
 
   async softDelete(id) {
     if (!validateObjectId(id).valid) throw new ValidationError('ID inválido');
-    return Customer.findByIdAndUpdate(id, { status: 'deleted' }, { new: true });
+    return Customer.findOneAndUpdate({ _id: id, status: { $ne: 'deleted' } }, { status: 'deleted' }, { new: true });
   }
 
   async count(filters = {}) {

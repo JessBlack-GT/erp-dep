@@ -1,8 +1,10 @@
-jest.mock('../src/hooks/usePermissions', () => ({ usePermissions: () => () => false }));
+jest.mock('../src/hooks/usePermissions', () => ({ usePermissions: jest.fn(() => () => false) }));
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { useAuth } from '../src/context/AuthContext';
 import { MainNavigator } from '../src/app/navigation/MainNavigator';
+import { NAV_ITEMS } from '../src/components/layout/Sidebar';
+import { usePermissions } from '../src/hooks/usePermissions';
 
 jest.mock('../src/context/AuthContext', () => ({ useAuth: jest.fn() }));
 jest.mock('@react-navigation/native-stack', () => ({
@@ -17,6 +19,14 @@ jest.mock('@react-navigation/native-stack', () => ({
 }));
 
 describe('M05 registration in MainNavigator (native navigation mocked)', () => {
+  it('registers every offered sidebar destination and leaves Dashboard pending', () => {
+    useAuth.mockReturnValue({ isAuthenticated: true, loading: false });
+    usePermissions.mockReturnValueOnce(() => true);
+    const screen = render(<MainNavigator />);
+    for (const item of NAV_ITEMS)
+      expect(screen.getByText(`${item.route}:function`)).toBeTruthy();
+    expect(NAV_ITEMS.some(item => item.route === 'Dashboard')).toBe(false);
+  });
   it('registers all product screens for an authenticated session', () => {
     useAuth.mockReturnValue({ isAuthenticated: true, loading: false });
     const screen = render(<MainNavigator />);

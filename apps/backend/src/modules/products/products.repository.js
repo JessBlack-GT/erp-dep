@@ -33,9 +33,10 @@ class ProductsRepository {
     return Product.create(data);
   }
   update(id, set, unset = {}) {
-    // Preserve the catalog identity of products with an inventory ledger.
-    // Lock the same Product document as M06 before checking history.
-    if (set.type === 'SERVICE' || set.trackInventory === false) {
+    // Preserve ledger identity and keep positive balances usable.
+    // Lock the same Product document as M06 before checking stock or history.
+    if (set.type === 'SERVICE' || set.trackInventory === false ||
+        set.status === 'deleted' || set.status === 'inactive') {
       return mongoose.connection.transaction(
         async (session) => {
           const previous = await Product.findOneAndUpdate(
@@ -44,6 +45,18 @@ class ProductsRepository {
             { new: true, session, timestamps: false },
           );
           if (!previous) return null;
+          if (set.status === 'deleted' || set.status === 'inactive') {
+            const stock = await mongoose.connection
+              .collection('inventoryBalances')
+              .findOne(
+                { productId: previous._id, quantityUnits: { $gt: 0 } },
+                { session, projection: { _id: 1 } },
+              );
+            if (stock)
+              throw new ConflictError(
+                'Un producto con existencias no puede eliminarse ni desactivarse',
+              );
+          }
           if (
             (set.type === 'SERVICE' && previous.type !== 'SERVICE') ||
             (set.trackInventory === false && previous.trackInventory)

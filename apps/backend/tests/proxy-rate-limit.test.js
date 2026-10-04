@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const { describe, it, beforeEach, afterEach } = require('mocha');
 const { execFileSync, spawnSync } = require('node:child_process');
 const sinon = require('sinon');
 const request = require('supertest');
@@ -11,7 +12,7 @@ const Token = require('../src/modules/auth/password-reset-token.model');
 const { logger } = require('../src/shared/utils/logger');
 
 describe('Render trust proxy and actual application rate limits', () => {
-  const paths = ['../src/app', '../src/routes', '../src/modules/auth/auth.routes'].map(
+  const paths = ['../src/app', '../src/routes', '../src/modules/auth/auth.routes', '../src/middleware/rateLimiter'].map(
     require.resolve,
   );
   let saved, hops, max;
@@ -37,6 +38,31 @@ describe('Render trust proxy and actual application rate limits', () => {
     config.trustProxyHops = hops;
     process.env.RATE_LIMIT_MAX = limit;
     return require('../src/app');
+  }
+
+  for (const hops of [0, 1, 2]) {
+    it(`limits actual login to five attempts using Express IP with ${hops} proxy hops`, async () => {
+      const app = appWith(hops);
+      const login = sinon.stub(auth, 'login').resolves({ user: {} });
+      sinon.stub(console, 'error');
+      const forwarded = (spoof, client) => hops === 2
+        ? `${spoof}, ${client}, 192.0.2.1` : `${spoof}, ${client}`;
+      const attempt = (i, client = '203.0.113.51') => request(app)
+        .post('/api/v1/auth/login')
+        .set('X-Forwarded-For', forwarded(`198.51.100.${i}`, client))
+        .send({ email: 'qa@example.com', password: 'invalid-password' });
+      for (let i = 1; i <= 5; i++) await attempt(i).expect(200);
+      const blocked = await attempt(6).expect(429);
+      assert.equal(blocked.body.error, 'Demasiados intentos de inicio de sesión');
+      assert.ok(blocked.headers['retry-after']);
+      await attempt(7, '203.0.113.52').expect(hops ? 200 : 429);
+      assert.equal(login.callCount, hops ? 6 : 5);
+      // Login exhaustion must not consume recovery's independent allowance.
+      sinon.stub(auth, 'forgotPassword').resolves({ success: true });
+      await request(app).post('/api/v1/auth/forgot-password')
+        .set('X-Forwarded-For', forwarded('198.51.100.1', '203.0.113.51'))
+        .send({ email: 'qa@example.com' }).expect(200);
+    });
   }
 
   it('defaults to one hop on Render and no trust locally; validates explicit overrides', () => {

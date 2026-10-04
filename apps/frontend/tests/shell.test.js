@@ -54,6 +54,14 @@ describe('YJ Nexo UI-03 Web App Shell Suite', () => {
   });
 
   // 2. SIDEBAR & RBAC FILTERING
+  test('does not offer the unimplemented Dashboard route', () => {
+    const select = jest.fn();
+    const ui = render(<Sidebar onSelectRoute={select} />);
+    expect(ui.queryByTestId('nav-item-Dashboard')).toBeNull();
+    fireEvent.press(ui.getByTestId('nav-item-Customers'));
+    expect(select).toHaveBeenCalledWith('Customers');
+    expect(select).not.toHaveBeenCalledWith('Dashboard');
+  });
   test('filters sidebar navigation links based on RBAC permissions', () => {
     // Only allow customers.read and products.read
     usePermissions.mockReturnValue(perm =>
