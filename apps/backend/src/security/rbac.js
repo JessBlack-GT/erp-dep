@@ -35,6 +35,11 @@ const USER_PERMISSIONS = Object.freeze([
   'roles.manage',
 ]);
 const PERMISSIONS = Object.freeze([
+  'commercial.read',
+  'commercial.create',
+  'commercial.update',
+  'commercial.confirm',
+  'commercial.cancel',
   ...CUSTOMER_PERMISSIONS,
   ...SUPPLIER_PERMISSIONS,
   ...PRODUCT_PERMISSIONS,

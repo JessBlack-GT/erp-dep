@@ -167,6 +167,7 @@ function query(data = {}, kind) {
   return result;
 }
 module.exports = {
+  object,
   MAX_UNITS,
   TYPES,
   id,

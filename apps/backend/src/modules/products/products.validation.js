@@ -1,4 +1,5 @@
 const { ValidationError } = require('../../shared/errors/appErrors');
+const { money } = require('../../shared/utils/money');
 const lengths = {
   name: 255,
   description: 2000,
@@ -16,17 +17,6 @@ const lengths = {
 const invalid = (message) => {
   throw new ValidationError(message);
 };
-function money(value) {
-  if (
-    typeof value !== 'string' ||
-    !/^(0|[1-9]\d{0,11})(\.\d{1,4})?$/.test(value)
-  )
-    invalid(
-      'Importe inválido: use texto decimal no negativo, máximo 12 enteros y 4 decimales',
-    );
-  const [integer, fraction = ''] = value.split('.');
-  return integer + '.' + fraction.padEnd(4, '0');
-}
 function input(data, partial = false) {
   if (
     !data ||
