@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import { View, Text, TextInput, Button, ActivityIndicator } from 'react-native';
 import { inventoryService as api } from '../../services/api';
 import { styles, message } from './shared';
@@ -8,12 +9,17 @@ export function InventorySelector({
   value,
   onSelect,
   activeOnly = true,
+  fetchOptions,
+  formatOption,
+  isEligible,
+  errorMessage = message,
+  disabled = false,
 }) {
   const [open, setOpen] = useState(false),
     [search, setSearch] = useState(''),
     [rows, setRows] = useState([]),
     [page, setPage] = useState(1),
-    [total, setTotal] = useState(0),
+    [hasNext, setHasNext] = useState(false),
     [loading, setLoading] = useState(false),
     [error, setError] = useState('');
   const latest = useRef(0);
@@ -21,9 +27,11 @@ export function InventorySelector({
     const seq = ++latest.current;
     setLoading(true);
     setError('');
+    setRows([]);
     try {
       const r = await (
-        kind === 'products' ? api.getProducts : api.getWarehouses
+        fetchOptions ||
+        (kind === 'products' ? api.getProducts : api.getWarehouses)
       )({
         page: p,
         limit: 10,
@@ -33,15 +41,22 @@ export function InventorySelector({
       if (seq !== latest.current) return;
       setRows(
         r.data.data.filter(
-          (x) =>
-            kind !== 'products' ||
-            (x.type === 'PRODUCT' && x.trackInventory && x.status === 'active'),
+          isEligible ||
+            ((x) =>
+              kind !== 'products' ||
+              (x.type === 'PRODUCT' &&
+                x.trackInventory &&
+                x.status === 'active')),
         ),
       );
-      setTotal(r.data.pagination.total);
+      setHasNext(
+        r.data.pagination
+          ? p * 10 < r.data.pagination.total
+          : r.data.data.length === 10,
+      );
       setPage(p);
     } catch (e) {
-      if (seq === latest.current) setError(message(e));
+      if (seq === latest.current) setError(errorMessage(e));
     } finally {
       if (seq === latest.current) setLoading(false);
     }
@@ -57,8 +72,12 @@ export function InventorySelector({
       <Text>
         {label}: {value?.name || 'Sin seleccionar'}
       </Text>
-      <Button title={'Seleccionar ' + label} onPress={() => setOpen(!open)} />
-      {open && (
+      <Button
+        disabled={disabled}
+        title={'Seleccionar ' + label}
+        onPress={() => setOpen(!open)}
+      />
+      {open && !disabled && (
         <View>
           <TextInput
             accessibilityLabel={'Buscar ' + label}
@@ -78,7 +97,11 @@ export function InventorySelector({
           {rows.map((row) => (
             <Button
               key={row._id}
-              title={row.name + ' · ' + (row.sku || row.code)}
+              title={
+                formatOption
+                  ? formatOption(row)
+                  : row.name + ' · ' + (row.sku || row.code)
+              }
               onPress={() => {
                 onSelect(row);
                 setOpen(false);
@@ -93,7 +116,7 @@ export function InventorySelector({
             />
             <Button
               title={'Siguiente ' + label}
-              disabled={loading || page * 10 >= total}
+              disabled={loading || !hasNext}
               onPress={() => load(page + 1)}
             />
             <Button
@@ -112,3 +135,15 @@ export function InventorySelector({
 export const WarehouseSelector = (props) => (
   <InventorySelector {...props} kind="warehouses" />
 );
+InventorySelector.propTypes = {
+  kind: PropTypes.string.isRequired,
+  label: PropTypes.string.isRequired,
+  value: PropTypes.object,
+  onSelect: PropTypes.func.isRequired,
+  activeOnly: PropTypes.bool,
+  fetchOptions: PropTypes.func,
+  formatOption: PropTypes.func,
+  isEligible: PropTypes.func,
+  errorMessage: PropTypes.func,
+  disabled: PropTypes.bool,
+};

@@ -132,8 +132,9 @@ export const salesService = {
   getAll: (params) => apiClient.get('/sales', { params }),
   getById: (id) => apiClient.get(`/sales/${id}`),
   create: (data) => apiClient.post('/sales', data),
-  update: (id, data) => apiClient.patch(`/sales/${id}`, data),
-  delete: (id) => apiClient.delete(`/sales/${id}`),
+  update: (id, data) => apiClient.put(`/sales/${id}`, data),
+  confirm: (id, data) => apiClient.post(`/sales/${id}/confirm`, data),
+  cancel: (id, data) => apiClient.post(`/sales/${id}/cancel`, data),
 };
 
 // ============================================

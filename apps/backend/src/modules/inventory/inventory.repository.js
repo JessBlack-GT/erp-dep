@@ -38,6 +38,23 @@ class InventoryRepository {
       .session(session)
       .lean();
   }
+  byOrigin(origin, session) {
+    return InventoryMovement.findOne({
+      'origin.documentId': origin.documentId,
+      'origin.lineId': origin.lineId,
+      'origin.action': origin.action,
+    })
+      .session(session)
+      .lean();
+  }
+  movement(id, session) {
+    return InventoryMovement.findById(id).session(session).lean();
+  }
+  reversal(id, session) {
+    return InventoryMovement.findOne({ reversalOf: id })
+      .session(session)
+      .lean();
+  }
   product(id, session) {
     // A write lock coordinates eligibility with concurrent catalog changes.
     return Product.findOneAndUpdate(

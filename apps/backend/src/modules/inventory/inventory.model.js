@@ -61,10 +61,38 @@ const movement = new mongoose.Schema(
     createdBy: ref('User'),
     idempotencyKey: { type: String, required: true },
     requestHash: { type: String, required: true },
+    origin: {
+      type: new mongoose.Schema(
+        {
+          documentId: ref('CommercialDocument'),
+          lineId: { type: mongoose.Schema.Types.ObjectId, required: true },
+          action: { type: String, enum: ['confirm', 'cancel'], required: true },
+        },
+        { _id: false, strict: 'throw' },
+      ),
+    },
+    reversalOf: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'InventoryMovement',
+    },
   },
   { ...options, timestamps: { createdAt: true, updatedAt: false } },
 );
 movement.index({ createdBy: 1, idempotencyKey: 1 }, { unique: true });
+movement.index(
+  { 'origin.documentId': 1, 'origin.lineId': 1, 'origin.action': 1 },
+  {
+    unique: true,
+    partialFilterExpression: { 'origin.documentId': { $type: 'objectId' } },
+  },
+);
+movement.index(
+  { reversalOf: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { reversalOf: { $type: 'objectId' } },
+  },
+);
 movement.index({ productId: 1, createdAt: -1, _id: -1 });
 movement.index({ sourceWarehouseId: 1, createdAt: -1 });
 movement.index({ destinationWarehouseId: 1, createdAt: -1 });

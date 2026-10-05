@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "test": "mocha --timeout 10000 \"tests/**/*.test.js\" \"src/**/*.test.js\"",
     "test:watch": "npm test -- --watch",
+    "test:sales:replica": "mocha --timeout 30000 --extension cjs tests/replica/sales.replica.cjs",
     "lint": "eslint src/ tests/",
     "migrate": "node scripts/migrate.js",
     "seed": "node scripts/seed.js",

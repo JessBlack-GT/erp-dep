@@ -23,6 +23,7 @@ import { usePermissions } from '../../hooks/usePermissions';
 import { semanticColors, spacing, radius, zIndex } from '../../theme';
 
 export const NAV_ITEMS = [
+  { id: 'Sales', label: 'Ventas', icon: '🧾', permission: 'commercial.read', route: 'Sales' },
   { id: 'Users', label: 'Usuarios', icon: '👤', permission: 'users.read', route: 'Users' },
   { id: 'Roles', label: 'Roles y permisos', icon: '🔐', permission: 'roles.read', route: 'Roles' },
   { id: 'Password', label: 'Mi seguridad', icon: '🔑', permission: null, route: 'Password' },

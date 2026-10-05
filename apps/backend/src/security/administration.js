@@ -40,7 +40,7 @@ async function assignable(name, actor, session) {
     throw new ForbiddenError('No puede asignar este rol');
   return selected;
 }
-async function transaction(actor, permission, operation, trace) {
+async function transaction(actor, permission, operation, trace, options) {
   let result;
   await mongoose.connection.transaction(async (session) => {
     trace?.mark('database_lookup');
@@ -67,7 +67,7 @@ async function transaction(actor, permission, operation, trace) {
     trace?.mark('authorization');
     if (!rbac.hasPermission(fresh, permission)) throw new ForbiddenError();
     result = await operation(session, fresh);
-  });
+  }, options);
   return result;
 }
 module.exports = { SYSTEM_ROLES, system, subset, role, assignable, transaction };

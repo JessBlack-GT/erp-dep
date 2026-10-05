@@ -37,7 +37,7 @@ describe('Commercial internal lifecycle with real authorization and simulated at
     role = null;
     sinon.stub(mongoose.connection, 'transaction').callsFake(async work => {
       const previous = clone(db);
-      activeSession = { transaction: true };
+      activeSession = { transaction: true, inTransaction: () => true };
       try { return await work(activeSession); }
       catch (error) { db = previous; throw error; }
     });
@@ -155,7 +155,7 @@ describe('Commercial internal lifecycle with real authorization and simulated at
     await rejects(service.updateDraft(row._id, input(), actor), 409);
     await rejects(service.confirm(row._id, actor), 409);
   });
-  it('drafts with tracked goods never move inventory; confirmation fails closed until adapter exists', async () => {
+  it('drafts with tracked goods never move inventory; confirmation requires a warehouse', async () => {
     product.type = 'PRODUCT'; product.trackInventory = true; product.unit = 'unit';
     const row = await service.createDraft(input(), actor);
     await rejects(service.confirm(row._id, actor), 409);

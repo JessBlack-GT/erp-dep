@@ -85,6 +85,7 @@ app.use('*', (req, res) => {
 // ============================================
 // Manejo centralizado de errores
 // ============================================
+app.use('/api/v1/sales', require('./modules/sales/sales.errors'));
 app.use(errorHandler);
 
 module.exports = app;

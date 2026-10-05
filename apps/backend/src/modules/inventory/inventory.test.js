@@ -33,7 +33,7 @@ async function rejects(promise, status) {
 }
 describe('M06 inventory domain', () => {
   beforeEach(() => {
-    sinon.stub(repo, 'transaction').callsFake((work) => work({}));
+    sinon.stub(repo, 'transaction').callsFake((work) => work({ inTransaction: () => true }));
     sinon.stub(repo, 'replay').resolves(null);
     sinon
       .stub(repo, 'product')

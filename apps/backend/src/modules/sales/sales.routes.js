@@ -1,9 +1,13 @@
-/**
- * ERP-SYSTEM - Rutas de sales
- */
-const express = require('express');
-const router = express.Router();
-const salesController = require('./sales.controller');
+const router = require('express').Router();
+const c = require('./sales.controller');
 const { authenticateToken } = require('../../middleware/authenticate');
+const { requirePermission } = require('../../middleware/authorize');
 router.use(authenticateToken);
+router.get('/', requirePermission('commercial.read'), c.list);
+router.get('/:id', requirePermission('commercial.read'), c.get);
+router.post('/', requirePermission('commercial.create'), c.create);
+router.put('/:id', requirePermission('commercial.update'), c.update);
+router.post('/:id/confirm', requirePermission('commercial.confirm'), c.confirm);
+router.post('/:id/cancel', requirePermission('commercial.cancel'), c.cancel);
+router.use(require('./sales.errors'));
 module.exports = router;

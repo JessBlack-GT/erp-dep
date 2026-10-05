@@ -260,7 +260,41 @@ class AuthService {
       // Public registration never grants administrative access.
       role: 'user',
     });
-    return user.save();
+    const savedUser = await user.save();
+    const emailStartedAt = Date.now();
+    try {
+      const firstName = escapeHtml(savedUser.firstName);
+      const lastName = escapeHtml(savedUser.lastName);
+      await emailService.sendEmail({
+        to: savedUser.email,
+        subject: 'Bienvenido a YJ Nexo ERP',
+        text: `YJ Nexo ERP\n\nHola, ${savedUser.firstName} ${savedUser.lastName}.\n\nTu cuenta ha sido creada correctamente en YJ Nexo ERP.\n\nYa puedes ingresar al sistema y comenzar a utilizarlo.\n\nBienvenido a YJ Nexo ERP.`,
+        html: `<!doctype html><html lang="es"><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#0f172a"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 12px"><table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:12px" cellspacing="0" cellpadding="0"><tr><td style="padding:24px;background:#0f172a;color:#ffffff;font-size:22px;font-weight:bold">YJ Nexo ERP</td></tr><tr><td style="padding:28px 24px"><h1 style="margin:0 0 20px;font-size:24px;line-height:1.3">Bienvenido a YJ Nexo ERP</h1><p style="line-height:1.6">Hola, ${firstName} ${lastName}.</p><p style="line-height:1.6">Tu cuenta ha sido creada correctamente en YJ Nexo ERP.</p><p style="line-height:1.6">Ya puedes ingresar al sistema y comenzar a utilizarlo.</p><p style="margin:24px 0 0;color:#475569;line-height:1.6">Bienvenido a YJ Nexo ERP.</p></td></tr></table></td></tr></table></body></html>`,
+      });
+    } catch (error) {
+      const emailStage = [
+        'email_configuration',
+        'resend_request',
+        'resend_response',
+        'resend_timeout',
+      ].includes(error?.stage)
+        ? error.stage
+        : 'welcome_email';
+      logger.warn('No se pudo enviar el correo de bienvenida', {
+        stage: emailStage,
+        errorName: diagnosticCode(error?.name),
+        errorCode: diagnosticCode(error?.code),
+        httpStatus: Number.isInteger(error?.httpStatus)
+          ? error.httpStatus
+          : Number.isInteger(error?.status)
+            ? error.status
+            : undefined,
+        providerCode: diagnosticCode(error?.providerCode),
+        providerMessage: safeDiagnosticMessage(error?.providerMessage),
+        durationMs: Math.max(0, Date.now() - emailStartedAt),
+      });
+    }
+    return savedUser;
   }
 
   /**

@@ -17,6 +17,7 @@ async function startServer() {
   try {
     // Conectar a MongoDB Atlas
     await connectDB();
+    await require('./modules/sales/sales.setup')();
 
     // Iniciar servidor
     const server = app.listen(PORT, () => {

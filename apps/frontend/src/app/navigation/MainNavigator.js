@@ -12,8 +12,12 @@ import { InventoryScreen, InventoryMovementForm, WarehouseForm } from '../../fea
 import { UsersScreen, UserForm, UserDetail, PasswordScreen } from '../../features/users';
 import { RolesScreen } from '../../features/roles';
 import { usePermissions } from '../../hooks/usePermissions';
+import { SalesScreen, SaleDetailScreen, SaleForm } from '../../features/sales';
 
 const Stack = createNativeStackNavigator();
+const SalesWithShell = createShellScreen(SalesScreen, 'Sales', 'Ventas');
+const SaleDetailWithShell = createShellScreen(SaleDetailScreen, 'Sales', 'Detalle de venta');
+const SaleFormWithShell = createShellScreen(SaleForm, 'Sales', 'Borrador de venta');
 
 function createShellScreen(ScreenComponent, activeRoute, title) {
   return function ShellWrappedScreen(props) {
@@ -143,6 +147,11 @@ export function MainNavigator() {
             options={{ title: 'Almacén' }}
           />
           {can('users.read') && <Stack.Screen name="Users" component={UsersWithShell} />}
+          {can('commercial.read') && <Stack.Screen name="Sales" component={SalesWithShell} />}
+          {can('commercial.read') && <Stack.Screen name="SaleDetail" component={SaleDetailWithShell} />}
+          {can('commercial.read') && (can('commercial.create') || can('commercial.update')) && (
+            <Stack.Screen name="SaleForm" component={SaleFormWithShell} />
+          )}
           {can('users.read') && <Stack.Screen name="UserDetail" component={UserDetailWithShell} />}
           {(can('users.create') || can('users.update')) && (
             <Stack.Screen name="UserForm" component={UserFormWithShell} />
