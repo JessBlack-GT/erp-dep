@@ -14,10 +14,12 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
+  Platform,
 } from 'react-native';
 import { usePermissions } from '../../hooks/usePermissions';
 import { customerService } from '../../services/api';
 import { isValidEmail } from '../../utils';
+import { semanticColors, spacing, radius, typographyScale } from '../../theme';
 
 export function CustomerForm({ route, navigation }) {
   const { customerId } = route.params || {};
@@ -123,7 +125,10 @@ export function CustomerForm({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1976D2" />
+        <ActivityIndicator
+          size="large"
+          color={semanticColors.brand.blue}
+        />
       </View>
     );
   }
@@ -137,6 +142,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Nombre *</Text>
       <TextInput
         style={[styles.input, errors.name && styles.inputError]}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.name}
         onChangeText={(text) => setFormData({ ...formData, name: text })}
         placeholder="Nombre del cliente"
@@ -146,6 +152,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Apellido</Text>
       <TextInput
         style={styles.input}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.lastName}
         onChangeText={(text) => setFormData({ ...formData, lastName: text })}
         placeholder="Apellido"
@@ -154,6 +161,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Razón Social</Text>
       <TextInput
         style={styles.input}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.businessName}
         onChangeText={(text) => setFormData({ ...formData, businessName: text })}
         placeholder="Razón social (si es empresa)"
@@ -164,6 +172,7 @@ export function CustomerForm({ route, navigation }) {
         {['natural', 'legal'].map((type) => (
           <TouchableOpacity
             key={type}
+            activeOpacity={0.75}
             style={[
               styles.typeButton,
               formData.type === type && styles.typeButtonActive,
@@ -183,6 +192,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Email *</Text>
       <TextInput
         style={[styles.input, errors.email && styles.inputError]}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.email}
         onChangeText={(text) => setFormData({ ...formData, email: text })}
         placeholder="email@example.com"
@@ -194,6 +204,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Teléfono</Text>
       <TextInput
         style={styles.input}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.phone}
         onChangeText={(text) => setFormData({ ...formData, phone: text })}
         placeholder="+51 999 999 999"
@@ -203,6 +214,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Tipo de Documento</Text>
       <TextInput
         style={styles.input}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.documentType}
         onChangeText={(text) => setFormData({ ...formData, documentType: text })}
         placeholder="DNI, RUC, Pasaporte"
@@ -211,6 +223,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Número de Documento</Text>
       <TextInput
         style={styles.input}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.documentNumber}
         onChangeText={(text) => setFormData({ ...formData, documentNumber: text })}
         placeholder="Número de documento"
@@ -219,6 +232,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Dirección</Text>
       <TextInput
         style={styles.input}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.address}
         onChangeText={(text) => setFormData({ ...formData, address: text })}
         placeholder="Dirección completa"
@@ -229,6 +243,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Ciudad</Text>
       <TextInput
         style={styles.input}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.city}
         onChangeText={(text) => setFormData({ ...formData, city: text })}
         placeholder="Ciudad"
@@ -245,6 +260,7 @@ export function CustomerForm({ route, navigation }) {
       <Text style={styles.label}>Notas</Text>
       <TextInput
         style={[styles.input, styles.multilineInput]}
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={formData.notes}
         onChangeText={(text) => setFormData({ ...formData, notes: text })}
         placeholder="Notas adicionales"
@@ -254,6 +270,7 @@ export function CustomerForm({ route, navigation }) {
 
       {submitError && <Text accessibilityRole="alert" style={styles.errorText}>{submitError}</Text>}
       <TouchableOpacity
+        activeOpacity={0.75}
         style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
         onPress={handleSubmit}
         disabled={submitting}
@@ -271,38 +288,99 @@ export function CustomerForm({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 24, color: '#212121' },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 4, color: '#424242', marginTop: 16 },
+  container: {
+    flex: 1,
+    padding: spacing.md,
+    backgroundColor: semanticColors.background.primary,
+    ...(Platform.OS === 'web' && {
+      padding: spacing.lg,
+      gap: spacing.sm,
+      backgroundColor: semanticColors.background.primary,
+    }),
+  },
+  title: {
+    ...typographyScale.heading2,
+    marginBottom: spacing.md,
+    color: semanticColors.brand.navy,
+    ...(Platform.OS === 'web' && {
+    }),
+  },
+  label: {
+    ...typographyScale.label,
+    marginBottom: spacing.xs,
+    color: semanticColors.text.primary,
+    marginTop: spacing.sm,
+    ...(Platform.OS === 'web' && {
+    }),
+  },
   input: {
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    padding: 12,
+    color: semanticColors.text.primary,
+    backgroundColor: semanticColors.surface.primary,
+    borderRadius: radius.medium,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    marginBottom: 8,
+    borderColor: semanticColors.border.strong,
+    minHeight: 44,
+    marginBottom: spacing.sm,
+    ...(Platform.OS === 'web' && {
+      minHeight: 40,
+    }),
   },
-  inputError: { borderColor: '#D32F2F' },
+  inputError: {
+    borderColor: Platform.OS === 'web' ? '#D32F2F' : '#B42318',
+  },
   multilineInput: { height: 100, textAlignVertical: 'top' },
-  errorText: { color: '#D32F2F', fontSize: 12, marginBottom: 8 },
-  row: { flexDirection: 'row', gap: 12, marginBottom: 8 },
+  errorText: {
+    color: '#B42318',
+    fontSize: 12,
+    marginBottom: 8,
+    ...(Platform.OS === 'web' && {
+      marginBottom: spacing.sm,
+    }),
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+    ...(Platform.OS === 'web' && {
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    }),
+  },
   typeButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#E0E0E0',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.medium,
+    backgroundColor: semanticColors.background.tertiary,
     alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center',
+    ...(Platform.OS === 'web' && {
+      minHeight: 40,
+    }),
   },
-  typeButtonActive: { backgroundColor: '#1976D2' },
-  typeButtonText: { color: '#424242', fontWeight: '600' },
+  typeButtonActive: {
+    backgroundColor: semanticColors.interactive.primary,
+  },
+  typeButtonText: {
+    color: semanticColors.text.primary,
+    fontWeight: '600',
+  },
   typeButtonTextActive: { color: '#FFF' },
   submitButton: {
-    backgroundColor: '#1976D2',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: semanticColors.interactive.primary,
+    padding: spacing.md,
+    borderRadius: radius.medium,
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: spacing.md,
+    minHeight: 48,
+    ...(Platform.OS === 'web' && {
+      minHeight: 40,
+    }),
   },
   submitButtonDisabled: { opacity: 0.7 },
   submitButtonText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },

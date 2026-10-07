@@ -10,6 +10,7 @@ import {
   View,
   TextInput as RNTextInput,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { Text } from './Text';
 import { semanticColors, spacing, radius } from '../../theme';
@@ -91,7 +92,9 @@ export function TextArea({
           ]}
           value={value}
           placeholder={placeholder}
-          placeholderTextColor={semanticColors.text.muted}
+          placeholderTextColor={
+            Platform.OS === 'web' ? semanticColors.text.muted : '#64748B'
+          }
           onChangeText={onChangeText}
           editable={!disabled}
           multiline={true}
@@ -148,7 +151,8 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   disabledInput: {
-    color: semanticColors.text.muted,
+    color:
+      Platform.OS === 'web' ? semanticColors.text.muted : '#475569',
   },
   errorText: {
     marginTop: 4,

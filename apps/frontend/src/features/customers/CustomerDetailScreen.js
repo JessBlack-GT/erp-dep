@@ -13,12 +13,13 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
-  Button,
   Modal,
   Platform,
 } from 'react-native';
+import { ActionButton as Button } from '../../components/common/ActionButton';
 import { usePermissions } from '../../hooks/usePermissions';
 import { customerService } from '../../services/api';
+import { semanticColors, spacing, radius, typographyScale } from '../../theme';
 
 export function CustomerDetailScreen({ route, navigation }) {
   const { id } = route.params || {};
@@ -107,7 +108,10 @@ export function CustomerDetailScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1976D2" />
+        <ActivityIndicator
+          size="large"
+          color={semanticColors.brand.blue}
+        />
       </View>
     );
   }
@@ -115,7 +119,9 @@ export function CustomerDetailScreen({ route, navigation }) {
   if (error || !customer) {
     return (
       <View style={styles.centered}>
-        <Text style={{ color: '#D32F2F' }}>{error || 'Cliente no encontrado'}</Text>
+        <Text style={styles.loadError}>
+          {error || 'Cliente no encontrado'}
+        </Text>
         <TouchableOpacity style={styles.button} onPress={loadCustomer}>
           <Text style={styles.buttonText}>Reintentar</Text>
         </TouchableOpacity>
@@ -129,7 +135,7 @@ export function CustomerDetailScreen({ route, navigation }) {
         {customer.businessName || `${customer.name} ${customer.lastName || ''}`}
       </Text>
       <View style={styles.statusContainer}>
-        <Text style={[styles.status, { color: customer.status === 'active' ? '#4CAF50' : '#9E9E9E' }]}>
+        <Text style={[styles.status, { color: customer.status === 'active' ? '#047857' : '#475569' }]}>
           {customer.status.toUpperCase()}
         </Text>
         <Text style={styles.type}>
@@ -188,17 +194,17 @@ export function CustomerDetailScreen({ route, navigation }) {
         <View style={styles.confirmOverlay}>
           <View style={styles.section} accessibilityViewIsModal>
             <Text style={styles.sectionTitle}>¿Estás seguro de eliminar este cliente?</Text>
-            <Button title="Cancelar" disabled={deleting} onPress={() => setConfirmDelete(false)} />
-            <Button title="Confirmar eliminación" disabled={deleting} onPress={deleteCustomer} />
+            <Button variant={Platform.OS === 'web' ? 'primary' : 'secondary'} title="Cancelar" disabled={deleting} onPress={() => setConfirmDelete(false)} />
+            <Button variant={Platform.OS === 'web' ? 'primary' : 'danger'} title="Confirmar eliminación" disabled={deleting} onPress={deleteCustomer} />
           </View>
         </View>
       </Modal>
       <View style={styles.buttonRow}>
-        {can('customers.update') && <Button title={customer.status === 'active' ? 'Desactivar' : 'Activar'} onPress={changeStatus} disabled={updatingStatus} />}
-        {can('customers.update') && <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+        {can('customers.update') && <Button style={styles.actionButton} title={customer.status === 'active' ? 'Desactivar' : 'Activar'} onPress={changeStatus} disabled={updatingStatus} />}
+        {can('customers.update') && <TouchableOpacity activeOpacity={0.75} style={styles.editButton} onPress={handleEdit}>
           <Text style={styles.editButtonText}>Editar</Text>
         </TouchableOpacity>}
-        {can('customers.delete') && <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+        {can('customers.delete') && <TouchableOpacity activeOpacity={0.75} style={styles.deleteButton} onPress={handleDelete}>
           <Text style={styles.deleteButtonText}>Eliminar</Text>
         </TouchableOpacity>}
       </View>
@@ -207,23 +213,129 @@ export function CustomerDetailScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  confirmOverlay: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(0,0,0,0.4)' },
-  container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#212121', marginBottom: 12 },
-  statusContainer: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 },
+  confirmOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    ...(Platform.OS === 'web' && {
+      padding: spacing.md,
+      backgroundColor: semanticColors.surface.overlay,
+    }),
+  },
+  container: {
+    flex: 1,
+    padding: spacing.md,
+    backgroundColor: semanticColors.background.primary,
+    ...(Platform.OS === 'web' && {
+      padding: spacing.lg,
+      gap: spacing.md,
+      backgroundColor: semanticColors.background.primary,
+    }),
+  },
+  title: {
+    ...typographyScale.heading2,
+    color: semanticColors.brand.navy,
+    marginBottom: spacing.sm,
+    ...(Platform.OS === 'web' && {
+    }),
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 24,
+    ...(Platform.OS === 'web' && {
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    }),
+  },
   status: { fontSize: 14, fontWeight: '600' },
-  type: { fontSize: 14, color: '#757575' },
-  section: { backgroundColor: '#FFF', borderRadius: 8, padding: 16, marginBottom: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#424242', marginBottom: 12 },
+  type: {
+    fontSize: 14,
+    color: semanticColors.text.secondary,
+  },
+  section: {
+    backgroundColor: semanticColors.surface.primary,
+    borderWidth: 1,
+    borderColor: semanticColors.border.default,
+    borderRadius: radius.medium,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    ...(Platform.OS === 'web' && {
+    }),
+  },
+  sectionTitle: {
+    ...typographyScale.title,
+    color: semanticColors.text.primary,
+    marginBottom: spacing.sm,
+    ...(Platform.OS === 'web' && {
+    }),
+  },
   row: { flexDirection: 'row', marginBottom: 8 },
-  label: { fontSize: 14, color: '#757575', width: 120 },
-  value: { fontSize: 14, color: '#212121', flex: 1 },
-  buttonRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  editButton: { flex: 1, backgroundColor: '#1976D2', padding: 16, borderRadius: 8, alignItems: 'center' },
+  label: {
+    fontSize: 14,
+    color: semanticColors.text.secondary,
+    width: 120,
+  },
+  value: {
+    fontSize: 14,
+    color: semanticColors.text.primary,
+    flex: 1,
+  },
+  loadError: { color: Platform.OS === 'web' ? '#D32F2F' : '#B42318' },
+  buttonRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 24,
+    ...(Platform.OS === 'web' && {
+      gap: spacing.sm,
+      marginTop: spacing.md,
+    }),
+  },
+  actionButton: {
+    flexGrow: 1,
+    flexBasis: 120,
+  },
+  editButton: {
+    flexGrow: 1,
+    flexBasis: 120,
+    minWidth: 120,
+    backgroundColor: semanticColors.interactive.primary,
+    padding: spacing.md,
+    borderRadius: radius.medium,
+    alignItems: 'center',
+    ...(Platform.OS === 'web' && {
+      minWidth: 120,
+      minHeight: 40,
+      justifyContent: 'center',
+    }),
+  },
   editButtonText: { color: '#FFF', fontWeight: '600' },
-  deleteButton: { flex: 1, backgroundColor: '#D32F2F', padding: 16, borderRadius: 8, alignItems: 'center' },
+  deleteButton: {
+    flexGrow: 1,
+    flexBasis: 120,
+    minWidth: 120,
+    backgroundColor: '#B42318',
+    padding: spacing.md,
+    borderRadius: radius.medium,
+    alignItems: 'center',
+    ...(Platform.OS === 'web' && {
+      minWidth: 120,
+      minHeight: 40,
+      justifyContent: 'center',
+    }),
+  },
   deleteButtonText: { color: '#FFF', fontWeight: '600' },
-  button: { backgroundColor: '#1976D2', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8 },
+  button: {
+    backgroundColor: semanticColors.interactive.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minHeight: 40,
+    borderRadius: radius.medium,
+  },
   buttonText: { color: '#FFF', fontWeight: '600' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

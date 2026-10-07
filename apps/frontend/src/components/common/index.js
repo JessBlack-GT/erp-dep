@@ -6,6 +6,7 @@
 
 export { Text } from './Text';
 export { Button } from './Button';
+export { ActionButton } from './ActionButton';
 export { IconButton } from './IconButton';
 export { Input } from './Input';
 export { TextArea } from './TextArea';

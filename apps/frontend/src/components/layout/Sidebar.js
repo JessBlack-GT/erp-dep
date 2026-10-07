@@ -164,7 +164,6 @@ export function Sidebar({
             <TouchableWithoutFeedback>
               <View
                 style={[styles.sidebarBase, styles.mobileDrawer]}
-                accessibilityRole="navigation"
                 testID={testID || 'sidebar-mobile-drawer'}
               >
                 {renderContent()}
@@ -184,7 +183,6 @@ export function Sidebar({
         collapsed ? styles.sidebarCollapsed : styles.sidebarExpanded,
         style,
       ]}
-      accessibilityRole="navigation"
       testID={testID || 'sidebar-container'}
     >
       {renderContent()}

@@ -3,15 +3,17 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   ScrollView,
   Modal,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { ActionButton as Button } from '../../components/common/ActionButton';
 import { inventoryService as api } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { InventorySelector, WarehouseSelector } from './InventorySelector';
 import { styles, message, operations } from './shared';
+import { semanticColors } from '../../theme';
 export function InventoryMovementForm({ route, navigation }) {
   const type = route?.params?.type || 'ENTRY',
     operation = operations[type],
@@ -128,8 +130,8 @@ export function InventoryMovementForm({ route, navigation }) {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>Movimiento aplicado</Text>
-        <Text>{summary}</Text>
-        <Text>
+        <Text style={styles.body}>{summary}</Text>
+        <Text style={styles.body}>
           Registrado: {result.quantity} · {result._id}
         </Text>
         <Button
@@ -147,6 +149,11 @@ export function InventoryMovementForm({ route, navigation }) {
         value={product}
         onSelect={setProduct}
       />
+      {Platform.OS !== 'web' && (
+        <Text style={styles.fieldLabel}>
+          {type === 'ADJUSTMENT' ? 'Cantidad (delta)' : 'Cantidad'}
+        </Text>
+      )}
       <TextInput
         accessibilityLabel="Cantidad"
         placeholder={
@@ -154,6 +161,7 @@ export function InventoryMovementForm({ route, navigation }) {
             ? 'Delta positivo o negativo'
             : 'Cantidad positiva'
         }
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         style={styles.input}
         value={quantity}
         onChangeText={setQuantity}
@@ -173,15 +181,20 @@ export function InventoryMovementForm({ route, navigation }) {
         ['Referencia', reference, setReference, 200],
         ['Notas', notes, setNotes, 2000],
       ].map(([label, value, set, max]) => (
-        <TextInput
-          key={label}
-          accessibilityLabel={label}
-          placeholder={label}
-          style={styles.input}
-          value={value}
-          maxLength={max}
-          onChangeText={set}
-        />
+        <View key={label}>
+          {Platform.OS !== 'web' && (
+            <Text style={styles.fieldLabel}>{label}</Text>
+          )}
+          <TextInput
+            accessibilityLabel={label}
+            placeholder={label}
+            placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
+            style={styles.input}
+            value={value}
+            maxLength={max}
+            onChangeText={set}
+          />
+        </View>
       ))}
       {error && (
         <Text accessibilityRole="alert" style={styles.error}>
@@ -189,7 +202,10 @@ export function InventoryMovementForm({ route, navigation }) {
         </Text>
       )}
       {loading && (
-        <ActivityIndicator accessibilityLabel="Aplicando movimiento" />
+        <ActivityIndicator
+          accessibilityLabel="Aplicando movimiento"
+          color={Platform.OS === 'web' ? undefined : semanticColors.brand.blue}
+        />
       )}
       <Button title="Revisar movimiento" disabled={loading} onPress={review} />
       <Modal

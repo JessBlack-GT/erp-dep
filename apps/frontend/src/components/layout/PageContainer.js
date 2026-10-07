@@ -6,8 +6,8 @@
  */
 
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { semanticColors, spacing } from '../../theme';
+import { View, ScrollView, StyleSheet, Platform, useWindowDimensions } from 'react-native';
+import { breakpoints, semanticColors, spacing } from '../../theme';
 
 export function PageContainer({
   children,
@@ -18,7 +18,13 @@ export function PageContainer({
   contentContainerStyle,
   testID,
 }) {
-  const paddingValue = spacing[padding] !== undefined ? spacing[padding] : spacing.lg;
+  const { width } = useWindowDimensions();
+  const paddingValue =
+    Platform.OS === 'web' && width <= breakpoints.tablet
+      ? spacing.md
+      : spacing[padding] !== undefined
+        ? spacing[padding]
+        : spacing.lg;
 
   const innerStyle = [
     styles.inner,

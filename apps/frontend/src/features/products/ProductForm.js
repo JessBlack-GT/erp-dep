@@ -4,12 +4,14 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { ActionButton as Button } from '../../components/common/ActionButton';
 import { productService } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { fields, styles, message } from './shared';
+import { semanticColors } from '../../theme';
 export function ProductForm({ route, navigation }) {
   const id = route.params?.productId,
     can = usePermissions(),
@@ -77,10 +79,17 @@ export function ProductForm({ route, navigation }) {
   }
   if (!allowed)
     return (
-      <Text accessibilityRole="alert">Sin permiso para guardar elementos</Text>
+      <Text accessibilityRole="alert" style={styles.body}>
+        Sin permiso para guardar elementos
+      </Text>
     );
   if (loading)
-    return <ActivityIndicator accessibilityLabel="Cargando elemento" />;
+    return (
+      <ActivityIndicator
+        accessibilityLabel="Cargando elemento"
+        color={Platform.OS === 'web' ? undefined : semanticColors.brand.blue}
+      />
+    );
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>
@@ -90,13 +99,14 @@ export function ProductForm({ route, navigation }) {
         .filter(([key]) => data.type === 'PRODUCT' || key !== 'barcode')
         .map(([key, label, maxLength]) => (
           <View key={key}>
-            <Text>
+            <Text style={styles.fieldLabel}>
               {label}
               {['name', 'sku'].includes(key) ? ' *' : ''}
             </Text>
             <TextInput
               accessibilityLabel={label}
               placeholder={label}
+              placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
               style={styles.input}
               value={data[key] || ''}
               maxLength={maxLength}
@@ -110,6 +120,11 @@ export function ProductForm({ route, navigation }) {
         {['PRODUCT', 'SERVICE'].map((type, i) => (
           <Button
             key={type}
+            variant={
+              Platform.OS === 'web' || data.type === type
+                ? 'primary'
+                : 'secondary'
+            }
             title={
               ['Producto', 'Servicio'][i] + (data.type === type ? ' ✓' : '')
             }
@@ -127,6 +142,11 @@ export function ProductForm({ route, navigation }) {
       </View>
       {data.type === 'PRODUCT' && (
         <Button
+          variant={
+            Platform.OS === 'web' || data.trackInventory
+              ? 'primary'
+              : 'secondary'
+          }
           title={
             'Seguimiento futuro de inventario: ' +
             (data.trackInventory ? 'Sí' : 'No')
@@ -142,7 +162,12 @@ export function ProductForm({ route, navigation }) {
         </Text>
       )}
       {!loaded && <Button title="Reintentar" onPress={load} />}
-      {saving && <ActivityIndicator accessibilityLabel="Guardando elemento" />}
+      {saving && (
+        <ActivityIndicator
+          accessibilityLabel="Guardando elemento"
+          color={Platform.OS === 'web' ? undefined : semanticColors.brand.blue}
+        />
+      )}
       <Button
         title={id ? 'Guardar cambios' : 'Registrar elemento'}
         disabled={saving || !loaded}

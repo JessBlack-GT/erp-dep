@@ -1,8 +1,10 @@
 /* eslint-env es2020 */
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text } from 'react-native';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner';
+import { semanticColors } from '../../theme';
 import {
   salesService,
   customerService,
@@ -194,7 +196,7 @@ export function SaleForm({ route, navigation }) {
   }
   if (!allowed)
     return (
-      <Text>No tienes permiso para {id ? 'editar' : 'crear'} ventas.</Text>
+      <Text style={styles.body}>No tienes permiso para {id ? 'editar' : 'crear'} ventas.</Text>
     );
   const locked = busy || blocked || !loaded || (id && sale?.status !== 'draft');
   return (
@@ -202,8 +204,13 @@ export function SaleForm({ route, navigation }) {
       <Text style={styles.heading}>
         {id ? 'Editar borrador' : 'Nueva venta'}
       </Text>
-      {!!error && <Text accessibilityRole="alert">{error}</Text>}
-      {busy && <ActivityIndicator accessibilityLabel="Procesando venta" />}
+      {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
+      {busy && (
+        <LoadingSpinner
+          label="Procesando venta"
+          color={semanticColors.brand.blue}
+        />
+      )}
       {id && (
         <Button
           label="Recargar y descartar cambios"
@@ -213,7 +220,7 @@ export function SaleForm({ route, navigation }) {
         />
       )}
       {id && sale && sale.status !== 'draft' && (
-        <Text>Esta venta ya no es un borrador y no puede editarse.</Text>
+        <Text style={styles.muted}>Esta venta ya no es un borrador y no puede editarse.</Text>
       )}
       {loaded && (!id || sale?.status === 'draft') && (
         <>

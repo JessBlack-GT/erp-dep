@@ -15,6 +15,11 @@ export const states = {
   confirmed: 'Confirmada',
   cancelled: 'Cancelada',
 };
+export const stateVariants = {
+  draft: 'warning',
+  confirmed: 'success',
+  cancelled: 'error',
+};
 export const active = (row) =>
   row?.status === 'active' && !row.deletedAt && !row.isDeleted;
 export const tracked = (row) =>
@@ -103,10 +108,16 @@ export function editablePayload(data) {
   };
 }
 export const styles = StyleSheet.create({
-  page: { gap: spacing.md, width: '100%' },
+  page: {
+    gap: spacing.md,
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
+  },
   card: {
     padding: spacing.md,
     gap: spacing.sm,
+    backgroundColor: semanticColors.surface.primary,
     borderWidth: 1,
     borderColor: semanticColors.border.default,
     borderRadius: radius.medium,
@@ -121,6 +132,32 @@ export const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '600',
     color: semanticColors.brand.navy,
+  },
+  title: {
+    color: semanticColors.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  body: {
+    color: semanticColors.text.primary,
+    fontSize: 14,
+  },
+  muted: {
+    color: semanticColors.text.secondary,
+    fontSize: 14,
+  },
+  error: {
+    color: semanticColors.status.error,
+    fontSize: 14,
+  },
+  total: {
+    color: semanticColors.brand.navy,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  filterLabel: {
+    color: semanticColors.text.secondary,
+    fontSize: 14,
   },
   modal: {
     flex: 1,

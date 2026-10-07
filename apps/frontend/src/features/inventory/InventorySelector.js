@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { View, Text, TextInput, Button, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, ActivityIndicator, Platform } from 'react-native';
+import { ActionButton as Button } from '../../components/common/ActionButton';
 import { inventoryService as api } from '../../services/api';
 import { styles, message } from './shared';
 export function InventorySelector({
@@ -69,7 +70,7 @@ export function InventorySelector({
   }, [open]);
   return (
     <View style={styles.card}>
-      <Text>
+      <Text style={styles.body}>
         {label}: {value?.name || 'Sin seleccionar'}
       </Text>
       <Button
@@ -79,9 +80,13 @@ export function InventorySelector({
       />
       {open && !disabled && (
         <View>
+          {Platform.OS !== 'web' && (
+            <Text style={styles.fieldLabel}>Búsqueda de {label}</Text>
+          )}
           <TextInput
             accessibilityLabel={'Buscar ' + label}
             placeholder={'Buscar ' + label}
+            placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
             style={styles.input}
             value={search}
             onChangeText={setSearch}
@@ -92,7 +97,7 @@ export function InventorySelector({
           )}
           {error && <Text accessibilityRole="alert">{error}</Text>}
           {!loading && !rows.length && !error && (
-            <Text>Sin opciones elegibles</Text>
+            <Text style={styles.body}>Sin opciones elegibles</Text>
           )}
           {rows.map((row) => (
             <Button

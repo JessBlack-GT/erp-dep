@@ -14,10 +14,13 @@ import {
   ActivityIndicator,
   StyleSheet,
   Alert,
+  Platform,
 } from 'react-native';
 import { usePermissions } from '../../hooks/usePermissions';
 import { customerService } from '../../services/api';
 import { formatDate, truncate } from '../../utils';
+import { semanticColors, spacing, radius, typographyScale } from '../../theme';
+import { Text as ThemedText } from '../../components/common/Text';
 
 export function CustomerList({ navigation }) {
   const can = usePermissions();
@@ -93,13 +96,16 @@ export function CustomerList({ navigation }) {
     </TouchableOpacity>
   );
 
-  if (!canRead) return <Text accessibilityRole="alert">Sin permiso para consultar clientes</Text>;
+  if (!canRead) return <Text accessibilityRole="alert" style={styles.feedback}>Sin permiso para consultar clientes</Text>;
 
   if (loading && customers.length === 0) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#1976D2" />
-        <Text style={{ marginTop: 16 }}>Cargando clientes...</Text>
+        <ActivityIndicator
+          size="large"
+          color={semanticColors.brand.blue}
+        />
+        <Text style={styles.feedback}>Cargando clientes...</Text>
       </View>
     );
   }
@@ -107,7 +113,7 @@ export function CustomerList({ navigation }) {
   if (error) {
     return (
       <View style={styles.centered}>
-        <Text style={{ color: '#D32F2F', marginBottom: 16 }}>{error}</Text>
+        <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.button} onPress={handleRefresh}>
           <Text style={styles.buttonText}>Reintentar</Text>
         </TouchableOpacity>
@@ -117,16 +123,20 @@ export function CustomerList({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <ThemedText variant="heading2" style={styles.pageTitle}>
+        Clientes
+      </ThemedText>
       <TextInput
         style={styles.searchInput}
         placeholder="Buscar clientes..."
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         value={search}
         onChangeText={handleSearch}
         autoCapitalize="none"
       />
       {customers.length === 0 ? (
         <View style={styles.centered}>
-          <Text style={{ color: '#757575' }}>No se encontraron clientes</Text>
+          <Text style={styles.emptyText}>No se encontraron clientes</Text>
         </View>
       ) : (
         <FlatList
@@ -141,10 +151,12 @@ export function CustomerList({ navigation }) {
         />
       )}
       {can('customers.create') && <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Crear cliente"
         style={styles.fab}
         onPress={() => navigation.navigate('CustomerForm')}
       >
-        <Text style={styles.fabText}>+</Text>
+        <Text style={styles.fabText}>{Platform.OS === 'web' ? 'Crear cliente' : '+'}</Text>
       </TouchableOpacity>}
     </View>
   );
@@ -154,36 +166,83 @@ export const CustomersScreen = CustomerList;
 export default CustomersScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
+  container: {
+    flex: 1,
+    padding: spacing.md,
+    backgroundColor: semanticColors.background.primary,
+    ...(Platform.OS === 'web' && {
+      padding: spacing.lg,
+      gap: spacing.md,
+      backgroundColor: semanticColors.background.primary,
+    }),
+  },
+  pageTitle: {
+    color: semanticColors.brand.navy,
+    marginBottom: spacing.sm,
+  },
   searchInput: {
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    color: semanticColors.text.primary,
+    backgroundColor: semanticColors.surface.primary,
+    borderRadius: radius.medium,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: semanticColors.border.strong,
+    minHeight: 44,
+    ...(Platform.OS === 'web' && {
+      minHeight: 40,
+      paddingVertical: 12,
+      outlineStyle: 'none',
+    }),
   },
   card: {
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: semanticColors.surface.primary,
+    borderWidth: 1,
+    borderColor: semanticColors.border.default,
+    borderRadius: radius.medium,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    ...(Platform.OS === 'web' && {
+      shadowOpacity: 0,
+    }),
   },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#212121' },
-  cardSubtitle: { fontSize: 14, color: '#757575', marginTop: 4 },
-  cardMeta: { fontSize: 12, color: '#9E9E9E', marginTop: 4 },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: semanticColors.text.primary,
+    ...(Platform.OS === 'web' && {
+      ...typographyScale.subtitle,
+    }),
+  },
+  cardSubtitle: {
+    fontSize: 14,
+    color: semanticColors.text.secondary,
+    marginTop: spacing.xs,
+  },
+  cardMeta: {
+    fontSize: 12,
+    color: '#475569',
+    marginTop: spacing.xs,
+  },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  feedback: {
+    color: Platform.OS === 'web' ? '#000' : semanticColors.text.secondary,
+    marginTop: Platform.OS === 'web' ? 16 : spacing.sm,
+  },
+  emptyText: {
+    color: Platform.OS === 'web' ? '#757575' : semanticColors.text.secondary,
+  },
+  errorText: {
+    color: Platform.OS === 'web' ? '#D32F2F' : '#B42318',
+    marginBottom: spacing.md,
+  },
   button: {
-    backgroundColor: '#1976D2',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: semanticColors.interactive.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.medium,
   },
   buttonText: { color: '#FFF', fontWeight: '600', fontSize: 16 },
   fab: {
@@ -193,10 +252,23 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1976D2',
+    backgroundColor: semanticColors.interactive.primary,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
+    ...(Platform.OS === 'web' && {
+      backgroundColor: semanticColors.interactive.primary,
+      position: 'relative',
+      alignSelf: 'flex-end',
+      bottom: undefined,
+      right: undefined,
+      width: 'auto',
+      minWidth: 40,
+      height: 40,
+      paddingHorizontal: spacing.md,
+      borderRadius: radius.medium,
+      boxShadow: '0 2px 8px rgba(16, 29, 54, 0.15)',
+    }),
   },
   fabText: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
 });

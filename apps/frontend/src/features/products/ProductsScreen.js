@@ -3,14 +3,17 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { ActionButton as Button } from '../../components/common/ActionButton';
+import { EmptyState } from '../../components/common/EmptyState';
 import { productService } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { styles, message } from './shared';
+import { semanticColors } from '../../theme';
 export function ProductsScreen({ navigation }) {
   const can = usePermissions(),
     read = can('products.read');
@@ -57,16 +60,18 @@ export function ProductsScreen({ navigation }) {
   );
   if (!read)
     return (
-      <Text accessibilityRole="alert">
+      <Text accessibilityRole="alert" style={styles.body}>
         Sin permiso para consultar elementos
       </Text>
     );
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Productos y servicios</Text>
+      <Text style={styles.fieldLabel}>Buscar elementos</Text>
       <TextInput
         accessibilityLabel="Buscar elementos"
         placeholder="Buscar elementos"
+        placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
         style={styles.input}
         value={draft.search}
         onChangeText={(search) => setDraft({ ...draft, search })}
@@ -76,20 +81,24 @@ export function ProductsScreen({ navigation }) {
           ['category', 'Categoría'],
           ['currency', 'Moneda (3 letras)'],
         ].map(([key, label]) => (
-          <TextInput
-            key={key}
-            accessibilityLabel={'Filtro ' + label}
-            placeholder={label}
-            style={styles.input}
-            value={draft[key]}
-            onChangeText={(value) => setDraft({ ...draft, [key]: value })}
-          />
+          <View key={key} style={styles.filterField}>
+            <Text style={styles.fieldLabel}>{label}</Text>
+            <TextInput
+              accessibilityLabel={'Filtro ' + label}
+              placeholder={label}
+              placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
+              style={[styles.input, styles.filterInput]}
+              value={draft[key]}
+              onChangeText={(value) => setDraft({ ...draft, [key]: value })}
+            />
+          </View>
         ))}
       </View>
       <View style={styles.row}>
         {['', 'active', 'inactive'].map((status, i) => (
           <Button
             key={status}
+            variant={draft.status === status ? 'primary' : 'secondary'}
             title={
               ['Todos', 'Activos', 'Inactivos'][i] +
               (draft.status === status ? ' ✓' : '')
@@ -102,6 +111,7 @@ export function ProductsScreen({ navigation }) {
         {['', 'PRODUCT', 'SERVICE'].map((type, i) => (
           <Button
             key={type}
+            variant={draft.type === type ? 'primary' : 'secondary'}
             title={
               ['Todos los tipos', 'Producto', 'Servicio'][i] +
               (draft.type === type ? ' ✓' : '')
@@ -122,6 +132,7 @@ export function ProductsScreen({ navigation }) {
           }
         />
         <Button
+          variant="secondary"
           title="Limpiar filtros"
           onPress={() => {
             setDraft({
@@ -141,7 +152,12 @@ export function ProductsScreen({ navigation }) {
           />
         )}
       </View>
-      {loading && <ActivityIndicator accessibilityLabel="Cargando elementos" />}
+      {loading && (
+        <ActivityIndicator
+          accessibilityLabel="Cargando elementos"
+          color={Platform.OS === 'web' ? undefined : semanticColors.brand.blue}
+        />
+      )}
       {error && (
         <View>
           <Text accessibilityRole="alert" style={styles.error}>
@@ -151,7 +167,7 @@ export function ProductsScreen({ navigation }) {
         </View>
       )}
       {!loading && !error && data.length === 0 && (
-        <Text>No se encontraron elementos</Text>
+        <EmptyState title="No se encontraron elementos" message="" />
       )}
       <FlatList
         data={data}
@@ -165,25 +181,27 @@ export function ProductsScreen({ navigation }) {
               navigation.navigate('ProductDetail', { id: item._id })
             }
           >
-            <Text>{item.name}</Text>
-            <Text>{item.type + ' · ' + item.sku}</Text>
-            <Text>
+            <Text style={styles.cardTitle}>{item.name}</Text>
+            <Text style={styles.cardMeta}>{item.type + ' · ' + item.sku}</Text>
+            <Text style={styles.cardMeta}>
               {item.status === 'active' ? 'Activo' : 'Inactivo'} ·{' '}
               {item.category || 'Sin categoría'}
             </Text>
           </TouchableOpacity>
         )}
       />
-      <Text>
+      <Text style={styles.pagination}>
         Página {page} · Total {total}
       </Text>
       <View style={styles.row}>
         <Button
+          variant="secondary"
           title="Anterior"
           disabled={loading || page <= 1}
           onPress={() => load(page - 1)}
         />
         <Button
+          variant="secondary"
           title="Siguiente"
           disabled={loading || page * 20 >= total}
           onPress={() => load(page + 1)}

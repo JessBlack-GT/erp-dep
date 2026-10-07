@@ -8,7 +8,7 @@ import { styles, tracked } from './shared';
 export function SaleLineEditor({ line, number, onChange, onRemove, disabled }) {
   return (
     <View style={styles.card}>
-      <Text>Línea {number}</Text>
+      <Text style={styles.title}>Línea {number}</Text>
       <SalesSelector
         kind="product"
         label={`Producto ${number}`}
@@ -24,7 +24,7 @@ export function SaleLineEditor({ line, number, onChange, onRemove, disabled }) {
         }
       />
       {line.product && (
-        <Text>
+        <Text style={styles.muted}>
           {line.product.sku} · {line.product.type} · {line.product.unit}
         </Text>
       )}
@@ -46,7 +46,7 @@ export function SaleLineEditor({ line, number, onChange, onRemove, disabled }) {
       ))}
       {tracked(line.product) && (
         <>
-          <Text>
+          <Text style={styles.muted}>
             Almacén obligatorio para confirmar. Puede quedar pendiente en el
             borrador.
           </Text>

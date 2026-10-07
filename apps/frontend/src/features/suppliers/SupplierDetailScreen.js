@@ -3,13 +3,15 @@ import {
   ScrollView,
   View,
   Text,
-  Button,
   Modal,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { ActionButton as Button } from '../../components/common/ActionButton';
 import { supplierService } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { fields, styles, message } from './shared';
+import { semanticColors } from '../../theme';
 export function SupplierDetailScreen({ route, navigation }) {
   const id = route.params?.id,
     can = usePermissions(),
@@ -64,12 +66,17 @@ export function SupplierDetailScreen({ route, navigation }) {
   }
   if (!read)
     return (
-      <Text accessibilityRole="alert">
+      <Text accessibilityRole="alert" style={styles.body}>
         Sin permiso para consultar proveedores
       </Text>
     );
   if (loading)
-    return <ActivityIndicator accessibilityLabel="Cargando proveedor" />;
+    return (
+      <ActivityIndicator
+        accessibilityLabel="Cargando proveedor"
+        color={Platform.OS === 'web' ? undefined : semanticColors.brand.blue}
+      />
+    );
   return (
     <ScrollView style={styles.container}>
       {error && (
@@ -82,20 +89,25 @@ export function SupplierDetailScreen({ route, navigation }) {
       ) : (
         <>
           <Text style={styles.title}>{data.name}</Text>
-          <Text>{data.status === 'active' ? 'Activo' : 'Inactivo'}</Text>
-          <Text>{data.type === 'legal' ? 'Empresa' : 'Persona'}</Text>
+          <Text style={styles.status}>
+            {data.status === 'active' ? 'Activo' : 'Inactivo'}
+          </Text>
+          <Text style={styles.status}>
+            {data.type === 'legal' ? 'Empresa' : 'Persona'}
+          </Text>
           {fields
             .filter(([key]) => key !== 'name' && data[key])
             .map(([key, label]) => (
               <View style={styles.card} key={key}>
-                <Text>{label}</Text>
-                <Text>{data[key]}</Text>
+                <Text style={styles.detailLabel}>{label}</Text>
+                <Text style={styles.detailValue}>{data[key]}</Text>
               </View>
             ))}
           <View style={styles.row}>
             {can('suppliers.update') && (
               <>
                 <Button
+                  variant={Platform.OS === 'web' ? 'primary' : 'secondary'}
                   title="Editar proveedor"
                   disabled={busy}
                   onPress={() =>
@@ -103,6 +115,7 @@ export function SupplierDetailScreen({ route, navigation }) {
                   }
                 />
                 <Button
+                  variant={Platform.OS === 'web' ? 'primary' : 'secondary'}
                   title={
                     data.status === 'active'
                       ? 'Desactivar proveedor'
@@ -115,6 +128,7 @@ export function SupplierDetailScreen({ route, navigation }) {
             )}
             {can('suppliers.delete') && (
               <Button
+                variant={Platform.OS === 'web' ? 'primary' : 'danger'}
                 title="Eliminar proveedor"
                 disabled={busy}
                 onPress={() => setConfirm(true)}
@@ -130,11 +144,13 @@ export function SupplierDetailScreen({ route, navigation }) {
               <View style={styles.card}>
                 <Text>¿Eliminar lógicamente este proveedor?</Text>
                 <Button
+                  variant={Platform.OS === 'web' ? 'primary' : 'secondary'}
                   title="Cancelar"
                   disabled={busy}
                   onPress={() => setConfirm(false)}
                 />
                 <Button
+                  variant={Platform.OS === 'web' ? 'primary' : 'danger'}
                   title="Confirmar eliminación"
                   disabled={busy}
                   onPress={() => action(true)}

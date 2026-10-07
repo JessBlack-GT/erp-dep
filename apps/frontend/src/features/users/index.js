@@ -1,7 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, Input, Button, Card } from '../../components/common';
-import { spacing } from '../../theme';
+import {
+  Text,
+  Input,
+  Button,
+  Card,
+  Badge,
+  EmptyState,
+  LoadingSpinner,
+} from '../../components/common';
+import { semanticColors, spacing } from '../../theme';
 import { userService, roleService, authService } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../context/AuthContext';
@@ -10,10 +18,17 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
   field: { flexGrow: 1, flexBasis: 260 },
   card: { gap: spacing.sm },
-  form: { width: '100%', maxWidth: 640, gap: spacing.md },
+  form: {
+    width: '100%',
+    maxWidth: 640,
+    alignSelf: 'center',
+    gap: spacing.md,
+  },
+  error: { color: semanticColors.status.error },
+  muted: { color: semanticColors.text.secondary },
 });
 const ErrorText = ({ children }) =>
-  children ? <Text accessibilityRole="alert">{children}</Text> : null;
+  children ? <Text accessibilityRole="alert" style={s.error}>{children}</Text> : null;
 const errorMessage = (error) =>
   ({
     400: 'Revisa los datos introducidos.',
@@ -31,9 +46,13 @@ export function UserList({ items, onSelect }) {
             {item.firstName} {item.lastName}
           </Text>
           <Text>{item.email}</Text>
-          <Text>
-            {item.role} · {item.status}
-          </Text>
+          <View style={s.row}>
+            <Badge label={item.role} variant="primary" />
+            <Badge
+              label={item.status}
+              variant={item.status === 'active' ? 'success' : 'neutral'}
+            />
+          </View>
           <Button
             variant="outline"
             label={'Ver ' + item.email}
@@ -43,7 +62,7 @@ export function UserList({ items, onSelect }) {
       </Card>
     ))
   ) : (
-    <Text>No hay usuarios para estos filtros.</Text>
+    <EmptyState title="No hay usuarios para estos filtros." message="" />
   );
 }
 export function UsersScreen({ navigation, route }) {
@@ -75,7 +94,7 @@ export function UsersScreen({ navigation, route }) {
       active = false;
     };
   }, [query, route?.params?.refresh, can('users.read')]);
-  if (!can('users.read')) return <Text>Sin permiso para consultar usuarios.</Text>;
+  if (!can('users.read')) return <Text style={s.error}>Sin permiso para consultar usuarios.</Text>;
   return (
     <View style={s.page}>
       <Text variant="heading2">Usuarios</Text>
@@ -146,7 +165,7 @@ export function UsersScreen({ navigation, route }) {
       </View>
       <ErrorText>{error}</ErrorText>
       {loading ? (
-        <Text accessibilityLiveRegion="polite">Cargando usuarios…</Text>
+        <LoadingSpinner label="Cargando usuarios…" />
       ) : (
         !error && (
           <UserList
@@ -162,7 +181,7 @@ export function UsersScreen({ navigation, route }) {
           disabled={loading || query.page <= 1}
           onPress={() => setQuery({ ...query, page: query.page - 1 })}
         />
-        <Text>
+        <Text style={s.muted}>
           Página {query.page} de {Math.max(1, data.pagination.pages)}
         </Text>
         <Button
@@ -254,8 +273,8 @@ export function UserForm({ navigation, route }) {
     }
   };
   if (!can(id ? 'users.update' : 'users.create'))
-    return <Text>Sin permiso para administrar usuarios.</Text>;
-  if (loading) return <Text>Cargando usuario…</Text>;
+    return <Text style={s.error}>Sin permiso para administrar usuarios.</Text>;
+  if (loading) return <LoadingSpinner label="Cargando usuario…" />;
   return (
     <View style={s.form}>
       <Text variant="heading2">{id ? 'Editar usuario' : 'Nuevo usuario'}</Text>
@@ -280,7 +299,7 @@ export function UserForm({ navigation, route }) {
       ))}
       {!id && (
         <>
-          <Text>Rol: {fields.role}</Text>
+          <Text style={s.muted}>Rol: {fields.role}</Text>
           <View style={s.row}>
             {roles.map((r) => (
               <Button
@@ -336,7 +355,7 @@ export function UserDetail({ navigation, route }) {
       active = false;
     };
   }, [id, route?.params?.refresh]);
-  if (!can('users.read')) return <Text>Sin permiso para consultar usuarios.</Text>;
+  if (!can('users.read')) return <Text style={s.error}>Sin permiso para consultar usuarios.</Text>;
   const currentRole = roles.find((r) => r.name === item?.role);
   const within =
     user?.isSuperadmin ||
@@ -368,17 +387,22 @@ export function UserDetail({ navigation, route }) {
     <View style={s.page}>
       <Text variant="heading2">Detalle de usuario</Text>
       <ErrorText>{error}</ErrorText>
-      {!item && !error && <Text>Cargando usuario…</Text>}
+      {!item && !error && <LoadingSpinner label="Cargando usuario…" />}
       {item && (
         <Card>
           <View style={s.card}>
-            <Text>
+            <Text variant="title" weight="semibold">
               {item.firstName} {item.lastName}
             </Text>
-            <Text>{item.email}</Text>
-            <Text>Rol: {item.role}</Text>
-            <Text>Estado: {item.status}</Text>
-            {superTarget && <Text>Cuenta del sistema protegida.</Text>}
+            <Text style={s.muted}>{item.email}</Text>
+            <View style={s.row}>
+              <Badge label={item.role} variant="primary" />
+              <Badge
+                label={item.status}
+                variant={item.status === 'active' ? 'success' : 'neutral'}
+              />
+            </View>
+            {superTarget && <Text style={s.muted}>Cuenta del sistema protegida.</Text>}
             {editable && can('users.update') && (
               <Button
                 label="Editar usuario"
@@ -417,7 +441,7 @@ export function UserDetail({ navigation, route }) {
       )}
       {pending && (
         <Card>
-          <Text>Confirmar cambio a {pending.value}. Se cerrarán las sesiones del usuario.</Text>
+          <Text style={s.muted}>Confirmar cambio a {pending.value}. Se cerrarán las sesiones del usuario.</Text>
           <Button label="Confirmar cambio" loading={busy} onPress={confirm} />
           <Button
             label="Cancelar cambio"
@@ -467,7 +491,7 @@ export function PasswordScreen() {
   return (
     <View style={s.form}>
       <Text variant="heading2">Cambiar contraseña</Text>
-      <Text>Al guardar se cerrarán todas tus sesiones.</Text>
+      <Text style={s.muted}>Al guardar se cerrarán todas tus sesiones.</Text>
       <ErrorText>{error}</ErrorText>
       <Input
         accessibilityRole={undefined}

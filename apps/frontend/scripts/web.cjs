@@ -1,8 +1,13 @@
+/* eslint-env node, es2020 */
 const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 const root = path.resolve(__dirname, '..');
 const buildOnly = process.argv.includes('--build');
+const apiBaseUrl =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  process.env.PUBLIC_API_BASE_URL ||
+  'https://yj-nexo-api.onrender.com/api/v1';
 async function main() {
   const outdir = path.join(root, 'dist');
   fs.mkdirSync(outdir, { recursive: true });
@@ -13,7 +18,13 @@ async function main() {
     alias: { 'react-native': 'react-native-web' },
     resolveExtensions: ['.web.tsx', '.web.ts', '.web.jsx', '.web.js', '.tsx', '.ts', '.jsx', '.js', '.json'],
     loader: { '.js': 'jsx', '.png': 'dataurl', '.ttf': 'dataurl' },
-    define: { global: 'globalThis', __DEV__: String(!buildOnly), 'process.env.NODE_ENV': JSON.stringify(buildOnly ? 'production' : 'development'), 'process.env.PUBLIC_API_BASE_URL': JSON.stringify(process.env.PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1') },
+    define: {
+      global: 'globalThis',
+      __DEV__: String(!buildOnly),
+      'process.env.NODE_ENV': JSON.stringify(buildOnly ? 'production' : 'development'),
+      'process.env.PUBLIC_API_BASE_URL': JSON.stringify(apiBaseUrl),
+      'process.env.EXPO_PUBLIC_API_BASE_URL': JSON.stringify(apiBaseUrl),
+    },
     minify: buildOnly,
   };
   if (buildOnly) { await esbuild.build(options); console.log('Web build: SUCCESS'); return; }

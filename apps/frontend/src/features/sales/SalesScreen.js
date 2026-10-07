@@ -1,13 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { EmptyState } from '../../components/common/EmptyState';
-import { salesService } from '../../services/api';
+import { Badge } from '../../components/common/Badge';
+import { semanticColors } from '../../theme';
+import { salesService, reportService } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
+import { downloadFile } from '../../utils/downloadFile';
 import {
   styles,
   states,
+  stateVariants,
   dateText,
   salesError,
   validDate,
@@ -27,7 +31,8 @@ export function SalesScreen({ navigation }) {
   const [rows, setRows] = useState([]),
     [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true),
-    [error, setError] = useState('');
+    [error, setError] = useState(''),
+    [exporting, setExporting] = useState('');
   const latest = useRef(0);
   async function load() {
     if (!allowed) return;
@@ -76,7 +81,20 @@ export function SalesScreen({ navigation }) {
       ),
     });
   }
-  if (!allowed) return <Text>No tienes permiso para consultar ventas.</Text>;
+  async function exportReport(format) {
+    if (exporting) return;
+    setExporting(format);
+    setError('');
+    try {
+      const response = await reportService.exportSales(format, query);
+      downloadFile(response, `ventas.${format}`);
+    } catch (e) {
+      setError(salesError(e));
+    } finally {
+      setExporting('');
+    }
+  }
+  if (!allowed) return <Text style={styles.body}>No tienes permiso para consultar ventas.</Text>;
   return (
     <View style={styles.page}>
       <Text style={styles.heading}>Ventas</Text>
@@ -93,6 +111,20 @@ export function SalesScreen({ navigation }) {
           disabled={loading}
           onPress={load}
         />
+        {Platform.OS === 'web' &&
+          ['pdf', 'xlsx'].map((format) => (
+            <Button
+              key={format}
+              label={
+                exporting === format
+                  ? `Generando ${format === 'xlsx' ? 'Excel' : 'PDF'}…`
+                  : `Exportar ${format === 'xlsx' ? 'Excel' : 'PDF'}`
+              }
+              variant="secondary"
+              disabled={!!exporting}
+              onPress={() => exportReport(format)}
+            />
+          ))}
       </View>
       <View style={styles.card}>
         <Input
@@ -102,13 +134,13 @@ export function SalesScreen({ navigation }) {
           maxLength={100}
           onChangeText={(search) => setFilters({ ...filters, search })}
         />
-        <Text>Estado: {states[filters.status] || 'Todos'}</Text>
+        <Text style={styles.filterLabel}>Estado: {states[filters.status] || 'Todos'}</Text>
         <View style={styles.row}>
           {Object.entries({ '': 'Todos', ...states }).map(([status, label]) => (
             <Button
               key={status}
               label={label}
-              variant={filters.status === status ? 'primary' : 'secondary'}
+              variant={filters.status === status ? 'primary' : 'outline'}
               onPress={() => setFilters({ ...filters, status })}
             />
           ))}
@@ -134,8 +166,13 @@ export function SalesScreen({ navigation }) {
           }}
         />
       </View>
-      {loading && <ActivityIndicator accessibilityLabel="Cargando ventas" />}
-      {!!error && <Text accessibilityRole="alert">{error}</Text>}
+      {loading && (
+        <ActivityIndicator
+          accessibilityLabel="Cargando ventas"
+          color={semanticColors.brand.blue}
+        />
+      )}
+      {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!loading && !error && rows.length === 0 && (
         <EmptyState
           title="Sin ventas"
@@ -144,13 +181,16 @@ export function SalesScreen({ navigation }) {
       )}
       {rows.map((sale) => (
         <View key={sale._id} style={styles.card}>
-          <Text>{sale.number}</Text>
-          <Text>{dateText(sale.date)}</Text>
-          <Text>{sale.entity.name}</Text>
-          <Text>
+          <Text style={styles.title}>{sale.number}</Text>
+          <Text style={styles.body}>{dateText(sale.date)}</Text>
+          <Text style={styles.body}>{sale.entity.name}</Text>
+          <Text style={styles.body}>
             {sale.total} {sale.currency}
           </Text>
-          <Text>{states[sale.status]}</Text>
+          <Badge
+            label={states[sale.status] || sale.status}
+            variant={stateVariants[sale.status] || 'neutral'}
+          />
           <Button
             label={`Ver ${sale.number}`}
             variant="secondary"
@@ -165,7 +205,7 @@ export function SalesScreen({ navigation }) {
             disabled={loading || query.page <= 1}
             onPress={() => setQuery({ ...query, page: query.page - 1 })}
           />
-          <Text>
+          <Text style={styles.muted}>
             Página {pagination.page} · {pagination.total} ventas
           </Text>
           <Button

@@ -4,10 +4,10 @@ import { View, Text } from 'react-native';
 import { styles } from './shared';
 export function SaleTotals({ sale, dirty = false }) {
   if (!sale)
-    return <Text>Los totales se calcularán al guardar el borrador.</Text>;
+    return <Text style={styles.muted}>Los totales se calcularán al guardar el borrador.</Text>;
   return (
     <View style={styles.card}>
-      <Text>
+      <Text style={styles.title}>
         {dirty
           ? 'Totales del último guardado; guarda para actualizar.'
           : 'Totales de la venta'}
@@ -18,7 +18,7 @@ export function SaleTotals({ sale, dirty = false }) {
         ['tax', 'Impuestos'],
         ['total', 'Total'],
       ].map(([key, label]) => (
-        <Text key={key}>
+        <Text key={key} style={key === 'total' ? styles.total : styles.body}>
           {label}: {sale[key]} {sale.currency}
         </Text>
       ))}

@@ -50,18 +50,36 @@ export function Badge({
 function getBadgeColors(variant) {
   switch (variant) {
     case 'primary':
-      return { bg: '#EFF6FF', text: semanticColors.brand.blue };
+      return {
+        bg: '#EFF6FF',
+        text: '#2557C7',
+      };
     case 'success':
-      return { bg: semanticColors.status.successBg, text: semanticColors.status.success };
+      return {
+        bg: semanticColors.status.successBg,
+        text: '#047857',
+      };
     case 'warning':
-      return { bg: semanticColors.status.warningBg, text: '#D97706' };
+      return {
+        bg: semanticColors.status.warningBg,
+        text: '#92400E',
+      };
     case 'error':
-      return { bg: semanticColors.status.errorBg, text: semanticColors.status.error };
+      return {
+        bg: semanticColors.status.errorBg,
+        text: '#B42318',
+      };
     case 'info':
-      return { bg: semanticColors.status.infoBg, text: semanticColors.status.info };
+      return {
+        bg: semanticColors.status.infoBg,
+        text: '#1D4ED8',
+      };
     case 'neutral':
     default:
-      return { bg: semanticColors.background.tertiary, text: semanticColors.text.secondary };
+      return {
+        bg: semanticColors.background.tertiary,
+        text: semanticColors.text.secondary,
+      };
   }
 }
 

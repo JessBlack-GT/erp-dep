@@ -1,4 +1,5 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { semanticColors, spacing, radius } from '../../theme';
 export const fields = [
   ['name', 'Nombre / razón social', 255],
   ['tradeName', 'Nombre comercial', 255],
@@ -24,28 +25,127 @@ export const message = (error) =>
     ? 'Sin permiso para esta operación'
     : error.response?.data?.error || 'No se pudo completar la operación';
 export const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 16 },
+  container: {
+    flex: 1,
+    padding: spacing.md,
+    backgroundColor: semanticColors.background.primary,
+    ...(Platform.OS === 'web' && {
+      padding: spacing.lg,
+      gap: spacing.md,
+      backgroundColor: semanticColors.background.primary,
+    }),
+  },
+  title: {
+    color: semanticColors.brand.navy,
+    fontSize: 22,
+    fontWeight: '600',
+    marginBottom: spacing.sm,
+    ...(Platform.OS === 'web' && {
+      color: semanticColors.brand.navy,
+      fontSize: 22,
+      fontWeight: '600',
+      marginBottom: spacing.sm,
+    }),
+  },
+  fieldLabel: {
+    color: semanticColors.text.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    marginTop: spacing.xs,
+  },
+  cardTitle: {
+    color: semanticColors.text.primary,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cardMeta: {
+    color: semanticColors.text.secondary,
+    fontSize: 14,
+    marginTop: spacing.xs,
+  },
+  detailLabel: {
+    color: Platform.OS === 'web' ? '#000' : semanticColors.text.secondary,
+    fontSize: 14,
+    marginBottom: Platform.OS === 'web' ? 0 : spacing.xs,
+  },
+  detailValue: {
+    color: Platform.OS === 'web' ? '#000' : semanticColors.text.primary,
+    fontSize: Platform.OS === 'web' ? 14 : 16,
+    fontWeight: Platform.OS === 'web' ? '400' : '600',
+  },
+  status: {
+    color: Platform.OS === 'web' ? '#000' : semanticColors.text.secondary,
+    fontSize: 14,
+  },
   input: {
-    backgroundColor: '#FFF',
-    padding: 12,
+    color: semanticColors.text.primary,
+    backgroundColor: semanticColors.surface.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
-    borderColor: '#BBB',
-    borderRadius: 6,
-    marginVertical: 6,
+    borderColor: semanticColors.border.strong,
+    borderRadius: radius.medium,
+    fontSize: 16,
+    minHeight: 44,
+    marginVertical: spacing.xs,
+    ...(Platform.OS === 'web' && {
+      fontSize: 14,
+      minHeight: 40,
+      paddingVertical: 12,
+    }),
   },
-  row: { flexDirection: 'row', gap: 12, flexWrap: 'wrap', marginVertical: 8 },
+  filterInput: {
+    ...(Platform.OS === 'web' && {
+      width: '100%',
+    }),
+  },
+  filterField: {
+    ...(Platform.OS === 'web' && {
+      flexGrow: 1,
+      flexBasis: 240,
+      maxWidth: 440,
+    }),
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+    marginVertical: 8,
+    ...(Platform.OS === 'web' && {
+      gap: spacing.sm,
+      marginVertical: spacing.xs,
+      alignItems: 'center',
+    }),
+  },
   card: {
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
-    marginVertical: 6,
+    padding: spacing.md,
+    backgroundColor: semanticColors.surface.primary,
+    borderWidth: 1,
+    borderColor: semanticColors.border.default,
+    borderRadius: radius.medium,
+    marginVertical: spacing.xs,
   },
-  error: { color: '#B71C1C', marginVertical: 8 },
+  body: {
+    color: Platform.OS === 'web' ? '#000' : semanticColors.text.primary,
+    fontSize: 14,
+  },
+  pagination: {
+    color: Platform.OS === 'web' ? '#000' : semanticColors.text.secondary,
+    fontSize: 14,
+    marginVertical: spacing.sm,
+  },
+  error: {
+    color: '#B42318',
+    marginVertical: spacing.sm,
+  },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     padding: 24,
+    ...(Platform.OS === 'web' && {
+      backgroundColor: semanticColors.surface.overlay,
+      padding: spacing.md,
+    }),
   },
 });

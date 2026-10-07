@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, Text, TextInput, Button } from 'react-native';
+import { ScrollView, Text, TextInput, View, Platform } from 'react-native';
+import { ActionButton as Button } from '../../components/common/ActionButton';
 import { inventoryService as api } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { styles, message } from './shared';
@@ -9,7 +10,7 @@ export function WarehouseForm({ navigation }) {
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   if (!can('inventory.warehouse.manage'))
-    return <Text>Sin permiso para administrar almacenes</Text>;
+    return <Text style={styles.body}>Sin permiso para administrar almacenes</Text>;
   async function save() {
     if (busy) return;
     setBusy(true);
@@ -32,16 +33,28 @@ export function WarehouseForm({ navigation }) {
         ['description', 'Descripción'],
         ['location', 'Ubicación'],
       ].map(([key, label]) => (
-        <TextInput
-          key={key}
-          accessibilityLabel={label}
-          placeholder={label}
-          style={styles.input}
-          value={data[key] || ''}
-          onChangeText={(value) => setData({ ...data, [key]: value })}
-        />
+        <View key={key}>
+          {Platform.OS !== 'web' && (
+            <Text style={styles.fieldLabel}>{label}</Text>
+          )}
+          <TextInput
+            accessibilityLabel={label}
+            placeholder={label}
+            placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
+            style={styles.input}
+            value={data[key] || ''}
+            onChangeText={(value) => setData({ ...data, [key]: value })}
+          />
+        </View>
       ))}
-      {error && <Text accessibilityRole="alert">{error}</Text>}
+      {error && (
+        <Text
+          accessibilityRole="alert"
+          style={Platform.OS === 'web' ? undefined : styles.error}
+        >
+          {error}
+        </Text>
+      )}
       <Button title="Guardar almacén" disabled={busy} onPress={save} />
     </ScrollView>
   );

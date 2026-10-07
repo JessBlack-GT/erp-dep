@@ -1,3 +1,4 @@
+/* eslint-env node, es2020 */
 /**
  * ============================================
  * ERP-SYSTEM - Servicios del Frontend
@@ -6,12 +7,12 @@
 
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 import { sessionEvents } from './sessionEvents';
 
 const BASE_URL =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
   process.env.PUBLIC_API_BASE_URL ||
-  (Platform.OS === 'web' ? 'http://localhost:3000/api/v1' : 'http://10.0.2.2:3000/api/v1');
+  'https://yj-nexo-api.onrender.com/api/v1';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -51,7 +52,7 @@ apiClient.interceptors.response.use(
 );
 
 // ============================================
-// Servicio de Autenticación
+// Servicio de AutenticaciÃ³n
 // ============================================
 export const authService = {
   forgotPassword: (email) => apiClient.post('/auth/forgot-password', { email }),
@@ -140,9 +141,30 @@ export const salesService = {
 // ============================================
 // Servicio de Reportes
 // ============================================
+const inventoryExportPath = (view, format) =>
+  `/reports/inventory/${view}/${format}`;
+
 export const reportService = {
   getDashboard: () => apiClient.get('/dashboard'),
   generateReport: (type, params) => apiClient.post(`/reports/generate/${type}`, params),
+  exportSales: (format, params) =>
+    apiClient.get(`/reports/sales/${format}`, { params, responseType: 'blob' }),
+  exportInventory: (view, format, params) =>
+    apiClient.get(inventoryExportPath(view, format), {
+      params,
+      responseType: 'blob',
+    }),
+  getInventoryExportRequest: async (view, format, params) => {
+    const token = await AsyncStorage.getItem('accessToken');
+    const config = {
+      url: inventoryExportPath(view, format),
+      params,
+    };
+    return {
+      url: apiClient.getUri(config),
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    };
+  },
 };
 
 export default apiClient;

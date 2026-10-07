@@ -1,13 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, Input, Button, Card } from '../../components/common';
-import { spacing } from '../../theme';
+import {
+  Text,
+  Input,
+  Button,
+  Card,
+  Badge,
+  EmptyState,
+  LoadingSpinner,
+} from '../../components/common';
+import { semanticColors, spacing } from '../../theme';
 import { roleService } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 const styles = StyleSheet.create({
   page: { gap: spacing.md, maxWidth: 1000, width: '100%', alignSelf: 'center' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  form: { gap: spacing.sm, maxWidth: 720 },
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  form: { gap: spacing.sm, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  roleCard: { gap: spacing.sm },
+  error: { color: semanticColors.status.error },
+  muted: { color: semanticColors.text.secondary },
 });
 export function RolesScreen() {
   const can = usePermissions(),
@@ -67,15 +83,15 @@ export function RolesScreen() {
       setBusy(false);
     }
   };
-  if (!can('roles.read')) return <Text>Sin permiso para consultar roles.</Text>;
+  if (!can('roles.read')) return <Text style={styles.error}>Sin permiso para consultar roles.</Text>;
   return (
     <View style={styles.page}>
       <Text variant="heading2">Roles y permisos</Text>
-      <Text>
+      <Text style={styles.muted}>
         Los roles del sistema están protegidos. Los roles personalizados solo pueden conceder
         permisos dentro de tu ámbito.
       </Text>
-      {error && <Text accessibilityRole="alert">{error}</Text>}
+      {error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {can('roles.manage') && !form && (
         <Button
           label="Crear rol"
@@ -100,7 +116,7 @@ export function RolesScreen() {
               disabled={busy}
               onChangeText={(description) => setForm({ ...form, description })}
             />
-            <Text>Permisos seleccionados: {form.permissions.length}</Text>
+            <Text style={styles.muted}>Permisos seleccionados: {form.permissions.length}</Text>
             <View style={styles.row}>
               {catalog.map((p) => (
                 <Button
@@ -129,7 +145,7 @@ export function RolesScreen() {
                 }
               />
             )}
-            <Text>
+            <Text style={styles.muted}>
               Estado: {form.status}. Los cambios se aplican a todas las personas con este rol.
             </Text>
             <Button label="Guardar rol" loading={busy} onPress={save} />
@@ -142,24 +158,42 @@ export function RolesScreen() {
           </View>
         </Card>
       ) : loading ? (
-        <Text>Cargando roles…</Text>
+        <LoadingSpinner label="Cargando roles…" />
       ) : (
-        roles.map((r) => (
-          <Card key={r.name}>
-            <Text weight="semibold">
-              {r.name} — {r.isSystem ? 'Sistema protegido' : 'Personalizado'}
-            </Text>
-            <Text>{r.description}</Text>
-            <Text>{r.status}</Text>
-            <Text>{r.permissions.join(', ') || 'Sin permisos'}</Text>
-            {r.editable && can('roles.manage') && (
-              <Button
-                label={'Editar rol ' + r.name}
-                onPress={() => setForm({ ...r, editing: true })}
-              />
-            )}
-          </Card>
-        ))
+        roles.length ? (
+          roles.map((r) => (
+            <Card key={r.name}>
+              <View style={styles.roleCard}>
+                <Text variant="title" weight="semibold">
+                  {r.name}
+                </Text>
+                <View style={styles.row}>
+                  <Badge
+                    label={r.isSystem ? 'Sistema protegido' : 'Personalizado'}
+                    variant={r.isSystem ? 'neutral' : 'primary'}
+                  />
+                  <Badge
+                    label={r.status}
+                    variant={r.status === 'active' ? 'success' : 'neutral'}
+                  />
+                </View>
+                <Text style={styles.muted}>{r.description}</Text>
+                <Text style={styles.muted}>
+                  {r.permissions.join(', ') || 'Sin permisos'}
+                </Text>
+                {r.editable && can('roles.manage') && (
+                  <Button
+                    variant="outline"
+                    label={'Editar rol ' + r.name}
+                    onPress={() => setForm({ ...r, editing: true })}
+                  />
+                )}
+              </View>
+            </Card>
+          ))
+        ) : (
+          <EmptyState title="No hay roles disponibles." message="" />
+        )
       )}
       {!loading && error && !form && (
         <Button label="Reintentar" onPress={() => setReload((n) => n + 1)} />

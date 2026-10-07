@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import PropTypes from 'prop-types';
 import {
   TouchableOpacity,
   ActivityIndicator,
@@ -26,6 +27,7 @@ export function Button({
   iconPosition = 'left',
   fullWidth = false,
   accessibilityLabel,
+  inferAccessibilityLabel = false,
   testID,
   style,
   textStyle,
@@ -51,6 +53,16 @@ export function Button({
 
   const textColor = getTextColor(variant, disabled);
   const textVariant = size === 'small' ? 'bodySmall' : size === 'large' ? 'title' : 'body';
+  const resolvedAccessibilityLabel =
+    typeof accessibilityLabel === 'string'
+      ? accessibilityLabel
+      : inferAccessibilityLabel
+        ? undefined
+        : typeof label === 'string'
+          ? label
+          : typeof children === 'string'
+            ? children
+            : undefined;
 
   return (
     <TouchableOpacity
@@ -59,7 +71,7 @@ export function Button({
       disabled={!isInteractive}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel || label || (typeof children === 'string' ? children : undefined)}
+      accessibilityLabel={resolvedAccessibilityLabel}
       accessibilityState={{ disabled: !isInteractive, busy: loading }}
       testID={testID}
       {...props}
@@ -92,8 +104,14 @@ export function Button({
   );
 }
 
+Button.propTypes = {
+  inferAccessibilityLabel: PropTypes.bool,
+};
+
 function getTextColor(variant, disabled) {
-  if (disabled) return semanticColors.text.muted;
+  if (disabled) {
+    return '#334155';
+  }
   switch (variant) {
     case 'primary':
     case 'secondary':
@@ -125,9 +143,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   disabled: {
-    backgroundColor: semanticColors.interactive.disabled,
+    backgroundColor: semanticColors.background.tertiary,
     borderColor: 'transparent',
-    opacity: 0.6,
+    opacity: 1,
   },
 
   // Size Styles

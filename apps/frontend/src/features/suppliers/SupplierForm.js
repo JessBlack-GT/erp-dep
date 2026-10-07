@@ -4,12 +4,14 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { ActionButton as Button } from '../../components/common/ActionButton';
 import { supplierService } from '../../services/api';
 import { usePermissions } from '../../hooks/usePermissions';
 import { fields, styles, message } from './shared';
+import { semanticColors } from '../../theme';
 export function SupplierForm({ route, navigation }) {
   const id = route.params?.supplierId,
     can = usePermissions(),
@@ -68,12 +70,17 @@ export function SupplierForm({ route, navigation }) {
   }
   if (!allowed)
     return (
-      <Text accessibilityRole="alert">
+      <Text accessibilityRole="alert" style={styles.body}>
         Sin permiso para guardar proveedores
       </Text>
     );
   if (loading)
-    return <ActivityIndicator accessibilityLabel="Cargando proveedor" />;
+    return (
+      <ActivityIndicator
+        accessibilityLabel="Cargando proveedor"
+        color={Platform.OS === 'web' ? undefined : semanticColors.brand.blue}
+      />
+    );
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>
@@ -81,13 +88,14 @@ export function SupplierForm({ route, navigation }) {
       </Text>
       {fields.map(([key, label, maxLength]) => (
         <View key={key}>
-          <Text>
+          <Text style={styles.fieldLabel}>
             {label}
             {key === 'name' ? ' *' : ''}
           </Text>
           <TextInput
             accessibilityLabel={label}
             placeholder={label}
+            placeholderTextColor={Platform.OS === 'web' ? undefined : '#64748B'}
             style={styles.input}
             value={data[key] || ''}
             maxLength={maxLength}
@@ -101,6 +109,11 @@ export function SupplierForm({ route, navigation }) {
         {['natural', 'legal'].map((type, i) => (
           <Button
             key={type}
+            variant={
+              Platform.OS === 'web' || data.type === type
+                ? 'primary'
+                : 'secondary'
+            }
             title={['Persona', 'Empresa'][i] + (data.type === type ? ' ✓' : '')}
             onPress={() => setData({ ...data, type })}
           />
@@ -112,7 +125,12 @@ export function SupplierForm({ route, navigation }) {
         </Text>
       )}
       {!loaded && <Button title="Reintentar" onPress={load} />}
-      {saving && <ActivityIndicator accessibilityLabel="Guardando proveedor" />}
+      {saving && (
+        <ActivityIndicator
+          accessibilityLabel="Guardando proveedor"
+          color={Platform.OS === 'web' ? undefined : semanticColors.brand.blue}
+        />
+      )}
       <Button
         title={id ? 'Guardar cambios' : 'Registrar proveedor'}
         disabled={saving || !loaded}
