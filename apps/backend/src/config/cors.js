@@ -18,6 +18,8 @@ const corsOptions = {
     const allowedOrigins = [
       config.corsOrigin,
       config.corsOriginFrontend,
+      'https://erp-dep.pages.dev',
+      'https://d0b732ba.erp-dep.pages.dev',
       'http://localhost:3000',
       'http://localhost:8081',
       'http://127.0.0.1:3000',
