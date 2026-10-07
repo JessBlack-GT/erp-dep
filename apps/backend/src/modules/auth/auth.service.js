@@ -20,6 +20,7 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const PasswordResetToken = require('./password-reset-token.model');
 const emailService = require('../../shared/services/email');
+const { buildBrandEmailTemplate } = emailService;
 const { logger } = require('../../shared/utils/logger');
 const resetMessage =
   'Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña.';
@@ -149,7 +150,15 @@ class AuthService {
         to: user.email,
         subject: 'Restablecimiento de contraseña — YJ Nexo ERP',
         text: `YJ Nexo ERP\n\nSolicitud para restablecer tu contraseña\n\nSe solicitó un cambio de contraseña para tu cuenta.\nRestablecer contraseña: ${link}\n\nEl enlace expira en ${minutes} minutos y solo puede utilizarse una vez.\nSi no hiciste esta solicitud, puedes ignorar este correo.`,
-        html: `<!doctype html><html lang="es"><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#0f172a"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:32px 16px"><table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px" cellspacing="0" cellpadding="0"><tr><td style="padding:28px;background:#0f172a;color:#ffffff;font-size:24px;font-weight:bold">YJ Nexo <span style="font-size:14px;font-weight:normal">ERP</span></td></tr><tr><td style="padding:32px"><h1 style="font-size:24px;line-height:1.3">Solicitud para restablecer tu contraseña</h1><p style="line-height:1.6">Se solicitó un cambio de contraseña para tu cuenta. Usa el siguiente botón para elegir una nueva contraseña.</p><p style="padding:16px 0"><a href="${escapeHtml(link)}" style="display:inline-block;background:#1d4ed8;color:#ffffff;padding:16px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Restablecer contraseña</a></p><p>El enlace expira en <strong>${minutes} minutos</strong> y solo puede utilizarse una vez.</p><p style="color:#475569;line-height:1.6">Si no hiciste esta solicitud, puedes ignorar este correo. Tu contraseña no cambiará.</p></td></tr></table></td></tr></table></body></html>`,
+        html: buildBrandEmailTemplate({
+          title: 'Recuperación de acceso',
+          heading: 'Solicitud para restablecer tu contraseña',
+          intro: 'Se solicitó un cambio de contraseña para tu cuenta. Usa el siguiente botón para elegir una nueva contraseña.',
+          primaryActionLabel: 'Restablecer contraseña',
+          primaryActionUrl: link,
+          secondaryText: `El enlace expira en ${minutes} minutos y solo puede utilizarse una vez. Si no hiciste esta solicitud, puedes ignorar este correo. Tu contraseña no cambiará.`,
+          footerText: 'Si tu cuenta no requiere este cambio, puedes ignorar este mensaje de forma segura.',
+        }),
       });
     } catch (error) {
       // Same public response for unknown users, database failures and provider failures.

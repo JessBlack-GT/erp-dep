@@ -36,44 +36,178 @@ function dateValue(value) {
 
 function workbook(title, columns, rows) {
   const book = new ExcelJS.Workbook();
-  book.creator = 'ERP';
+  book.creator = 'YJ Nexo ERP';
   book.created = new Date();
   const sheet = book.addWorksheet(title);
-  sheet.columns = columns;
+  sheet.properties.defaultRowHeight = 22;
+  sheet.columns = columns.map((column) => ({
+    header: column.header,
+    key: column.key,
+    width: column.width,
+  }));
   sheet.addRows(rows);
-  sheet.getRow(1).font = { bold: true };
-  sheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+  const headerRow = sheet.getRow(1);
+  headerRow.font = {
+    bold: true,
+    color: { argb: 'FFFFFFFF' },
+    name: 'Calibri',
+  };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF0F172A' },
+  };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+  headerRow.border = {
+    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+  };
+  headerRow.height = 24;
+
+  sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return;
+    row.alignment = { vertical: 'middle', wrapText: true };
+    row.height = 20;
+    row.eachCell({ includeEmpty: true }, (cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+      };
+      if (rowNumber % 2 === 0) {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF8FAFC' },
+        };
+      }
+    });
+  });
+
+  sheet.views = [{ state: 'frozen', ySplit: 1, xSplit: 0 }];
+  sheet.autoFilter = {
+    from: 'A1',
+    to: `${String.fromCharCode(64 + columns.length)}1`,
+  };
+
   return book.xlsx.writeBuffer().then((buffer) => Buffer.from(buffer));
 }
 
 function printable(value) {
   return String(value ?? '')
     .replace(/[\r\n\t]/g, ' ')
-    .replace(/[^\x20-\xff]/g, ' ');
+    .replace(/[^\x20-\xff]/g, ' ')
+    .trim();
 }
 
 function pdf(title, headers, rows) {
   return new Promise((resolve, reject) => {
-    const document = new PDFDocument({ size: 'A4', margin: 40 });
+    const document = new PDFDocument({ size: 'A4', margin: 40, bufferPages: true });
     const chunks = [];
     document.on('data', (chunk) => chunks.push(chunk));
     document.on('error', reject);
     document.on('end', () => resolve(Buffer.concat(chunks)));
 
-    document.fontSize(16).text(title);
-    document.moveDown(0.4);
-    document.fontSize(9).text(`Registros: ${rows.length}`);
-    document.moveDown();
-    document.font('Helvetica-Bold').text(headers.map(printable).join(' | '));
-    document.moveDown(0.4);
-    document.font('Helvetica');
-    rows.forEach((row, index) => {
-      if (document.y > document.page.height - document.page.margins.bottom - 50) document.addPage();
-      document.fontSize(8).text(`${index + 1}. ${row.map(printable).join(' | ')}`);
-      document.moveDown(0.25);
+    const pageWidth = document.page.width - document.page.margins.left - document.page.margins.right;
+    const tableLeft = document.page.margins.left;
+    const tableTop = 110;
+    const tableWidth = pageWidth;
+    const columnWidth = tableWidth / headers.length;
+    const generatedAt = new Date().toLocaleString('es-GT', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
     });
+
+    document.fillColor('#0F172A');
+    document.rect(0, 0, document.page.width, 64).fill();
+    document.fillColor('#FFFFFF').fontSize(18).font('Helvetica-Bold').text('YJ Nexo ERP', 40, 18, {
+      width: 220,
+      lineBreak: false,
+    });
+    document.fillColor('#CBD5E1').fontSize(9).font('Helvetica').text('Reportes operativos', 40, 42, {
+      width: 200,
+      lineBreak: false,
+    });
+
+    document.fillColor('#0F172A').fontSize(16).font('Helvetica-Bold').text(title, 40, 80);
+    document.fillColor('#475569').fontSize(8).font('Helvetica').text(`Generado: ${generatedAt}`, 40, 100);
+    document.fillColor('#475569').fontSize(8).font('Helvetica').text(`Registros: ${rows.length}`, {
+      align: 'right',
+    });
+
+    let y = tableTop;
+    const headerHeight = 22;
+    document.fillColor('#0F172A').rect(tableLeft, y, tableWidth, headerHeight).fill();
+    document.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8);
+    headers.forEach((header, index) => {
+      const x = tableLeft + index * columnWidth + 5;
+      document.text(printable(header).slice(0, 24), x, y + 7, {
+        width: columnWidth - 10,
+        ellipsis: true,
+      });
+    });
+    y += headerHeight;
+
+    rows.forEach((row, index) => {
+      const rowHeight = 16;
+      if (y + rowHeight > document.page.height - 50) {
+        document.addPage();
+        y = 40;
+        document.fillColor('#0F172A').rect(tableLeft, y, tableWidth, headerHeight).fill();
+        document.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8);
+        headers.forEach((header, headerIndex) => {
+          const x = tableLeft + headerIndex * columnWidth + 5;
+          document.text(printable(header).slice(0, 24), x, y + 7, {
+            width: columnWidth - 10,
+            ellipsis: true,
+          });
+        });
+        y += headerHeight;
+      }
+
+      document.fillColor(index % 2 === 0 ? '#F8FAFC' : '#FFFFFF');
+      document.rect(tableLeft, y, tableWidth, rowHeight).fill();
+      document.fillColor('#0F172A').font('Helvetica').fontSize(7);
+      row.forEach((cell, cellIndex) => {
+        const text = printable(cell)
+          .replace(/\s+/g, ' ')
+          .slice(0, 80);
+        const x = tableLeft + cellIndex * columnWidth + 5;
+        document.text(text, x, y + 4, {
+          width: columnWidth - 10,
+          ellipsis: true,
+        });
+      });
+      y += rowHeight;
+    });
+
+    footer(document);
     document.end();
   });
+}
+
+function footer(document) {
+  const pageCount = document.bufferedPageRange().count;
+  const totalPages = pageCount || 1;
+  for (let pageNumber = 0; pageNumber < totalPages; pageNumber += 1) {
+    document.switchToPage(pageNumber);
+    document.fillColor('#94A3B8').fontSize(7).font('Helvetica').text(
+      'YJ Nexo ERP • Reporte generado automáticamente',
+      40,
+      document.page.height - 22,
+      { width: document.page.width - 80, align: 'center' },
+    );
+    document.fillColor('#475569').fontSize(7).font('Helvetica').text(
+      `${pageNumber + 1}/${totalPages}`,
+      document.page.width - 60,
+      document.page.height - 22,
+      { align: 'right' },
+    );
+  }
 }
 
 function salesData(row) {

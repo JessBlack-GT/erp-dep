@@ -3,6 +3,7 @@ const v = require('./users.validation');
 const admin = require('../../security/administration');
 const rbac = require('../../security/rbac');
 const emailService = require('../../shared/services/email');
+const { buildBrandEmailTemplate } = emailService;
 const { createDiagnostics } = require('./users.diagnostics');
 const { NotFoundError, ForbiddenError, ValidationError } = require('../../shared/errors/appErrors');
 const publicUser = (user) => {
@@ -78,6 +79,13 @@ class UserService {
         to: saved.email,
         subject: 'Bienvenido a YJ Nexo ERP',
         text: `Hola, ${saved.firstName} ${saved.lastName}.\n\nTu cuenta ha sido creada correctamente en YJ Nexo ERP.\nYa puedes ingresar al sistema.`,
+        html: buildBrandEmailTemplate({
+          title: 'Bienvenida',
+          heading: `Bienvenido${saved.firstName ? `, ${saved.firstName}` : ''}`,
+          intro: `Tu cuenta ha sido creada correctamente en YJ Nexo ERP. Ahora puedes ingresar al sistema y comenzar a gestionar tus operaciones de forma segura.`,
+          secondaryText: 'Haz clic en el botón para ingresar desde la plataforma web o móvil del ERP.',
+          footerText: 'YJ Nexo ERP • Seguridad, control y operación centralizada.',
+        }),
       }));
       await trace.run('welcome_email_send', () => emailService.sendEmail(message));
     } catch (_) {

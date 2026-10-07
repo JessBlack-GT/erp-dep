@@ -34,6 +34,87 @@ function safeProviderMessage(value, apiKey) {
   );
 }
 
+function escapeHtml(value = '') {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[char]);
+}
+
+function buildBrandEmailTemplate({
+  title,
+  heading,
+  intro,
+  primaryActionLabel,
+  primaryActionUrl,
+  secondaryText,
+  footerText = '© YJ Nexo ERP',
+}) {
+  const safeTitle = escapeHtml(title || 'YJ Nexo ERP');
+  const safeHeading = escapeHtml(heading || 'Actualización importante');
+  const safeIntro = escapeHtml(intro || 'Hay una actualización importante para tu cuenta.');
+  const safeSecondary = escapeHtml(secondaryText || 'Si necesitas ayuda, contacta con tu administrador.');
+  const safeFooter = escapeHtml(footerText);
+  const safePrimaryActionLabel = escapeHtml(primaryActionLabel || 'Acceder');
+  const safePrimaryActionUrl = escapeHtml(primaryActionUrl || '#');
+
+  return `<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${safeTitle}</title>
+  </head>
+  <body style="margin:0;background:#e2e8f0;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#e2e8f0;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #dbe3ec;">
+            <tr>
+              <td style="padding:22px 28px;background:#0f172a;">
+                <div style="font-size:18px;font-weight:700;color:#ffffff;letter-spacing:0.5px;">YJ Nexo ERP</div>
+                <div style="font-size:11px;color:#cbd5e1;letter-spacing:1.2px;text-transform:uppercase;margin-top:4px;">Operación segura</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px 28px 18px;">
+                <div style="font-size:12px;font-weight:700;color:#1d4ed8;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">${safeTitle}</div>
+                <h1 style="margin:0 0 12px;font-size:28px;line-height:1.25;color:#0f172a;">${safeHeading}</h1>
+                <p style="margin:0 0 18px;font-size:16px;line-height:1.7;color:#334155;">${safeIntro}</p>
+                ${primaryActionUrl && primaryActionLabel ? `
+                  <table role="presentation" cellspacing="0" cellpadding="0" style="margin:12px 0 22px;">
+                    <tr>
+                      <td style="background:#1d4ed8;border-radius:10px;">
+                        <a href="${safePrimaryActionUrl}" style="display:inline-block;padding:14px 22px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">${safePrimaryActionLabel}</a>
+                      </td>
+                    </tr>
+                  </table>
+                ` : ''}
+                <p style="margin:0;font-size:14px;line-height:1.7;color:#475569;">${safeSecondary}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 28px 28px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+                  <tr>
+                    <td style="padding:16px 18px;font-size:13px;line-height:1.7;color:#475569;">
+                      ${safeFooter}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
 async function readProviderError(response, apiKey) {
   let body = '';
   try {
@@ -143,4 +224,4 @@ async function sendEmail({ to, subject, text, html } = {}) {
   }
 }
 
-module.exports = { sendEmail };
+module.exports = { sendEmail, buildBrandEmailTemplate };
