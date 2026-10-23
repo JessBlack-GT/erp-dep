@@ -1,0 +1,626 @@
+openapi: 3.1.0
+info:
+  title: MuniERP IA — API municipal conectada a YJ Nexo ERP
+  version: 1.0.0-draft.0
+  description: |
+    Contrato inicial (Fase 0). Fuente de verdad para la implementación de
+    `apps/backend/src/modules/municipal`. Estado: BORRADOR — no implementado.
+
+    Reglas transversales:
+    - Autenticación: el mismo JWT de acceso de YJ Nexo (`POST /api/v1/auth/login`).
+    - Autorización: membresía municipal activa + permiso `municipal.*` + alcance por expediente.
+      Los roles ERP (incluido superadmin) no conceden acceso municipal.
+    - `municipalityId`, `folio`, `createdBy`, `history` y contadores nunca se aceptan del cliente.
+    - Objetos fuera de alcance responden 404 (no 403) para no revelar existencia.
+    - Payloads con campos desconocidos responden 400.
+    - Solo datos sintéticos en QA.
+servers:
+  - url: /api/municipal/v1
+security:
+  - bearerAuth: []
+
+paths:
+  /me/memberships:
+    get:
+      summary: Membresías municipales vigentes del usuario autenticado
+      operationId: listMyMemberships
+      description: Requiere solo JWT válido y usuario activo. Devuelve lista vacía si no hay membresías (la UI oculta el módulo).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/MyMembership' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /municipalities/{mun}/dependencies:
+    parameters: [ { $ref: '#/components/parameters/Mun' } ]
+    get:
+      summary: Listar dependencias del municipio
+      operationId: listDependencies
+      x-permission: municipal.dependencies.read
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ActiveStatus' } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/Dependency' } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      summary: Crear dependencia
+      operationId: createDependency
+      x-permission: municipal.dependencies.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DependencyCreate' }
+      responses:
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Dependency' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /municipalities/{mun}/dependencies/{code}:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/DepCode' }
+    patch:
+      summary: Actualizar nombre/estado de una dependencia (el código es inmutable)
+      operationId: updateDependency
+      x-permission: municipal.dependencies.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DependencyUpdate' }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/memberships:
+    parameters: [ { $ref: '#/components/parameters/Mun' } ]
+    get:
+      summary: Listar membresías
+      operationId: listMemberships
+      x-permission: municipal.memberships.read
+      x-scope: TITULAR solo ve membresías de sus dependencias
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      summary: Asignar un usuario existente de YJ Nexo al municipio
+      operationId: createMembership
+      x-permission: municipal.memberships.manage
+      description: |
+        No crea usuarios ni cambia `User.role`. El rol asignado debe ser subconjunto de los
+        permisos del actor; no puede asignarse a sí mismo ni crear ADMIN_MUNICIPAL.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MembershipCreate' }
+      responses:
+        '201': { description: Creada }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /municipalities/{mun}/memberships/{membershipId}:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { name: membershipId, in: path, required: true, schema: { $ref: '#/components/schemas/ObjectId' } }
+    patch:
+      summary: Cambiar rol, dependencias, vigencia o estado de una membresía
+      operationId: updateMembership
+      x-permission: municipal.memberships.manage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MembershipUpdate' }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/citizens:
+    parameters: [ { $ref: '#/components/parameters/Mun' } ]
+    post:
+      summary: Registrar ciudadano solicitante (NO es un cliente comercial)
+      operationId: createCitizen
+      x-permission: municipal.citizens.create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CitizenCreate' }
+      responses:
+        '201': { description: Creado }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    get:
+      summary: Buscar ciudadanos (solo los vinculados a expedientes en alcance, o creados por el actor)
+      operationId: searchCitizens
+      x-permission: municipal.citizens.read
+      parameters:
+        - { name: q, in: query, schema: { type: string, minLength: 3, maxLength: 80 } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /municipalities/{mun}/requests:
+    parameters: [ { $ref: '#/components/parameters/Mun' } ]
+    post:
+      summary: Registrar solicitud y emitir folio
+      operationId: createRequest
+      x-permission: municipal.requests.create
+      description: |
+        Emite el folio dentro de la misma transacción que crea el documento y el evento de bitácora.
+        Reintentos con la misma `Idempotency-Key` y el mismo cuerpo devuelven el mismo folio (200);
+        con cuerpo distinto, 409.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, pattern: '^[A-Za-z0-9_-]{8,100}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestCreate' }
+      responses:
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Request' } }
+        '200': { description: Reintento idempotente; mismo recurso }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    get:
+      summary: Listar solicitudes en alcance
+      operationId: listRequests
+      x-permission: municipal.requests.read
+      description: El filtro de alcance se aplica en la consulta; los filtros del cliente solo pueden reducirlo.
+      parameters:
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/RequestStatus' } }
+        - { name: dependency, in: query, schema: { $ref: '#/components/schemas/DependencyCode' } }
+        - { name: assignedToMe, in: query, schema: { type: boolean } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/RequestSummary' } }
+                      pagination: { $ref: '#/components/schemas/Pagination' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /municipalities/{mun}/requests/{folio}:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+    get:
+      summary: Consultar expediente por folio
+      operationId: getRequest
+      x-permission: municipal.requests.read
+      responses:
+        '200':
+          description: OK (AUDITOR recibe RequestSummary)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data:
+                        oneOf:
+                          - $ref: '#/components/schemas/Request'
+                          - $ref: '#/components/schemas/RequestSummary'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      summary: Editar asunto/descripción/confidencialidad (no estado, no folio)
+      operationId: updateRequest
+      x-permission: municipal.requests.update
+      parameters:
+        - { name: If-Match, in: header, required: true, schema: { type: string }, description: 'Valor `version` vigente; 409 si cambió' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RequestUpdate' }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /municipalities/{mun}/requests/{folio}/transitions:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+    post:
+      summary: Cambiar estado (turnar, esperar ciudadano, reanudar, cerrar, cancelar)
+      operationId: transitionRequest
+      x-permission-by-action:
+        TURNAR: municipal.requests.assign
+        ESPERAR_CIUDADANO: municipal.requests.update
+        REANUDAR: municipal.requests.update
+        CERRAR: municipal.requests.close
+        CANCELAR: municipal.requests.cancel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Transition' }
+      responses:
+        '200': { description: OK }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Transición inválida desde el estado actual o versión obsoleta }
+
+  /municipalities/{mun}/requests/{folio}/grants:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+    post:
+      summary: Compartir expediente con un usuario o dependencia
+      operationId: createGrant
+      x-permission: municipal.requests.grant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GrantCreate' }
+      responses:
+        '201': { description: Creado }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/requests/{folio}/grants/{grantId}:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+      - { name: grantId, in: path, required: true, schema: { $ref: '#/components/schemas/ObjectId' } }
+    delete:
+      summary: Revocar concesión (efecto inmediato)
+      operationId: revokeGrant
+      x-permission: municipal.requests.grant
+      responses:
+        '204': { description: Revocado }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/folios/{folio}:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+    get:
+      summary: Verificar un folio (metadatos mínimos)
+      operationId: verifyFolio
+      x-permission: municipal.requests.read
+      description: Mismo alcance que getRequest; devuelve solo FolioInfo.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/FolioInfo' } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/audit-events:
+    parameters: [ { $ref: '#/components/parameters/Mun' } ]
+    get:
+      summary: Consultar bitácora (solo lectura)
+      operationId: listAuditEvents
+      x-permission: municipal.audit.read
+      parameters:
+        - { name: entityId, in: query, schema: { $ref: '#/components/schemas/ObjectId' } }
+        - { name: folio, in: query, schema: { $ref: '#/components/schemas/Folio' } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
+      responses:
+        '200': { description: OK }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  parameters:
+    Mun:
+      name: mun
+      in: path
+      required: true
+      description: Código del municipio (p. ej. SJH). Nunca se toma del cuerpo.
+      schema: { type: string, pattern: '^[A-Z]{3}$' }
+    DepCode:
+      name: code
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/DependencyCode' }
+    Folio:
+      name: folio
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/Folio' }
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    Limit: { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+
+  responses:
+    BadRequest:
+      description: Validación fallida o campo no permitido
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: Token ausente, inválido, expirado, sesión revocada o usuario inactivo
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Sin membresía vigente o sin el permiso municipal requerido
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: No existe o está fuera del alcance del usuario (indistinguible)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Conflict:
+      description: Duplicado, idempotencia con otro cuerpo o versión obsoleta
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    Ok:
+      type: object
+      required: [success]
+      properties: { success: { const: true } }
+    Error:
+      type: object
+      required: [success, error, code]
+      properties:
+        success: { const: false }
+        error: { type: string }
+        code:
+          type: string
+          enum: [VALIDATION_ERROR, UNAUTHORIZED, MUNICIPAL_MEMBERSHIP_REQUIRED, FORBIDDEN, NOT_FOUND, CONFLICT, INVALID_TRANSITION, AUTHORIZATION_UNAVAILABLE]
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        pages: { type: integer }
+    ObjectId: { type: string, pattern: '^[a-f0-9]{24}$' }
+    ActiveStatus: { type: string, enum: [ACTIVA, INACTIVA] }
+    DependencyCode: { type: string, pattern: '^[A-Z]{3}$' }
+    Folio:
+      type: string
+      description: '{MUN}-{DEP}-{TIPO}-{AAAA}-{NNNNNN}; único por municipio; nunca reutilizado'
+      pattern: '^[A-Z]{3}-[A-Z]{3}-[A-Z]{3}-\d{4}-\d{6}$'
+      examples: [SJH-OBP-SOL-2026-000042]
+    MunicipalRole:
+      type: string
+      enum: [ADMIN_MUNICIPAL, SUPERVISOR_MUNICIPAL, TITULAR_DEPENDENCIA, OPERADOR_DEPENDENCIA, VENTANILLA, AUDITOR_MUNICIPAL, CONSULTA]
+    RequestStatus:
+      type: string
+      enum: [REGISTRADA, EN_TRAMITE, EN_ESPERA_CIUDADANO, CERRADA, CANCELADA]
+    Confidentiality: { type: string, enum: [PUBLICA, RESERVADA, CONFIDENCIAL], default: PUBLICA }
+    RequestType:
+      type: string
+      enum: [SOL]
+      description: Fase 1 solo solicitud genérica; nuevos tipos se agregan por versión menor.
+
+    MyMembership:
+      type: object
+      required: [id, municipality, role, dependencies, permissions]
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        municipality:
+          type: object
+          properties:
+            code: { type: string }
+            name: { type: string }
+        role: { $ref: '#/components/schemas/MunicipalRole' }
+        dependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
+        permissions:
+          type: array
+          description: Solo para UX; el servidor recalcula en cada petición.
+          items: { type: string, pattern: '^municipal\.' }
+        validTo: { type: [string, 'null'], format: date-time }
+
+    Dependency:
+      type: object
+      required: [code, name, status]
+      properties:
+        code: { $ref: '#/components/schemas/DependencyCode' }
+        name: { type: string }
+        parentCode: { oneOf: [ { $ref: '#/components/schemas/DependencyCode' }, { type: 'null' } ] }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+    DependencyCreate:
+      type: object
+      additionalProperties: false
+      required: [code, name]
+      properties:
+        code: { $ref: '#/components/schemas/DependencyCode' }
+        name: { type: string, minLength: 3, maxLength: 150 }
+        parentCode: { $ref: '#/components/schemas/DependencyCode' }
+    DependencyUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 3, maxLength: 150 }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+
+    MembershipCreate:
+      type: object
+      additionalProperties: false
+      required: [userId, role, dependencies]
+      properties:
+        userId: { $ref: '#/components/schemas/ObjectId' }
+        role: { $ref: '#/components/schemas/MunicipalRole' }
+        dependencies: { type: array, maxItems: 20, uniqueItems: true, items: { $ref: '#/components/schemas/DependencyCode' } }
+        validFrom: { type: string, format: date-time }
+        validTo: { type: string, format: date-time }
+    MembershipUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        role: { $ref: '#/components/schemas/MunicipalRole' }
+        dependencies: { type: array, maxItems: 20, uniqueItems: true, items: { $ref: '#/components/schemas/DependencyCode' } }
+        validTo: { type: [string, 'null'], format: date-time }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+
+    CitizenCreate:
+      type: object
+      additionalProperties: false
+      required: [fullName]
+      description: Datos mínimos. No se aceptan CURP, INE, RFC ni fecha de nacimiento en Fase 1.
+      properties:
+        fullName: { type: string, minLength: 3, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 254 }
+        phone: { type: string, pattern: '^[0-9 +()-]{7,20}$' }
+        locality: { type: string, maxLength: 120 }
+    Citizen:
+      type: object
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        fullName: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        locality: { type: string }
+
+    RequestCreate:
+      type: object
+      additionalProperties: false
+      required: [type, ownerDependency, subject, citizenId]
+      properties:
+        type: { $ref: '#/components/schemas/RequestType' }
+        ownerDependency: { $ref: '#/components/schemas/DependencyCode' }
+        subject: { type: string, minLength: 5, maxLength: 200 }
+        description: { type: string, maxLength: 5000 }
+        citizenId: { $ref: '#/components/schemas/ObjectId' }
+        confidentiality: { $ref: '#/components/schemas/Confidentiality' }
+    RequestUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        subject: { type: string, minLength: 5, maxLength: 200 }
+        description: { type: string, maxLength: 5000 }
+        confidentiality: { $ref: '#/components/schemas/Confidentiality' }
+    RequestSummary:
+      type: object
+      required: [folio, type, status, ownerDependency, createdAt]
+      properties:
+        folio: { $ref: '#/components/schemas/Folio' }
+        type: { $ref: '#/components/schemas/RequestType' }
+        status: { $ref: '#/components/schemas/RequestStatus' }
+        ownerDependency: { $ref: '#/components/schemas/DependencyCode' }
+        assignedDependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
+        confidentiality: { $ref: '#/components/schemas/Confidentiality' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Request:
+      allOf:
+        - $ref: '#/components/schemas/RequestSummary'
+        - type: object
+          properties:
+            subject: { type: string }
+            description: { type: string }
+            citizen: { $ref: '#/components/schemas/Citizen' }
+            assignedUserId: { oneOf: [ { $ref: '#/components/schemas/ObjectId' }, { type: 'null' } ] }
+            version: { type: integer }
+            history:
+              type: array
+              items:
+                type: object
+                properties:
+                  at: { type: string, format: date-time }
+                  action: { type: string }
+                  fromStatus: { $ref: '#/components/schemas/RequestStatus' }
+                  toStatus: { $ref: '#/components/schemas/RequestStatus' }
+                  actorName: { type: string }
+                  note: { type: string }
+    Transition:
+      type: object
+      additionalProperties: false
+      required: [action, version]
+      properties:
+        action: { type: string, enum: [TURNAR, ESPERAR_CIUDADANO, REANUDAR, CERRAR, CANCELAR] }
+        version: { type: integer, minimum: 0 }
+        toDependencies: { type: array, minItems: 1, maxItems: 10, uniqueItems: true, items: { $ref: '#/components/schemas/DependencyCode' }, description: Obligatorio en TURNAR }
+        assignedUserId: { $ref: '#/components/schemas/ObjectId' }
+        note: { type: string, maxLength: 2000, description: Obligatorio en CERRAR y CANCELAR }
+    GrantCreate:
+      type: object
+      additionalProperties: false
+      required: [level]
+      oneOf:
+        - required: [granteeUserId]
+        - required: [granteeDependency]
+      properties:
+        granteeUserId: { $ref: '#/components/schemas/ObjectId' }
+        granteeDependency: { $ref: '#/components/schemas/DependencyCode' }
+        level: { type: string, enum: [READ, CONTRIBUTE] }
+        expiresAt: { type: string, format: date-time }
+    FolioInfo:
+      type: object
+      required: [folio, type, ownerDependency, year, sequence, status]
+      properties:
+        folio: { $ref: '#/components/schemas/Folio' }
+        type: { $ref: '#/components/schemas/RequestType' }
+        ownerDependency: { $ref: '#/components/schemas/DependencyCode' }
+        year: { type: integer }
+        sequence: { type: integer, minimum: 1 }
+        status: { $ref: '#/components/schemas/RequestStatus' }
+        createdAt: { type: string, format: date-time }
