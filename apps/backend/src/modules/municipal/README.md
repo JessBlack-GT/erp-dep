@@ -1,0 +1,23 @@
+# modules/municipal — MuniERP IA (Fase 1, preparación)
+
+**Estado: NO MONTADO.** Nada en `app.js` ni en `routes/index.js` importa este módulo (verificado por
+`tests/municipal/permissions-structure.test.js`). Montarlo es la dependencia **C-01** de Codex.
+
+| Carpeta | Contenido | RQ |
+|---|---|---|
+| `policy/permissions.js` | Catálogo `municipal.*` y matriz de 7 roles, independiente de `security/rbac.js` | RQ05 |
+| `policy/access.js` | Regla de lectura/escritura por municipio → dependencia → expediente; filtro Mongo equivalente | RQ03, RQ05 |
+| `policy/context.js` | Construye el contexto a partir de `resolveAccess` del ERP **ignorando rol y permisos comerciales** | RQ05 |
+| `domain/folio.js` | Formato, análisis y clave de contador `{mun}:{dep}:{tipo}:{año}` | RQ01 |
+| `domain/request-state.js` | Máquina de estados y entradas de historial inmutables | RQ02 |
+| `domain/validation.js` | Validación estricta del contrato; rechaza campos del servidor y CURP/RFC | RQ01, RQ06 |
+| `domain/indicators.js` | Indicadores como función pura (oráculo de la agregación Mongo) | RQ04 |
+| `domain/documents.js` | Validación de archivos por firma binaria y cabeceras de descarga privada | RQ05 |
+| `domain/receipt.js` | Acuse para canal presencial sin datos de contacto | RQ06 |
+| `application/municipal.service.js` | Casos de uso independientes de Express/Mongo | todos |
+| `mocks/*`, `storage/memory-storage.js` | Almacén y almacenamiento **en memoria** con datos **sintéticos** | — |
+
+Reglas: solo importa de sí mismo y de módulos nativos de Node; código compatible con Express 4 y 5
+(sin rutas `*`, sin `req.param`); `// @ts-check` + JSDoc en lugar de TypeScript compilado.
+
+Pruebas: `tests/municipal/*.test.js` (se incluyen en `npm test` del backend por el glob existente).
