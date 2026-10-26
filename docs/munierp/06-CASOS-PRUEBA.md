@@ -1,7 +1,11 @@
-# MuniERP IA — Fase 0 · 06 Casos de prueba iniciales
+# MuniERP IA — 06 Casos de prueba
 
-Estado: **DISEÑADOS, NO EJECUTADOS** (el módulo municipal no existe todavía). Ninguno se considera
-aprobado hasta ejecutarse con evidencia en `docs/qa/MUNI-*-VALIDATION.md`.
+> Revisión 2026-10-26: casos alineados con los requisitos oficiales RQ01–RQ06, nuevos bloques H
+> (indicadores), I (documentos privados) y J (inclusión y continuidad), y estado de ejecución por
+> caso (§K). Un caso solo cuenta como aprobado con la ejecución indicada; **"H-mock"** significa
+> capa de aplicación con almacén en memoria y datos sintéticos: **no sustituye** R ni E.
+
+Niveles adicionales: **H-mock** = `createMunicipalService` + almacén en memoria (sin Express ni Mongo).
 
 Niveles: **U** unitaria (mocha, sin DB) · **H** HTTP con supertest y repositorios simulados ·
 **R** integración real contra base QA autorizada (`validate-municipal-real.cjs`) · **E** E2E web y
@@ -78,6 +82,8 @@ Android.
 | MT-43 | H | `TURNAR` por `u_op_obp` | 403 |
 | MT-44 | R | Dos actualizaciones con la misma `version` | Primera 200, segunda 409 |
 | MT-45 | H | `TURNAR` a dependencia inexistente o de otro municipio | 400 |
+| MT-46 | U/H | RQ02: cada entrada de historial tiene `actorId`, `at`, `action`, `fromStatus`, `toStatus`; inmutable; orden cronológico | Pasa |
+| MT-47 | R | RQ02: historial persistido coincide con la bitácora (`requestId`) tras 5 acciones | Conteo y orden idénticos |
 
 ## F. Bitácora
 
@@ -87,6 +93,44 @@ Android.
 | MT-51 | U | `updateOne`/`deleteOne`/`save` sobre evento existente | Error de inmutabilidad |
 | MT-52 | R | Denegaciones 403/404 de alcance | Evento `ACCESS_DENIED` sin contenido del expediente |
 | MT-53 | H | `u_tit_obp` → `GET /audit-events` | 403 |
+
+## H. Indicadores (RQ04)
+
+| ID | Nivel | Caso | Esperado |
+|---|---|---|---|
+| MT-70 | U | Set sintético de 6 registros con conteo manual documentado en la prueba | total 6, abiertas 3, registradas 5, cerradas 2, promedio 3 días, vencidas 1, por estado/dependencia/canal exactos |
+| MT-71 | U | Conjunto vacío | Ceros y `avgResolutionDays = null` (sin promedios inventados) |
+| MT-72 | U | Periodo invertido o `slaDays` fuera de rango | Error de validación |
+| MT-73 | U | Cambio de zona horaria en límites del periodo | Periodos en UTC, documentado en contrato |
+| MT-74 | H-mock / R | Servicio vs. oráculo puro sobre los mismos registros visibles; **R:** agregación Mongo vs. oráculo | Idénticos |
+| MT-75 | H-mock | Alcance: titular OBP ve 3, titular DIF ve 1, supervisor 6, operador sin permiso 403; ningún conteo de otro municipio | Exacto |
+
+## I. Documentos privados (RQ05)
+
+| ID | Nivel | Caso | Esperado |
+|---|---|---|---|
+| MT-80 | U | PDF/PNG válidos, nombre con ruta y acentos | Aceptados; nombre saneado; sha256 |
+| MT-81 | U | Contenido que no coincide con el MIME / MIME no permitido | 400 |
+| MT-82 | U | > 5 MB o campos extra (`storageKey`) | 413 / 400 |
+| MT-83 | H-mock | Subida en expediente concluido | 409 |
+| MT-84 | U | Cabeceras de descarga | `attachment`, `no-store`, `nosniff` |
+| MT-85 | H-mock | Descarga autorizada | Bytes idénticos; sin `storageKey` en respuestas |
+| MT-86 | H-mock | Descarga por otra dependencia, admin ERP, ADMIN_MUNICIPAL o con folio de otro expediente | 404/403; evento `ACCESS_DENIED`; contenido nunca en bitácora |
+| MT-87 | H-mock | Documento CONFIDENCIAL en expediente público consultado por CONSULTA | Listado como `restricted`, descarga 404; titular sí descarga |
+| MT-88 | H-mock | Documento declarado PUBLICA en expediente CONFIDENCIAL | Confidencialidad efectiva CONFIDENCIAL |
+| MT-89 | R | Adaptador GridFS: el bucket no es accesible sin pasar por la API; sin URL pública | Pendiente C-07 |
+
+## J. Inclusión y continuidad (RQ06)
+
+| ID | Nivel | Caso | Esperado |
+|---|---|---|---|
+| MT-90 | E (web) | Flujo de ventanilla completo **solo con teclado** (Tab/Shift+Tab/Enter/Espacio): dependencia → ciudadano → canal → asunto → enviar → imprimir acuse | Completo sin ratón; foco visible; orden lógico |
+| MT-91 | E (Android) | Mismo flujo en APK y en navegador de celular (360 px) | Completo; objetivos ≥ 44 px; sin desplazamiento horizontal |
+| MT-92 | H-mock | Registro con `channel: PRESENCIAL` y acuse | Acuse con folio y dependencia, sin contacto ni descripción |
+| MT-93 | U (jest) | Reintento tras fallo de red | Misma `Idempotency-Key`; un solo folio |
+| MT-94 | U (jest) | Cuadrícula de indicadores 360/800/1280 px | 1/2/4 columnas |
+| MT-95 | U (jest) | Usuario sin membresía | Espacio de trabajo oculto con mensaje |
+| MT-96 | E | Auditoría WCAG 2.1 AA (contraste, etiquetas, lector de pantalla NVDA/TalkBack) | Sin bloqueantes |
 
 ## G. No regresión del ERP
 
@@ -98,7 +142,39 @@ Android.
 | MT-63 | E | Login, Clientes, Ventas, Inventario en web y APK con usuario sin membresía | Idénticos; el menú no muestra MuniERP |
 | MT-64 | E | Usuario con membresía en web **y** Android | Menú MuniERP visible; 404 de alcance mostrado como "No encontrado" |
 
-## Ejecución de la línea base
+## K. Estado de ejecución por caso (2026-10-26)
+
+| Estado | Casos |
+|---|---|
+| **Ejecutado y aprobado** (U / H-mock / jest) | MT-04, MT-05, MT-06, MT-07, MT-10, MT-11, MT-12, MT-13, MT-14, MT-15, MT-16, MT-17, MT-18, MT-19, MT-19b, MT-30, MT-32*, MT-33, MT-34, MT-35, MT-36, MT-40, MT-41, MT-42, MT-43, MT-44, MT-45, MT-46, MT-50*, MT-52, MT-60, MT-61, MT-70, MT-71, MT-72, MT-74*, MT-75, MT-80…MT-88, MT-92, MT-93, MT-94, MT-95 |
+| **Ejecutado parcial** | MT-31 (50 creaciones concurrentes en memoria; falta concurrencia real en Atlas), MT-62 (ver §Ejecución) |
+| **Pendiente: requiere montaje HTTP (C-01)** | MT-01, MT-02, MT-03, MT-08, MT-09, MT-19c, MT-20…MT-22, MT-53 |
+| **Pendiente: requiere base QA autorizada (C-05)** | MT-31 real, MT-32 real, MT-47, MT-50 real, MT-51, MT-74 (Mongo), MT-89 |
+| **Pendiente: E2E** | MT-63, MT-64, MT-90, MT-91, MT-96 |
+| Diseñado sin prueba aún | MT-73 |
+
+\* En memoria: demuestran la regla, no la garantía transaccional de Mongo.
+
+## Ejecución 2026-10-26 (rama local `codex/munierp-fase0-arquitectura`)
+
+Entorno: VM Linux del equipo del usuario, Node v22.23.4, `node_modules` local existente, copia limpia
+`main@d5b64b0` + parches de esta rama. Sin base de datos, sin red, sin datos reales.
+
+| Suite | Resultado |
+|---|---|
+| Backend municipal (`mocha tests/municipal/*.test.js`) | **62 passing, 0 failing** (incluye contrato OpenAPI ↔ dominio con `js-yaml`) |
+| Backend completo sin `phase1.stability` | **994 passing, 0 failing** = 932 de la línea base (953 − 21 del archivo excluido) + 62 municipales |
+| `phase1.stability` sin la prueba de ESLint | **20 passing** |
+| `Phase 1 ESLint configuration` | **No concluyó** en 175 s por E/S del disco montado (pasó el 2026-10-23 en 44 s; no lee código municipal) |
+| Frontend municipal (`jest tests/municipal.frontend.test.js`) | **11 passed** |
+| Frontend: las 12 suites pendientes del 2026-10-23 + `features` + `m01.frontend` | 13 PASS; `m01.frontend` **3 failing** (los mismos 3 fallos preexistentes de `main`) |
+| ESLint (semi/quotes) sobre archivos nuevos | 0 errores |
+| Pruebas de mutación de `policy/access.js` (4 mutaciones) | 4/4 detectadas |
+
+Con esto, **las 32 suites frontend de la línea base ya se ejecutaron al menos una vez**: 31 PASS y
+`m01.frontend` con 3 fallos preexistentes. No ejecutado: build web, APK, Atlas QA, E2E.
+
+## Ejecución de la línea base (2026-10-23)
 
 Ejecutado el 2026-10-23 sobre una **copia limpia** de `main@d5b64b0` (`git archive`), en la VM
 Linux del equipo del usuario (Node v22.23.2), reutilizando el `node_modules` local ya instalado.

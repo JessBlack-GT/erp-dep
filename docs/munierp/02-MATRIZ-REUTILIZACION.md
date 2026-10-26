@@ -1,4 +1,7 @@
-# MuniERP IA — Fase 0 · 02 Matriz de reutilización e integración
+# MuniERP IA — 02 Matriz de reutilización e integración
+
+> Revisión 2026-10-26: filas de documentos privados, indicadores e interfaz; catálogo municipal
+> ubicado en `modules/municipal/policy/` mientras Codex no revise `src/security/`.
 
 Leyenda: **R** = reutilizar tal cual · **E** = extender sin modificar el comportamiento ERP ·
 **P** = reutilizar el *patrón* (código nuevo, mismo diseño) · **N** = no reutilizar.
@@ -9,7 +12,7 @@ Leyenda: **R** = reutilizar tal cual · **E** = extender sin modificar el compor
 | Recuperación de contraseña + Resend | `auth.service.js`, `shared/services/email.js` | **R** | Plantilla de correo puede parametrizarse por producto más adelante (no en Fase 1). |
 | `sessionVersion` / revocación | `users.model.js`, `middleware/authorize.js` | **R** | La desactivación de un usuario corta también su acceso municipal en la siguiente petición. |
 | Modelo `User` (identidad) | `users.model.js` | **R (sin campos nuevos)** | La pertenencia municipal vive en otra colección; `User` y su índice no cambian. |
-| `User.role` + catálogo `rbac.PERMISSIONS` | `security/rbac.js` | **N para permisos municipales** | Ver hallazgo R3: `admin` recibe todo el catálogo. Los permisos municipales van en `security/municipal-rbac.js`. |
+| `User.role` + catálogo `rbac.PERMISSIONS` | `security/rbac.js` | **N para permisos municipales** | Ver hallazgo R3: `admin` recibe todo el catálogo. Los permisos municipales van en `modules/municipal/policy/permissions.js` (implementado). |
 | `resolveAccess` + fail-closed 503 | `security/rbac.js`, `middleware/authorize.js` | **P** | Nuevo `resolveMunicipalAccess(userId, municipalityId)` que primero llama a `resolveAccess` (estado/usuario/sesión) y luego a la membresía. |
 | Re-verificación transaccional del actor | `security/administration.js#transaction` | **P** | Misma técnica para escrituras municipales (lock de actor + membresía dentro de la transacción). |
 | Regla "solo asignar subconjunto de permisos propios" | `administration.js#subset/assignable` | **P** | Aplicada a administradores municipales y por dependencia. |
@@ -21,6 +24,11 @@ Leyenda: **R** = reutilizar tal cual · **E** = extender sin modificar el compor
 | Numeración | `commercial/numbering.js` | **P (no reutilizar la colección)** | La función valida tipos comerciales y usa clave global; los folios municipales necesitan clave `{municipio, dependencia, tipo, año}` y colección `municipal_counters`. |
 | Auditoría append-only | `modules/audit/audit.model.js` | **P** | Ganchos de inmutabilidad reutilizables como patrón; nueva colección `municipal_audit_events` con IP y requestId. El enum comercial no se toca. |
 | Reportes PDF/Excel | `pdfkit`, `exceljs` (ya instalados) | **R (librerías)** | Acuses/constancias en fase posterior, sin dependencias nuevas. |
+| Mongoose / driver `mongodb` (GridFS) | ya instalado | **R** | Almacenamiento privado de documentos sin dependencia nueva (ADR-10, C-07). |
+| `express.json({ limit: '10mb' })` | `app.js` | **R** | Permite subir documentos ≤ 5 MB en base64 sin `multer`. |
+| Dashboard | stub | **N** | Indicadores municipales propios calculados sobre el alcance (ADR-11); el stub del ERP no se toca. |
+| `react-native-blob-util` + `utils/downloadFile*` | frontend | **R** | Descarga autorizada de documentos en Android/web (F1-13). |
+| `StatCard`, `Badge`, `Card`, `Input`, `TextArea`, `Button`, `EmptyState` | `components/common` | **R** | Usados por el prototipo `features/municipal`. |
 | Clientes (`customers`) | `modules/customers` | **N** | Un ciudadano **no** es un cliente. Colección y modelo propios (`municipal_citizens`). Sin referencias cruzadas. |
 | Ventas, inventario, productos, proveedores | `modules/sales`, `inventory`, `products`, `suppliers` | **N (Fase 1)** | Posible integración futura (p. ej. almacén municipal) solo mediante contrato/adaptador explícito, como `commercial/inventory.contract.js`. |
 | Finanzas | stub | **N** | Cobro de derechos municipales queda fuera de Fase 1. |

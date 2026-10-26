@@ -1,4 +1,7 @@
-# MuniERP IA — Fase 0 · 01 Diagnóstico técnico de YJ Nexo ERP
+# MuniERP IA — 01 Diagnóstico técnico de YJ Nexo ERP
+
+> Revisión 2026-10-26: se añade C8 (límite por IP compartida). El resto del diagnóstico de Fase 0 se
+> mantiene; la comparativa con el stack académico está en [05](05-REQUISITOS-Y-STACK.md#3-comparativa-tecnológica-sistema-real-vs-propuesta-académica).
 
 Base auditada: `main` @ `d5b64b0` (2026-10-07). Auditoría estática del código + ejecución local de
 las pruebas existentes (ver §7). No se conectó a ninguna base de datos, no se leyeron secretos y no
@@ -65,6 +68,7 @@ se modificó `main`.
 | C5 | `apps/frontend/android/local.properties` y caches `.gradle/` están versionados (el propio archivo dice que no debe estarlo). | Baja (higiene) |
 | C6 | `dotenv.config()` se invoca dos veces (app.js y environment.js); `trust proxy` correctamente acotado. | Info |
 | C7 | `expo run:android` en scripts, pero `expo` no es dependencia. | Baja — documentar, no cambiar sin justificación. |
+| C8 | Límite global de 100 peticiones / 15 min **por IP** en `/api/`. Oficinas municipales detrás de una sola IP pública compartirán el cupo. | Media para RQ06 (continuidad) — dependencia C-08. |
 
 ## 5. Documentación desactualizada
 

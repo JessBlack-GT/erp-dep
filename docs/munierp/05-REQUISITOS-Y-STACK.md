@@ -22,17 +22,17 @@ Este documento **sustituye** las hipótesis "por confirmar" de la versión de Fa
 
 ## 2. Matriz de trazabilidad RQ01–RQ06
 
-Estados: **D** diseñado · **DA** implementado en dominio aislado con pruebas **ejecutadas** (sin
-montar, sin DB) · **PC** pendiente de coordinación con Codex · **PE** pendiente de ejecución (R/E).
+Estados: **D** diseñado · **DA** implementado en dominio aislado con pruebas **ejecutadas** el
+2026-10-26 (sin montar, sin DB; ver 06 §K) · **PC** pendiente de coordinación con Codex · **PE** pendiente de ejecución (R/E).
 
 | RQ | Diseño (doc) | Contrato (operationId) | Permisos | Código de dominio aislado | Casos de prueba | Backlog | Estado |
 |---|---|---|---|---|---|---|---|
-| RQ01 | 03 ADR-07; 04 ciclo | `createRequest`, `verifyFolio` | `requests.create`, `requests.read` | `domain/folio.js`, `mocks/inMemoryStore.js#createRequest` | MT-30…MT-36 | F1-05, F1-06 | DA (formato, unicidad en memoria, idempotencia) · PE (concurrencia real MT-31/32/35) |
-| RQ02 | 03 ADR-08; 04 ciclo de vida | `transitionRequest`, `getRequestHistory` | `requests.assign`, `requests.assignUser`, `requests.update`, `requests.close`, `requests.cancel` | `domain/request-state.js` | MT-40…MT-47 | F1-07 | DA · PE (persistencia R) |
-| RQ03 | 03 ADR-05; 04 regla de expediente | `listRequests`, `getRequest`, `searchCitizens` | `requests.read`, `requests.readConfidential` | `policy/access.js` (`canReadRequest`, `buildRequestScopeFilter`) | MT-01…MT-19c | F1-03, F1-06 | DA · PE (aislamiento R contra Atlas QA) |
-| RQ04 | 03 ADR-11 | `getIndicators` | `indicators.read` | `domain/indicators.js` | MT-70…MT-75 | F1-09 | DA (función pura vs. oráculo) · PE (agregación Mongo MT-74) |
-| RQ05 | 03 ADR-04/05/10; 04 | `uploadDocument`, `listDocuments`, `downloadDocument` + todas | `documents.*`, catálogo completo | `policy/permissions.js`, `domain/documents.js` | MT-01…MT-12, MT-80…MT-88 | F1-02, F1-08 | DA (validación de archivo, autorización de descarga) · PC (almacenamiento privado C-07) |
-| RQ06 | 09 (interfaces) ; 03 ADR-12 | `createRequest` (`channel`), `getRequestReceipt` | `requests.create` | `domain/validation.js` (`channel`), `domain/receipt.js` | MT-90…MT-96 | F1-10, F1-11 | D · PE (E2E teclado, Android, ventanilla) |
+| RQ01 | 03 ADR-07; 04 ciclo | `createRequest`, `verifyFolio` | `requests.create`, `requests.read` | `domain/folio.js`, `application/municipal.service.js#createRequest` | MT-30…MT-36 | F1-03, F1-06 | DA (formato, unicidad en memoria, idempotencia) · PE (concurrencia real MT-31/32/35) |
+| RQ02 | 03 ADR-08; 04 ciclo de vida | `transitionRequest`, `getRequestHistory` | `requests.assign`, `requests.assignUser`, `requests.update`, `requests.close`, `requests.cancel` | `domain/request-state.js` | MT-40…MT-47 | F1-07, F1-10 | DA · PE (persistencia R) |
+| RQ03 | 03 ADR-05; 04 regla de expediente | `listRequests`, `getRequest`, `searchCitizens` | `requests.read`, `requests.readConfidential` | `policy/access.js` (`canReadRequest`, `buildRequestScopeFilter`) | MT-01…MT-19c | F1-01, F1-04, F1-06 | DA · PE (aislamiento R contra Atlas QA) |
+| RQ04 | 03 ADR-11 | `getIndicators` | `indicators.read` | `domain/indicators.js`; UI `IndicatorsPanel` | MT-70…MT-75 | F1-09 | DA (función pura vs. oráculo) · PE (agregación Mongo MT-74) |
+| RQ05 | 03 ADR-04/05/10; 04 | `uploadDocument`, `listDocuments`, `downloadDocument` + todas | `documents.*`, catálogo completo | `policy/permissions.js`, `domain/documents.js` | MT-01…MT-12, MT-80…MT-89 | F1-01, F1-08, F1-12 | DA (validación de archivo, autorización de descarga) · PC (almacenamiento privado C-07) |
+| RQ06 | 09 (interfaces) ; 03 ADR-12 | `createRequest` (`channel`), `getRequestReceipt` | `requests.create` | `domain/validation.js` (`channel`), `domain/receipt.js`; UI `features/municipal/*` | MT-90…MT-96 | F1-11, F1-15 | DA (canal, acuse, reintento idempotente y cuadrícula adaptable en jest) · PE (E2E teclado, Android, ventanilla, WCAG) |
 
 ## 3. Comparativa tecnológica: sistema real vs. propuesta académica
 
