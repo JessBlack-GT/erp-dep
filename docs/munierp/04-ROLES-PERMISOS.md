@@ -1,4 +1,8 @@
-# MuniERP IA — Fase 0 · 04 Matriz de roles y permisos
+# MuniERP IA — 04 Matriz de roles y permisos
+
+> Revisión 2026-10-26: se añaden `requests.assignUser` (RQ02), `documents.*` (RQ05) e
+> `indicators.read` (RQ04). El resto de la matriz de Fase 0 se mantiene. Fuente codificada:
+> `apps/backend/src/modules/municipal/policy/permissions.js` (congelada por prueba).
 
 Catálogo **independiente** del ERP (`security/municipal-rbac.js`, ADR-04). Un permiso municipal
 solo se evalúa sobre una **membresía activa y vigente** en el municipio de la ruta.
@@ -36,6 +40,11 @@ Los roles del ERP (`superadmin`, `admin`, `manager`, …) **no conceden ningún 
 | `municipal.requests.cancel` | – | M | D | – | – | – | – |
 | `municipal.requests.grant` (compartir) | – | M | D | – | – | – | – |
 | `municipal.requests.readConfidential` | – | ✔² | D² | – | – | – | – |
+| `municipal.requests.assignUser` (responsable) | – | – | D | – | – | – | – |
+| `municipal.documents.read` (listar/descargar) | – | M | D | D | P | – | D |
+| `municipal.documents.upload` | – | – | D | D | P | – | – |
+| `municipal.documents.retire` | – | – | D | – | – | – | – |
+| `municipal.indicators.read` | – | M | D | – | – | ✔ | D |
 | `municipal.audit.read` | – | – | – | – | – | ✔ | – |
 
 Alcances: **M** = todo el municipio · **D** = dependencias de la membresía · **A** = solo
@@ -43,8 +52,12 @@ expedientes asignados al usuario · **P** = propios (creados por el usuario) · 
 folio, tipo, estado, dependencia y fechas (sin descripción ni datos del ciudadano) · **✔** = sin
 restricción adicional dentro del municipio.
 
-¹ Solo puede asignar roles cuyos permisos sean subconjunto de los propios, nunca a sí mismo, y
-nunca crear otro `ADMIN_MUNICIPAL` (reservado a bootstrap/ops), siguiendo la regla de M01.
+¹ Puede asignar cualquier rol excepto `ADMIN_MUNICIPAL` (reservado a bootstrap/ops), nunca a sí
+mismo y nunca modificar su propia membresía. *Corrección 2026-10-26:* la regla de "subconjunto de
+permisos propios" de M01 no es aplicable aquí, porque ADMIN_MUNICIPAL deliberadamente **no** tiene
+permisos sobre expedientes; la separación de funciones se garantiza porque el administrador no
+puede darse a sí mismo un rol operativo (otra persona con ADMIN_MUNICIPAL tendría que hacerlo, y
+queda en bitácora).
 ² Requiere además que el expediente esté en alcance; `CONFIDENCIAL` nunca es visible por "M"
 sin este permiso.
 
@@ -71,12 +84,19 @@ terminal (`CERRADA`, `CANCELADA`). Un grant `READ` nunca permite escribir.
 ## Ciclo de vida de una solicitud
 
 ```
-REGISTRADA ──turnar──► EN_TRAMITE ──► EN_ESPERA_CIUDADANO ──► EN_TRAMITE
+REGISTRADA ──turnar/asignar──► EN_TRAMITE ──► EN_ESPERA_CIUDADANO ──► EN_TRAMITE
     │                       │
     └──cancelar──► CANCELADA └──cerrar──► CERRADA (respuesta obligatoria)
 ```
 
-Cada transición agrega entrada a `history[]` y un evento de bitácora con el mismo `requestId`.
+Acciones: `TURNAR` (cambia dependencias; REGISTRADA→EN_TRAMITE), `ASIGNAR` (responsable dentro
+de una dependencia en alcance; REGISTRADA→EN_TRAMITE o sin cambio de estado), `ESPERAR_CIUDADANO`,
+`REANUDAR`, `CERRAR` (nota obligatoria), `CANCELAR` (nota obligatoria).
+
+**RQ02:** cada acción agrega a `history[]` una entrada inmutable con `actorId`, `at`, `action`,
+`fromStatus`, `toStatus` (y `assignedUserId`/`toDependencyIds`/`note` cuando aplica), más un evento
+de bitácora con el mismo `requestId`. Una acción que no cambia el estado registra igualmente
+`fromStatus == toStatus`.
 
 ## Casos límite decididos
 
@@ -89,3 +109,7 @@ Cada transición agrega entrada a `history[]` y un evento de bitácora con el mi
 | Expediente de otra dependencia | 404 (no revela existencia) + evento `ACCESS_DENIED`. |
 | Municipio distinto en la ruta | 403 si no hay membresía en ese municipio; nunca se infiere municipio del payload. |
 | `municipalityId`/`folio`/`createdBy` en el body | Rechazado (400): se derivan del servidor. |
+| Descarga de documento de expediente fuera de alcance | 404 + evento `ACCESS_DENIED` (RQ05). |
+| Documento `CONFIDENCIAL` en expediente `PUBLICA` sin `readConfidential` | Se lista sin nombre de archivo; descarga 404. |
+| Ventanilla descarga documento que no subió de un expediente que sí creó | Permitido mientras el expediente esté en su alcance P y el documento no sea más restrictivo. |
+| Indicadores pedidos por un usuario de TES | Solo cuentan expedientes en su alcance; nunca totales del municipio. |

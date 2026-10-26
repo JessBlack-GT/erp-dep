@@ -1,4 +1,7 @@
-# MuniERP IA — Fase 0 · 03 Propuesta de arquitectura conectada
+# MuniERP IA — 03 Propuesta de arquitectura conectada
+
+> Revisión 2026-10-26: ADR-10 (documentos privados), ADR-11 (indicadores), ADR-12 (inclusión) y
+> campos de historial/canal añadidos por los requisitos oficiales RQ01–RQ06. ADR-01…09 se mantienen.
 
 ## Vista general
 
@@ -13,7 +16,7 @@
 │  helmet · CORS · rate limit · requestLogger · errorHandler (compartidos)                    │
 │  /api/v1/*  ── auth, users, roles, customers, sales…  │  /api/municipal/v1/*  ── modules/municipal
 │        │                                              │        │                           │
-│  security/rbac.js  (catálogo ERP, 30 permisos)        │  security/municipal-rbac.js (catálogo propio)
+│  security/rbac.js  (catálogo ERP, 30 permisos)        │  modules/municipal/policy (catálogo propio)
 │        └──────────── resolveAccess(userId) ◄──────────┼────────┘ (identidad, estado, sesión) │
 │                                                       │  + membership(userId, municipio)     │
 │                                                       │  + regla por expediente              │
@@ -21,7 +24,8 @@
                                 │ misma conexión Mongoose
         users, roles, customers, sales…        municipal_municipalities, municipal_dependencies,
         (sin cambios)                          municipal_memberships, municipal_citizens,
-                                               municipal_requests, municipal_request_grants,
+                                               municipal_requests, municipal_documents,
+                                               municipal_request_grants,
                                                municipal_counters, municipal_audit_events
 ```
 
@@ -47,7 +51,9 @@ Un mismo usuario puede tener rol ERP `user` (0 permisos comerciales) y ser `TITU
 en Obras Públicas.
 
 ### ADR-04 — Catálogo de permisos municipal separado del ERP
-**Decisión:** `security/municipal-rbac.js` con su propio catálogo y matriz. `admin`/`superadmin`
+**Decisión:** catálogo y matriz propios. En Fase 1 viven en
+`modules/municipal/policy/permissions.js` (dentro del módulo, para no tocar `src/security/` del
+núcleo sin revisión de Codex); pueden moverse a `security/municipal-rbac.js` en el PR de montaje. `admin`/`superadmin`
 del ERP **no** heredan permisos municipales. Middleware nuevo `requireMunicipal(permission)`.
 **Motivo:** hallazgo R3 (`admin = PERMISSIONS`). Separación de funciones y principio de mínimo
 privilegio sobre datos personales en posesión de un sujeto obligado (ayuntamiento).
@@ -80,6 +86,38 @@ el folio con estado `CANCELADA`.
 ip, requestId, at`. Se escribe en la misma transacción que la operación. Las **denegaciones**
 (403/404 por alcance) también se registran (sin transacción, best-effort).
 
+### ADR-10 — Documentos privados del expediente (RQ05)
+**Decisión:** metadatos en `municipal_documents`; contenido detrás de un puerto
+`DocumentStorage { put(key, buffer, meta), get(key) }` con adaptador en memoria (prototipo) y
+GridFS bucket `municipal_files` (QA/producción, sin dependencia nueva). No existe operación de
+borrado físico: un documento se marca `RETIRADO` y deja de listarse.
+- Subida (Fase 1): JSON con contenido base64, ≤ 5 MB decodificados (cabe en el límite actual de
+  `express.json` de 10 MB), MIME en lista blanca (PDF, JPEG, PNG) **verificado por firma
+  binaria**, nombre saneado, `sha256` calculado en servidor. Multipart requeriría `multer`
+  (dependencia nueva → C-07).
+- Descarga: `GET …/documents/{id}/content` con el mismo filtro de alcance del expediente y la
+  confidencialidad propia del documento; cabeceras `Content-Disposition: attachment`,
+  `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`. Nunca URL pública ni enlace
+  firmado reutilizable. Cada descarga y cada denegación generan evento de bitácora.
+- Un documento hereda como mínimo la confidencialidad del expediente; puede ser más restrictivo,
+  nunca menos.
+
+### ADR-11 — Indicadores calculados sobre el alcance del usuario (RQ04)
+**Decisión:** `GET …/indicators` calcula con el **mismo** filtro de alcance de `listRequests`, de
+modo que un tablero nunca revele conteos de expedientes no autorizados. Indicadores Fase 1: total,
+por estado, por dependencia propietaria, por canal, abiertos, registrados y cerrados en el
+periodo, tiempo medio de atención (días, solo cerradas en el periodo) y abiertos que exceden el
+plazo configurado (`slaDays`, parámetro, no dato normativo). Se implementa como función pura
+(`domain/indicators.js`) que sirve de **oráculo**: la agregación de Mongo debe dar el mismo
+resultado sobre el set sintético (MT-74).
+
+### ADR-12 — Inclusión y continuidad (RQ06)
+**Decisión:** campo `channel` (`PRESENCIAL`, `TELEFONO`, `WEB_FUNCIONARIO`) en cada solicitud; la
+ventanilla registra en nombre del ciudadano y entrega **acuse imprimible** (`getRequestReceipt`,
+solo folio, fecha, dependencia, asunto y estado; sin datos de contacto). Continuidad: claves de
+idempotencia para reintentos móviles, consulta rápida por folio en ventanilla y borrador local
+por dispositivo (solo conveniencia). Interfaz: objetivo WCAG 2.1 AA (ver 09).
+
 ### ADR-09 — IA desacoplada y posterior
 La IA (clasificación/turnado sugerido de solicitudes) se diseña como adaptador
 `modules/municipal/ai/` con contrato propio, **sin** enviar datos personales a proveedores
@@ -95,6 +133,8 @@ parte de Fase 1.
 | `municipal_memberships` | `userId`, `municipalityId`, `role` (catálogo municipal), `dependencyIds[]`, `status`, `validFrom`, `validTo?`, `createdBy` | `{userId, municipalityId}` único; `{municipalityId, dependencyIds}` |
 | `municipal_citizens` | `municipalityId`, `fullName`, `contact{email?,phone?}`, `locality?`, `synthetic`, `createdBy` | `{municipalityId, fullName}` |
 | `municipal_requests` (solicitudes/expedientes) | `municipalityId`, `folio`, `type`, `subject`, `description`, `citizenId`, `ownerDependencyId`, `assignedDependencyIds[]`, `assignedUserId?`, `status`, `confidentiality` (`PUBLICA`/`RESERVADA`/`CONFIDENCIAL`), `history[]`, `createdBy`, `idempotencyKey` | `{municipalityId, folio}` único; `{municipalityId, ownerDependencyId, status}`; `{createdBy, idempotencyKey}` único |
+| *(campos añadidos a `municipal_requests` por RQ02/RQ06)* | `channel`, `version` (concurrencia optimista), `history[]` = `{at, actorId, action, fromStatus, toStatus, assignedUserId?, toDependencyIds?, note?}` inmutable | — |
+| `municipal_documents` | `municipalityId`, `requestId`, `folio`, `filename`, `mimeType`, `size`, `sha256`, `storageKey`, `confidentiality`, `status` (`VIGENTE`/`RETIRADO`), `uploadedBy`, `uploadedAt` | `{municipalityId, requestId, status}` |
 | `municipal_request_grants` | `requestId`, `municipalityId`, `granteeUserId?` \| `granteeDependencyId?`, `level` (`READ`/`CONTRIBUTE`), `expiresAt?`, `grantedBy` | `{requestId, granteeUserId}`; TTL opcional |
 | `municipal_counters` | `_id: "{mun}:{dep}:{tipo}:{año}"`, `value` | `_id` |
 | `municipal_audit_events` | ver ADR-08 | `{municipalityId, at}`, `{entityId, at}` |

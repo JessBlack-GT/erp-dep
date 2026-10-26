@@ -1,10 +1,19 @@
 openapi: 3.1.0
 info:
   title: MuniERP IA — API municipal conectada a YJ Nexo ERP
-  version: 1.0.0-draft.0
+  version: 1.0.0-draft.1
   description: |
-    Contrato inicial (Fase 0). Fuente de verdad para la implementación de
-    `apps/backend/src/modules/municipal`. Estado: BORRADOR — no implementado.
+    Propuesta versionada. Fuente de verdad para `apps/backend/src/modules/municipal`.
+    Estado: BORRADOR. La capa de aplicación y la política de acceso están implementadas y probadas
+    en memoria, pero la API **no está montada**: montarla requiere revisión de Codex (C-01).
+
+    Cambios draft.1 (2026-10-26, requisitos oficiales RQ01–RQ06):
+    - `channel` obligatorio en RequestCreate (RQ06) y visible en RequestSummary.
+    - Acción `ASIGNAR` y permiso `municipal.requests.assignUser` (RQ02).
+    - Nuevas operaciones: getRequestHistory (RQ02), getRequestReceipt (RQ06),
+      uploadDocument / listDocuments / downloadDocument (RQ05), getIndicators (RQ04).
+    - Código de error PAYLOAD_TOO_LARGE (413) para documentos.
+    - `x-rq` en cada operación para trazabilidad.
 
     Reglas transversales:
     - Autenticación: el mismo JWT de acceso de YJ Nexo (`POST /api/v1/auth/login`).
@@ -24,6 +33,7 @@ paths:
     get:
       summary: Membresías municipales vigentes del usuario autenticado
       operationId: listMyMemberships
+      x-rq: [RQ05]
       description: Requiere solo JWT válido y usuario activo. Devuelve lista vacía si no hay membresías (la UI oculta el módulo).
       responses:
         '200':
@@ -45,6 +55,7 @@ paths:
     get:
       summary: Listar dependencias del municipio
       operationId: listDependencies
+      x-rq: [RQ03]
       x-permission: municipal.dependencies.read
       parameters:
         - { name: status, in: query, schema: { $ref: '#/components/schemas/ActiveStatus' } }
@@ -64,6 +75,7 @@ paths:
     post:
       summary: Crear dependencia
       operationId: createDependency
+      x-rq: [RQ05]
       x-permission: municipal.dependencies.manage
       requestBody:
         required: true
@@ -92,6 +104,7 @@ paths:
     patch:
       summary: Actualizar nombre/estado de una dependencia (el código es inmutable)
       operationId: updateDependency
+      x-rq: [RQ05]
       x-permission: municipal.dependencies.manage
       requestBody:
         required: true
@@ -109,6 +122,7 @@ paths:
     get:
       summary: Listar membresías
       operationId: listMemberships
+      x-rq: [RQ05]
       x-permission: municipal.memberships.read
       x-scope: TITULAR solo ve membresías de sus dependencias
       responses:
@@ -117,6 +131,7 @@ paths:
     post:
       summary: Asignar un usuario existente de YJ Nexo al municipio
       operationId: createMembership
+      x-rq: [RQ05]
       x-permission: municipal.memberships.manage
       description: |
         No crea usuarios ni cambia `User.role`. El rol asignado debe ser subconjunto de los
@@ -140,6 +155,7 @@ paths:
     patch:
       summary: Cambiar rol, dependencias, vigencia o estado de una membresía
       operationId: updateMembership
+      x-rq: [RQ05]
       x-permission: municipal.memberships.manage
       requestBody:
         required: true
@@ -157,6 +173,7 @@ paths:
     post:
       summary: Registrar ciudadano solicitante (NO es un cliente comercial)
       operationId: createCitizen
+      x-rq: [RQ01, RQ06]
       x-permission: municipal.citizens.create
       requestBody:
         required: true
@@ -170,6 +187,7 @@ paths:
     get:
       summary: Buscar ciudadanos (solo los vinculados a expedientes en alcance, o creados por el actor)
       operationId: searchCitizens
+      x-rq: [RQ03]
       x-permission: municipal.citizens.read
       parameters:
         - { name: q, in: query, schema: { type: string, minLength: 3, maxLength: 80 } }
@@ -184,6 +202,7 @@ paths:
     post:
       summary: Registrar solicitud y emitir folio
       operationId: createRequest
+      x-rq: [RQ01, RQ06]
       x-permission: municipal.requests.create
       description: |
         Emite el folio dentro de la misma transacción que crea el documento y el evento de bitácora.
@@ -216,6 +235,7 @@ paths:
     get:
       summary: Listar solicitudes en alcance
       operationId: listRequests
+      x-rq: [RQ03]
       x-permission: municipal.requests.read
       description: El filtro de alcance se aplica en la consulta; los filtros del cliente solo pueden reducirlo.
       parameters:
@@ -245,6 +265,7 @@ paths:
     get:
       summary: Consultar expediente por folio
       operationId: getRequest
+      x-rq: [RQ03]
       x-permission: municipal.requests.read
       responses:
         '200':
@@ -265,6 +286,7 @@ paths:
     patch:
       summary: Editar asunto/descripción/confidencialidad (no estado, no folio)
       operationId: updateRequest
+      x-rq: [RQ02]
       x-permission: municipal.requests.update
       parameters:
         - { name: If-Match, in: header, required: true, schema: { type: string }, description: 'Valor `version` vigente; 409 si cambió' }
@@ -285,10 +307,12 @@ paths:
       - { $ref: '#/components/parameters/Mun' }
       - { $ref: '#/components/parameters/Folio' }
     post:
-      summary: Cambiar estado (turnar, esperar ciudadano, reanudar, cerrar, cancelar)
+      summary: Cambiar estado o responsable (turnar, asignar, esperar ciudadano, reanudar, cerrar, cancelar)
       operationId: transitionRequest
+      x-rq: [RQ02]
       x-permission-by-action:
         TURNAR: municipal.requests.assign
+        ASIGNAR: municipal.requests.assignUser
         ESPERAR_CIUDADANO: municipal.requests.update
         REANUDAR: municipal.requests.update
         CERRAR: municipal.requests.close
@@ -312,6 +336,7 @@ paths:
     post:
       summary: Compartir expediente con un usuario o dependencia
       operationId: createGrant
+      x-rq: [RQ03]
       x-permission: municipal.requests.grant
       requestBody:
         required: true
@@ -332,11 +357,173 @@ paths:
     delete:
       summary: Revocar concesión (efecto inmediato)
       operationId: revokeGrant
+      x-rq: [RQ03]
       x-permission: municipal.requests.grant
       responses:
         '204': { description: Revocado }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/requests/{folio}/history:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+    get:
+      summary: Historial de seguimiento (actor, fecha, estado de origen y destino)
+      operationId: getRequestHistory
+      x-rq: [RQ02]
+      x-permission: municipal.requests.read
+      description: No disponible para alcance META (auditor usa listAuditEvents).
+      responses:
+        '200':
+          description: OK, en orden cronológico
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/HistoryEntry' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/requests/{folio}/receipt:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+    get:
+      summary: Acuse imprimible para el ciudadano (canal presencial)
+      operationId: getRequestReceipt
+      x-rq: [RQ06]
+      x-permission: municipal.requests.read
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Receipt' } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/requests/{folio}/documents:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+    get:
+      summary: Listar documentos del expediente
+      operationId: listDocuments
+      x-rq: [RQ05]
+      x-permission: municipal.documents.read
+      description: Los documentos más restrictivos que el alcance del usuario aparecen como `restricted` sin nombre ni tamaño.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          oneOf:
+                            - $ref: '#/components/schemas/Document'
+                            - $ref: '#/components/schemas/RestrictedDocument'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      summary: Adjuntar documento privado (PDF, PNG o JPEG, ≤ 5 MB)
+      operationId: uploadDocument
+      x-rq: [RQ05]
+      x-permission: municipal.documents.upload
+      x-codex-dependency: C-07 (almacenamiento GridFS o externo; multipart requiere dependencia nueva)
+      description: |
+        Fase 1: contenido en base64 dentro de JSON (límite actual de express.json = 10 MB).
+        El tipo se verifica por firma binaria; el nombre se sanea; el servidor calcula sha256.
+        La confidencialidad efectiva nunca es menor que la del expediente.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DocumentUpload' }
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Document' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Expediente concluido }
+        '413':
+          description: Archivo mayor a 5 MB
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  /municipalities/{mun}/requests/{folio}/documents/{documentId}/content:
+    parameters:
+      - { $ref: '#/components/parameters/Mun' }
+      - { $ref: '#/components/parameters/Folio' }
+      - { name: documentId, in: path, required: true, schema: { $ref: '#/components/schemas/ObjectId' } }
+    get:
+      summary: Descarga autorizada de un documento privado
+      operationId: downloadDocument
+      x-rq: [RQ05]
+      x-permission: municipal.documents.read
+      description: |
+        Nunca existe URL pública ni enlace reutilizable. Cada descarga y cada denegación quedan en bitácora.
+        Fuera de alcance o más restrictivo que el usuario → 404 indistinguible.
+      responses:
+        '200':
+          description: Contenido binario
+          headers:
+            Content-Disposition: { schema: { type: string }, description: 'attachment; filename=…' }
+            Cache-Control: { schema: { const: no-store } }
+            X-Content-Type-Options: { schema: { const: nosniff } }
+          content:
+            application/pdf: { schema: { type: string, format: binary } }
+            image/png: { schema: { type: string, format: binary } }
+            image/jpeg: { schema: { type: string, format: binary } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /municipalities/{mun}/indicators:
+    parameters: [ { $ref: '#/components/parameters/Mun' } ]
+    get:
+      summary: Indicadores administrativos sobre los expedientes en alcance del usuario
+      operationId: getIndicators
+      x-rq: [RQ04]
+      x-permission: municipal.indicators.read
+      description: Usa el mismo filtro de alcance que listRequests; nunca revela conteos no autorizados.
+      parameters:
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time }, description: Exclusivo }
+        - { name: dependency, in: query, schema: { $ref: '#/components/schemas/DependencyCode' } }
+        - { name: slaDays, in: query, schema: { type: integer, minimum: 1, maximum: 365, default: 15 }, description: Parámetro configurable, no plazo legal }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Indicators' } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
 
   /municipalities/{mun}/folios/{folio}:
     parameters:
@@ -345,6 +532,7 @@ paths:
     get:
       summary: Verificar un folio (metadatos mínimos)
       operationId: verifyFolio
+      x-rq: [RQ01]
       x-permission: municipal.requests.read
       description: Mismo alcance que getRequest; devuelve solo FolioInfo.
       responses:
@@ -364,6 +552,7 @@ paths:
     get:
       summary: Consultar bitácora (solo lectura)
       operationId: listAuditEvents
+      x-rq: [RQ02, RQ05]
       x-permission: municipal.audit.read
       parameters:
         - { name: entityId, in: query, schema: { $ref: '#/components/schemas/ObjectId' } }
@@ -430,7 +619,7 @@ components:
         error: { type: string }
         code:
           type: string
-          enum: [VALIDATION_ERROR, UNAUTHORIZED, MUNICIPAL_MEMBERSHIP_REQUIRED, FORBIDDEN, NOT_FOUND, CONFLICT, INVALID_TRANSITION, AUTHORIZATION_UNAVAILABLE]
+          enum: [VALIDATION_ERROR, UNAUTHORIZED, MUNICIPAL_MEMBERSHIP_REQUIRED, FORBIDDEN, NOT_FOUND, CONFLICT, INVALID_TRANSITION, PAYLOAD_TOO_LARGE, AUTHORIZATION_UNAVAILABLE]
     Pagination:
       type: object
       properties:
@@ -453,6 +642,10 @@ components:
       type: string
       enum: [REGISTRADA, EN_TRAMITE, EN_ESPERA_CIUDADANO, CERRADA, CANCELADA]
     Confidentiality: { type: string, enum: [PUBLICA, RESERVADA, CONFIDENCIAL], default: PUBLICA }
+    Channel:
+      type: string
+      enum: [PRESENCIAL, TELEFONO, WEB_FUNCIONARIO]
+      description: Canal de atención (RQ06). La ventanilla registra en nombre del ciudadano.
     RequestType:
       type: string
       enum: [SOL]
@@ -542,7 +735,7 @@ components:
     RequestCreate:
       type: object
       additionalProperties: false
-      required: [type, ownerDependency, subject, citizenId]
+      required: [type, ownerDependency, subject, citizenId, channel]
       properties:
         type: { $ref: '#/components/schemas/RequestType' }
         ownerDependency: { $ref: '#/components/schemas/DependencyCode' }
@@ -550,6 +743,7 @@ components:
         description: { type: string, maxLength: 5000 }
         citizenId: { $ref: '#/components/schemas/ObjectId' }
         confidentiality: { $ref: '#/components/schemas/Confidentiality' }
+        channel: { $ref: '#/components/schemas/Channel' }
     RequestUpdate:
       type: object
       additionalProperties: false
@@ -568,6 +762,7 @@ components:
         ownerDependency: { $ref: '#/components/schemas/DependencyCode' }
         assignedDependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
         confidentiality: { $ref: '#/components/schemas/Confidentiality' }
+        channel: { $ref: '#/components/schemas/Channel' }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     Request:
@@ -589,17 +784,20 @@ components:
                   action: { type: string }
                   fromStatus: { $ref: '#/components/schemas/RequestStatus' }
                   toStatus: { $ref: '#/components/schemas/RequestStatus' }
+                  actorId: { $ref: '#/components/schemas/ObjectId' }
                   actorName: { type: string }
+                  assignedUserId: { $ref: '#/components/schemas/ObjectId' }
+                  toDependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
                   note: { type: string }
     Transition:
       type: object
       additionalProperties: false
       required: [action, version]
       properties:
-        action: { type: string, enum: [TURNAR, ESPERAR_CIUDADANO, REANUDAR, CERRAR, CANCELAR] }
+        action: { type: string, enum: [TURNAR, ASIGNAR, ESPERAR_CIUDADANO, REANUDAR, CERRAR, CANCELAR] }
         version: { type: integer, minimum: 0 }
         toDependencies: { type: array, minItems: 1, maxItems: 10, uniqueItems: true, items: { $ref: '#/components/schemas/DependencyCode' }, description: Obligatorio en TURNAR }
-        assignedUserId: { $ref: '#/components/schemas/ObjectId' }
+        assignedUserId: { $ref: '#/components/schemas/ObjectId', description: Obligatorio en ASIGNAR }
         note: { type: string, maxLength: 2000, description: Obligatorio en CERRAR y CANCELAR }
     GrantCreate:
       type: object
@@ -613,6 +811,80 @@ components:
         granteeDependency: { $ref: '#/components/schemas/DependencyCode' }
         level: { type: string, enum: [READ, CONTRIBUTE] }
         expiresAt: { type: string, format: date-time }
+    HistoryEntry:
+      type: object
+      required: [at, actorId, action, toStatus]
+      properties:
+        at: { type: string, format: date-time }
+        actorId: { $ref: '#/components/schemas/ObjectId' }
+        action: { type: string, enum: [REGISTRAR, TURNAR, ASIGNAR, ESPERAR_CIUDADANO, REANUDAR, CERRAR, CANCELAR] }
+        fromStatus: { oneOf: [ { $ref: '#/components/schemas/RequestStatus' }, { type: 'null' } ] }
+        toStatus: { $ref: '#/components/schemas/RequestStatus' }
+        assignedUserId: { $ref: '#/components/schemas/ObjectId' }
+        toDependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
+        note: { type: string }
+    Receipt:
+      type: object
+      required: [folio, municipality, dependency, subject, status, statusLabel, channel, registeredAt]
+      description: Sin datos de contacto, descripción ni documentos.
+      properties:
+        folio: { $ref: '#/components/schemas/Folio' }
+        municipality: { type: string }
+        dependency: { type: string }
+        subject: { type: string }
+        status: { $ref: '#/components/schemas/RequestStatus' }
+        statusLabel: { type: string }
+        channel: { $ref: '#/components/schemas/Channel' }
+        registeredAt: { type: string, format: date-time }
+        instructions: { type: string }
+    DocumentUpload:
+      type: object
+      additionalProperties: false
+      required: [filename, mimeType, contentBase64]
+      properties:
+        filename: { type: string, maxLength: 200 }
+        mimeType: { type: string, enum: [application/pdf, image/png, image/jpeg] }
+        contentBase64: { type: string, contentEncoding: base64, maxLength: 6990508 }
+        confidentiality: { $ref: '#/components/schemas/Confidentiality' }
+    Document:
+      type: object
+      required: [id, filename, mimeType, size, sha256, confidentiality, uploadedAt]
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        folio: { $ref: '#/components/schemas/Folio' }
+        filename: { type: string }
+        mimeType: { type: string }
+        size: { type: integer, maximum: 5242880 }
+        sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
+        confidentiality: { $ref: '#/components/schemas/Confidentiality' }
+        uploadedBy: { $ref: '#/components/schemas/ObjectId' }
+        uploadedAt: { type: string, format: date-time }
+    RestrictedDocument:
+      type: object
+      required: [id, confidentiality, restricted]
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        confidentiality: { $ref: '#/components/schemas/Confidentiality' }
+        restricted: { const: true }
+    Indicators:
+      type: object
+      required: [period, slaDays, total, open, registeredInPeriod, closedInPeriod, avgResolutionDays, overdueOpen, byStatus, byDependency, byChannel]
+      properties:
+        period:
+          type: object
+          properties:
+            from: { type: string, format: date-time }
+            to: { type: string, format: date-time }
+        slaDays: { type: integer }
+        total: { type: integer }
+        open: { type: integer }
+        registeredInPeriod: { type: integer }
+        closedInPeriod: { type: integer }
+        avgResolutionDays: { type: [number, 'null'] }
+        overdueOpen: { type: integer }
+        byStatus: { type: object, additionalProperties: { type: integer } }
+        byDependency: { type: object, additionalProperties: { type: integer } }
+        byChannel: { type: object, additionalProperties: { type: integer } }
     FolioInfo:
       type: object
       required: [folio, type, ownerDependency, year, sequence, status]

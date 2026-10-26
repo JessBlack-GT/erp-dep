@@ -1,47 +1,66 @@
-# MuniERP IA — Fase 0 · 05 Contraste RQ01–RQ06 e incompatibilidades de stack
+# MuniERP IA — 05 Requisitos oficiales, trazabilidad y compatibilidad de stack
 
-> ⚠️ **Pendiente de insumo.** El texto oficial de RQ01–RQ06 y el stack propuesto académicamente
-> no están en el repositorio ni en la carpeta de trabajo entregada. La columna "Enunciado" contiene
-> una **hipótesis** derivada del alcance descrito (gestión municipal conectada, dependencias,
-> solicitudes, folios, IA). Debe sustituirse por el texto oficial antes de cerrar Fase 0; la
-> trazabilidad y los huecos se recalcularán sobre ese texto.
+Fuente de requisitos: documento académico *"Reporte de arquitectura tecnológica y Estado del Arte
+de MuniERP IA"* (RQ01–RQ06 y criterios de verificación, recibidos el 2026-10-26).
+Este documento **sustituye** las hipótesis "por confirmar" de la versión de Fase 0 (`7eca877`).
 
-## Trazabilidad de requisitos
+## 1. Requisitos oficiales
 
-| RQ | Enunciado (hipótesis, por confirmar) | Cubre YJ Nexo hoy | Hueco | Entrega propuesta | Prueba |
-|---|---|---|---|---|---|
-| RQ01 | Acceso seguro de funcionarios con roles y permisos | Parcial: login, JWT, revocación, RBAC global | Sin ámbito municipal/dependencia | `municipal-rbac.js`, membresías, `requireMunicipal` | MT-01…MT-08 |
-| RQ02 | Catálogo de dependencias del municipio | No | Todo | `municipal_dependencies` + endpoints | MT-20…MT-22 |
-| RQ03 | Registro de solicitudes ciudadanas con folio único | No (numeración comercial global) | Folios por dep./año, ciudadano ≠ cliente | `municipal_requests`, `municipal_counters`, `municipal_citizens` | MT-30…MT-36 |
-| RQ04 | Seguimiento y turnado de expedientes entre dependencias | No | Estados, turnado, grants | Transiciones + `municipal_request_grants` | MT-40…MT-45 |
-| RQ05 | Trazabilidad / bitácora de acciones | Parcial: audit append-only solo comercial, sin IP | Bitácora municipal con IP y denegaciones | `municipal_audit_events` | MT-50…MT-53 |
-| RQ06 | Asistencia con IA (clasificación/turnado sugerido) | No (módulo `ai` es stub no montado) | Todo + privacidad | ADR-09; diseño en Fase 2, sin PII externa | Por definir |
+| RQ | Requisito | Criterio de verificación oficial | Interpretación operativa (cómo se demuestra) |
+|---|---|---|---|
+| RQ01 | Registrar solicitudes con folio único | Dos solicitudes distintas no comparten folio | Folio emitido por el servidor en la misma transacción que la solicitud; índice único `{municipalityId, folio}`; concurrencia, rollback e idempotencia probados. |
+| RQ02 | Asignación e historial de seguimiento | Cada cambio conserva actor, fecha y estado | Toda transición o asignación agrega una entrada inmutable con `actorId`, `at`, `fromStatus`, `toStatus`, `action` (+ asignado/nota); duplicada en la bitácora. |
+| RQ03 | Consultar expedientes autorizados | Un usuario no obtiene datos de otro expediente | Filtro de alcance en la consulta (municipio → dependencia → expediente/concesión); fuera de alcance = 404 sin datos. |
+| RQ04 | Indicadores administrativos | Cifras del tablero coinciden con registros de prueba | Indicadores calculados sobre el **mismo** alcance del usuario; prueba de oráculo: función pura vs. agregación de Mongo vs. conteo manual del set sintético. |
+| RQ05 | Acceso por roles y documentos privados | La API deniega consultas y descargas no autorizadas | Permisos `municipal.*` por rol y alcance; documentos sin URL pública, descarga solo por endpoint autorizado; denegaciones registradas. |
+| RQ06 | Inclusión y continuidad de atención | Tareas con teclado, celular y canal presencial | Flujos operables solo con teclado (web), en Android/celular y registrados desde ventanilla (`channel: PRESENCIAL`) con acuse imprimible; tolerancia a reintentos por mala conexión. |
 
-## Incompatibilidades stack existente vs. propuesto académicamente
+> Cambio relevante respecto a Fase 0: la hipótesis de "RQ06 = IA" era incorrecta. La IA queda
+> como **opcional** según el propio stack académico (Python + FastAPI) y fuera del alcance de los
+> requisitos verificables. RQ02 (dependencias) y RQ05 (bitácora) de la hipótesis se reubican: el
+> catálogo de dependencias es soporte de RQ03/RQ05 y la bitácora es soporte de RQ02/RQ05.
 
-Stack real (no negociable sin justificación): **Node/Express + MongoDB Atlas (Mongoose) +
-React Native / RN Web + Render + Cloudflare Pages**, con Kotlin solo para necesidades nativas.
+## 2. Matriz de trazabilidad RQ01–RQ06
 
-Como el stack académico no fue entregado, se listan las incompatibilidades **típicas** de
-propuestas académicas para sistemas municipales y la resolución recomendada. Marcar las que apliquen.
+Estados: **D** diseñado · **DA** implementado en dominio aislado con pruebas **ejecutadas** (sin
+montar, sin DB) · **PC** pendiente de coordinación con Codex · **PE** pendiente de ejecución (R/E).
 
-| Si el documento académico propone… | Incompatibilidad | Resolución recomendada |
-|---|---|---|
-| PostgreSQL / MySQL y modelo E-R normalizado | Motor distinto; joins y FKs vs. documentos | Mantener MongoDB. Traducir el E-R a colecciones con referencias por `ObjectId` e índices compuestos; integridad garantizada en servicio + transacciones. Documentar el mapeo E-R→colección. |
-| Laravel / Django / Spring como backend | Segundo backend y segunda autenticación | Rechazar: contradice "conectado" (ADR-01). La lógica municipal va en Express. |
-| Python para IA (scikit-learn, FastAPI) | Runtime adicional | Aceptable **solo** como microservicio opcional detrás de un adaptador con contrato (ADR-09), sin acceso directo a Mongo y sin PII. |
-| Angular / Vue / React web separado | Segunda UI; rompe la compatibilidad web+Android única | Rechazar; usar RN Web existente. |
-| Flutter / Kotlin nativo / Jetpack Compose | Reescritura móvil | Rechazar (README: no migrar a Compose). |
-| Sesiones de servidor / cookies | Diferente a JWT Bearer usado por Android | Mantener JWT + `sessionVersion`. |
-| Multi-tenant con una base por municipio | Una sola conexión/base actual | Fase 1: discriminador `municipalityId` en cada documento + filtro obligatorio. Evaluar base separada si el ayuntamiento lo exige normativamente. |
-| CURP / INE / firma electrónica | Datos personales sensibles; dependencias nuevas | Fuera de Fase 1. Requiere aviso de privacidad, evaluación de impacto y QA con datos sintéticos. |
-| Diagramas UML/casos de uso como entregable | No es incompatibilidad | Generar a partir de los contratos de esta fase. |
+| RQ | Diseño (doc) | Contrato (operationId) | Permisos | Código de dominio aislado | Casos de prueba | Backlog | Estado |
+|---|---|---|---|---|---|---|---|
+| RQ01 | 03 ADR-07; 04 ciclo | `createRequest`, `verifyFolio` | `requests.create`, `requests.read` | `domain/folio.js`, `mocks/inMemoryStore.js#createRequest` | MT-30…MT-36 | F1-05, F1-06 | DA (formato, unicidad en memoria, idempotencia) · PE (concurrencia real MT-31/32/35) |
+| RQ02 | 03 ADR-08; 04 ciclo de vida | `transitionRequest`, `getRequestHistory` | `requests.assign`, `requests.assignUser`, `requests.update`, `requests.close`, `requests.cancel` | `domain/request-state.js` | MT-40…MT-47 | F1-07 | DA · PE (persistencia R) |
+| RQ03 | 03 ADR-05; 04 regla de expediente | `listRequests`, `getRequest`, `searchCitizens` | `requests.read`, `requests.readConfidential` | `policy/access.js` (`canReadRequest`, `buildRequestScopeFilter`) | MT-01…MT-19c | F1-03, F1-06 | DA · PE (aislamiento R contra Atlas QA) |
+| RQ04 | 03 ADR-11 | `getIndicators` | `indicators.read` | `domain/indicators.js` | MT-70…MT-75 | F1-09 | DA (función pura vs. oráculo) · PE (agregación Mongo MT-74) |
+| RQ05 | 03 ADR-04/05/10; 04 | `uploadDocument`, `listDocuments`, `downloadDocument` + todas | `documents.*`, catálogo completo | `policy/permissions.js`, `domain/documents.js` | MT-01…MT-12, MT-80…MT-88 | F1-02, F1-08 | DA (validación de archivo, autorización de descarga) · PC (almacenamiento privado C-07) |
+| RQ06 | 09 (interfaces) ; 03 ADR-12 | `createRequest` (`channel`), `getRequestReceipt` | `requests.create` | `domain/validation.js` (`channel`), `domain/receipt.js` | MT-90…MT-96 | F1-10, F1-11 | D · PE (E2E teclado, Android, ventanilla) |
 
-## Preguntas abiertas para el ayuntamiento / asesor académico
+## 3. Comparativa tecnológica: sistema real vs. propuesta académica
 
-1. Texto oficial de RQ01–RQ06 y criterios de evaluación.
-2. Catálogo real de dependencias y su jerarquía (se usan códigos sintéticos en QA).
-3. ¿Qué tipos de trámite/solicitud entran en Fase 1? (se propone uno: `SOL` genérica).
-4. ¿Quién puede ver expedientes `CONFIDENCIAL` (p. ej. DIF, Seguridad Pública)?
-5. Plazos de respuesta legales por tipo de solicitud (para alertas futuras).
-6. ¿Se requiere portal ciudadano (auto-registro)? Hoy **no** se propone: solo funcionarios.
+Sistema real verificado en `main@d5b64b0`. Columna "Compatibilidad": ✅ compatible · 🟡
+compatible con adaptación · ❌ incompatible sin migración.
+
+| Capa | Propuesta académica | YJ Nexo real | Compat. | Propuesta de adaptación (sin migrar el núcleo) |
+|---|---|---|---|---|
+| Frontend web | React + TypeScript | React 18.2 vía React Native Web 0.19, JavaScript, empaquetado con esbuild | 🟡 | RN Web **es** React; los componentes municipales se escriben en React (RN primitives). Tipado inmediato con **JSDoc + tipos derivados del OpenAPI** (sin dependencias). Adoptar `.tsx` solo para código municipal nuevo requiere agregar `typescript` como devDependency solo para `tsc --noEmit` → decisión **C-09** de Codex. esbuild y el preset Babel de RN 0.72 ya transpilan TS, por lo que no hay cambio de runtime. |
+| Cliente móvil | React Native (opcional) | React Native 0.72.17 con proyecto Android | ✅ | Una sola base de código web + Android. La validación nativa sigue pendiente (rama `codex/android-emulator-readiness` sin integrar, C-04). |
+| Runtime | Node.js 24 LTS | `engines: >=18`; verificado en Node 24.19 (Windows) y 22.x (esta auditoría) | ✅ | Código municipal compatible con 22 y 24. Fijar Node 24 en `engines`/Render es decisión de Codex (C-09). |
+| Framework HTTP | Express 5 | Express 4.18 | ❌ (migración) | **No migrar.** Express 5 rompe `app.use('*', …)` del 404 global (sintaxis de comodines de path-to-regexp 8) y cambia el manejo de errores async. El módulo municipal se escribe **"listo para Express 5"**: handlers async envueltos, sin rutas con `*`, sin APIs retiradas (`req.param`, `res.send(status)`), rutas con parámetros con nombre. La migración del núcleo queda como decisión futura de Codex. |
+| Lenguaje backend | TypeScript | JavaScript CommonJS | 🟡 | `// @ts-check` + JSDoc en `modules/municipal`; tipos compartidos documentados desde el OpenAPI. Sin compilación ni cambio de arranque. |
+| Base de datos | MongoDB Atlas (prototipo) | MongoDB Atlas + Mongoose 7 con transacciones | ✅ | Colecciones `municipal_*` en la misma base; base QA exclusiva confirmada por variable (C-05). |
+| Arquitectura | Aplicación web modular con API | Monolito modular, API REST `/api/v1` | ✅ | Módulo de dominio con frontera verificada y API propia versionada `/api/municipal/v1` (ADR-01/02). |
+| IA (opcional) | Python + FastAPI | No existe (módulo `ai` vacío y no montado) | 🟡 | Servicio externo opcional detrás de un adaptador con contrato; nunca acceso directo a Mongo ni datos personales sin evaluación de impacto. Fuera de Fase 1 (ADR-09). |
+| Adjuntos | Almacenamiento privado con descargas autorizadas | No existe | 🟡 | Puerto `DocumentStorage` con dos adaptadores: **memoria** (prototipo/pruebas) y **GridFS** (driver `mongodb` ya incluido en Mongoose → sin dependencia nueva). Objeto externo (S3/R2) solo si Codex lo decide (C-07). Descarga siempre vía API autorizada; nunca URL pública. |
+| Autenticación | (no especificada) | JWT central de YJ Nexo + `sessionVersion` | ✅ | Se reutiliza; no hay identidad municipal independiente (ADR-03). |
+
+**Conclusión:** la propuesta académica es compatible con el sistema real salvo Express 5, que se
+resuelve escribiendo el módulo de forma compatible con ambas versiones y dejando la actualización
+del núcleo a Codex. TypeScript se adopta de forma gradual sin dependencias nuevas (JSDoc) y,
+si Codex aprueba, con `tsc --noEmit` como verificación sin cambio de runtime.
+
+## 4. Preguntas abiertas
+
+1. Catálogo real de dependencias del ayuntamiento (QA usa códigos sintéticos).
+2. Tipos de trámite iniciales y plazos legales de respuesta (para el indicador de vencidos; QA usa 15 días naturales como parámetro configurable, **no** como dato normativo).
+3. Quién puede ver expedientes `CONFIDENCIAL` (DIF, Seguridad Pública).
+4. Límite de tamaño y formatos de documentos aceptados (QA: PDF, JPEG, PNG, ≤ 5 MB).
+5. ¿Se requiere portal ciudadano? No forma parte de RQ01–RQ06; Fase 1 solo funcionarios + ventanilla.
