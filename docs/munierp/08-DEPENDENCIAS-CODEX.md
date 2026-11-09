@@ -8,7 +8,7 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
 
 | ID | Prioridad | Dependencia | Por qué la necesita MuniERP | Cambio mínimo propuesto | Archivos del núcleo |
 |---|---|---|---|---|---|
-| C-01 | P0 | **Montar la API municipal** | Hoy el módulo existe pero no recibe peticiones | Una línea `app.use('/api/municipal/v1', require('./modules/municipal/http/routes'))` **antes** del 404 global, más el router HTTP (lo prepara MuniERP en F1-04) | `apps/backend/src/app.js` |
+| C-01 | P0 | **Montar la API municipal** | Hoy el módulo existe pero no recibe peticiones | Router listo desde F1-04 (`modules/municipal/http/municipal.router.js`). Montaje propuesto **antes** del 404 global: `app.use('/api/municipal/v1', createMunicipalRouter({ service, store, identity: erpIdentityMiddlewares() }))`, con `store` = repositorio Mongo de F1-05 (hoy solo existe el de memoria) | `apps/backend/src/app.js` |
 | C-02 | P0 | **Aprobar el contrato `municipal-v1` draft.1** como propuesta versionada | Evitar que front y back diverjan | Revisión del OpenAPI; política: cambios incompatibles → `v2`; validación del contrato en CI | `docs/munierp/contracts/*`, CI |
 | C-03 | P0 | **Línea base verde**: corregir los 3 fallos de `tests/m01.frontend.test.js` en `main` | No mezclar regresiones previas con trabajo nuevo | Integrar la corrección que parece existir sin commit en la copia local del usuario | `apps/frontend/tests/m01.frontend.test.js` (y lo que corresponda) |
 | C-04 | P1 | Decidir ramas `codex/deploy-readiness` y `codex/android-emulator-readiness` (no integradas) | Evitar conflictos en Android y despliegue antes de validar MT-91 | Integrar o cerrar | `apps/frontend/android/**`, despliegue |
@@ -21,6 +21,9 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
 | C-11 | P1 | Entrada de navegación condicionada | Mostrar "MuniERP" solo con membresía vigente | Añadir pantalla a `MainNavigator`/`Sidebar` consultando `/me/memberships` | `apps/frontend/src/app/navigation/MainNavigator.js`, `components/layout/Sidebar.js` |
 | C-12 | P1 | Aviso al desactivar usuarios con membresía municipal (riesgo K1) | Un admin comercial puede desactivar a un funcionario | Hook en `users.service` que registre evento o advierta | `modules/users/users.service.js` |
 | C-13 | P2 | Endurecer sesión (A4/A6): rotación de refresh token, CSP en web, almacenamiento seguro en Android | Datos personales de ciudadanos | Evaluar sin romper login web/Android | `modules/auth/*`, frontend |
+| C-15 | P2 | Respuestas 401/503 del middleware central sin `code` | El contrato municipal exige `code`; hoy se añade con un envoltorio en el router sin tocar el ERP | Opcional: incluir `code` en `authenticateToken` y `requireAccess` | `middleware/authenticate.js`, `middleware/authorize.js` |
+| C-16 | P1 | Exponer `resolveAccess` sin cambios | La capa municipal depende de `requireCurrentUser` y de que `req.user.id` sea el id resuelto | Mantener la firma; avisar si cambia | `middleware/authorize.js`, `security/rbac.js` |
+| C-17 | P2 | `ajv` y `js-yaml` en pruebas | La validación de respuestas contra el contrato usa dependencias transitivas de ESLint; si cambian, la suite se omite explícitamente | Declararlas como devDependencies del backend | `apps/backend/package.json` |
 | C-14 | P2 | CORS | Solo si la interfaz municipal se publica en otro dominio | Ninguno si vive en la misma app de Cloudflare Pages | `config/cors.js` |
 
 ## Lo que MuniERP ya entrega sin tocar el núcleo
@@ -28,8 +31,8 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
 - Código de dominio y aplicación en `apps/backend/src/modules/municipal/` (no montado).
 - Interfaz aislada en `apps/frontend/src/features/municipal/` (no registrada en la navegación).
 - Pruebas en `apps/backend/tests/municipal/` y `apps/frontend/tests/municipal.frontend.test.js`, que
-  entran automáticamente en `npm test` por los globs existentes. **Efecto en CI de Codex:** +62
-  pruebas backend y +11 frontend; ninguna requiere red ni base de datos.
+  entran automáticamente en `npm test` por los globs existentes. **Efecto en CI de Codex:** +101
+  pruebas backend (desde F1-04) y +11 frontend; ninguna requiere red ni base de datos.
 - Contrato `municipal-v1` draft.1 y verificación automática de coherencia contrato ↔ dominio.
 
 ## Interfaz que MuniERP espera del ERP (sin cambios)

@@ -22,8 +22,8 @@ Este documento **sustituye** las hipótesis "por confirmar" de la versión de Fa
 
 ## 2. Matriz de trazabilidad RQ01–RQ06
 
-Estados: **D** diseñado · **DA** implementado en dominio aislado con pruebas **ejecutadas** el
-2026-10-26 (sin montar, sin DB; ver 06 §K) · **PC** pendiente de coordinación con Codex · **PE** pendiente de ejecución (R/E).
+Estados: **D** diseñado · **DA** implementado en dominio aislado con pruebas **ejecutadas**
+(desde 2026-11-09 también vía HTTP sobre Express aislado; sin montar, sin DB; ver 06 §K y §L) · **PC** pendiente de coordinación con Codex · **PE** pendiente de ejecución (R/E).
 
 | RQ | Diseño (doc) | Contrato (operationId) | Permisos | Código de dominio aislado | Casos de prueba | Backlog | Estado |
 |---|---|---|---|---|---|---|---|

@@ -9,8 +9,11 @@
  */
 const access = require('../policy/access');
 const folio = require('../domain/folio');
-const { applyTransition, registrationEntry, ACTIONS } = require('../domain/request-state');
-const { validateRequestCreate, validateIdempotencyKey } = require('../domain/validation');
+const { applyTransition, registrationEntry, editEntry, ACTIONS } = require('../domain/request-state');
+const V = require('../domain/validation');
+const { validateRequestCreate, validateIdempotencyKey } = V;
+const present = require('./presenters');
+const { scopeFor } = require('../policy/permissions');
 const { computeIndicators } = require('../domain/indicators');
 const docs = require('../domain/documents');
 const { buildReceipt } = require('../domain/receipt');
@@ -72,13 +75,28 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
   const depById = (mun) => new Map(store.dependencies(mun.id).map((d) => [d.id, d]));
   const depByCode = (mun) => new Map(store.dependencies(mun.id).map((d) => [d.code, d]));
 
-  /** DTO público: códigos de dependencia en lugar de IDs internos. */
-  function toDto(ctx, mun, r) {
+  const codeOf = (mun) => {
     const deps = depById(mun);
-    const code = (id) => (deps.get(id) || {}).code || null;
-    const dto = { ...r, ownerDependency: code(r.ownerDependencyId), assignedDependencies: (r.assignedDependencyIds || []).map(code) };
-    return access.projectRequest(ctx, dto);
+    return (id) => (deps.get(id) || {}).code || null;
+  };
+  const isMeta = (ctx) => !!ctx.membership && scopeFor(ctx.membership.role, 'municipal.requests.read') === 'META';
+
+  /** DTO del contrato: RequestSummary para alcance META (auditor), Request completo en otro caso. */
+  function toDto(ctx, mun, r) {
+    const code = codeOf(mun);
+    if (isMeta(ctx)) return present.requestSummary(r, code);
+    return present.requestFull(r, code, store.citizen(mun.id, r.citizenId));
   }
+  /** Elemento de lista: resumen + asunto (el asunto se omite en alcance META). */
+  function toListItem(ctx, mun, r) {
+    const item = present.requestSummary(r, codeOf(mun));
+    return isMeta(ctx) ? item : { ...item, subject: r.subject };
+  }
+  const page = (rows, query) => {
+    const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
+    const p = Math.max(Number(query.page) || 1, 1);
+    return { slice: rows.slice((p - 1) * limit, p * limit), pagination: { page: p, limit, total: rows.length, pages: Math.ceil(rows.length / limit) } };
+  };
 
   return {
     MunicipalError,
@@ -114,7 +132,16 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
         const saved = store.insertRequest(doc);
         audit(ctx, mun, 'REQUEST_CREATED', 'Request', 'success', { ...meta, entityId: saved.id, folio: saved.folio });
         return saved;
+      }).catch((e) => {
+        if (e.code === 'DUPLICATE_IDEMPOTENCY') return null;
+        if (e.code === 'DUPLICATE_FOLIO') throw new MunicipalError(409, 'CONFLICT', 'Colisión de folio; reintente con la misma Idempotency-Key');
+        throw e;
       });
+      if (!created) {
+        const raced = store.requestByIdempotency(ctx.userId, key);
+        if (!raced || raced.payloadHash !== payloadHash) throw new MunicipalError(409, 'CONFLICT', 'Idempotency-Key usada con otro contenido');
+        return { status: 200, data: toDto(ctx, mun, raced) };
+      }
       return { status: 201, data: toDto(ctx, mun, created) };
     },
 
@@ -131,12 +158,8 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
       if (query.assignedToMe) narrow.push({ assignedUserId: ctx.userId });
       const rows = store.findRequests({ $and: narrow }).filter((r) => access.canReadRequest(ctx, r));
       rows.sort((a, b) => b.createdAt - a.createdAt || (a.folio < b.folio ? 1 : -1));
-      const limit = Math.min(Math.max(Number(query.limit) || 20, 1), 100);
-      const page = Math.max(Number(query.page) || 1, 1);
-      return {
-        items: rows.slice((page - 1) * limit, page * limit).map((r) => toDto(ctx, mun, r)),
-        pagination: { page, limit, total: rows.length, pages: Math.ceil(rows.length / limit) },
-      };
+      const { slice, pagination } = page(rows, query);
+      return { items: slice.map((r) => toListItem(ctx, mun, r)), pagination };
     },
 
     getRequest(ctx, munCode, folioValue, meta) {
@@ -147,12 +170,13 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
     getHistory(ctx, munCode, folioValue) {
       const { mun, scope } = gate(ctx, 'municipal.requests.read', munCode);
       if (scope === 'META') throw new MunicipalError(403, 'FORBIDDEN', 'Solo metadatos');
-      return loadInScope(ctx, mun, folioValue).history;
+      return (loadInScope(ctx, mun, folioValue).history || []).map((h) => present.historyEntry(h, codeOf(mun)));
     },
 
     async transition(ctx, munCode, folioValue, body, meta = {}) {
       const rule = ACTIONS[body && body.action];
       if (!rule) throw new MunicipalError(400, 'VALIDATION_ERROR', 'Acción no reconocida');
+      V.validateTransitionInput(body);
       const { mun } = gate(ctx, rule.permission, munCode);
       const current = loadInScope(ctx, mun, folioValue, meta);
       if (!access.canWriteRequest(ctx, current, rule.permission)) {
@@ -200,8 +224,7 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
         status: 'VIGENTE', uploadedBy: ctx.userId, uploadedAt: clock(),
       });
       audit(ctx, mun, 'DOCUMENT_UPLOADED', 'Document', 'success', { ...meta, entityId: doc.id, folio: request.folio });
-      const { storageKey: _k, ...publicDoc } = doc; // eslint-disable-line no-unused-vars
-      return publicDoc;
+      return present.document(doc);
     },
 
     listDocuments(ctx, munCode, folioValue) {
@@ -209,10 +232,7 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
       const request = loadInScope(ctx, mun, folioValue);
       return store.documentsOf(request.id)
         .filter((d) => d.status === 'VIGENTE')
-        .map((d) => {
-          const { storageKey, ...rest } = d; // eslint-disable-line no-unused-vars
-          return access.canReadDocument(ctx, request, d) ? rest : { id: d.id, confidentiality: d.confidentiality, restricted: true };
-        });
+        .map((d) => (access.canReadDocument(ctx, request, d) ? present.document(d) : { id: d.id, confidentiality: d.confidentiality, restricted: true }));
     },
 
     async downloadDocument(ctx, munCode, folioValue, documentId, meta = {}) {
@@ -241,6 +261,141 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
       const deps = depById(mun);
       result.byDependency = Object.fromEntries(Object.entries(result.byDependency).map(([id, n]) => [(deps.get(id) || {}).code || id, n]));
       return result;
+    },
+
+    /** Membresías vigentes del usuario autenticado (solo requiere identidad central). */
+    myMemberships(userId) {
+      const now = clock();
+      return store.membershipsOf(userId)
+        .filter((m) => access.isMembershipActive(m, now))
+        .map((m) => {
+          const municipality = store.municipalityById(m.municipalityId);
+          if (!municipality) return null;
+          const deps = depById(municipality);
+          return present.myMembership(m, municipality, m.dependencyIds.map((id) => (deps.get(id) || {}).code).filter(Boolean));
+        })
+        .filter(Boolean);
+    },
+
+    listDependencies(ctx, munCode, query = {}) {
+      const { mun } = gate(ctx, 'municipal.dependencies.read', munCode);
+      const all = store.dependencies(mun.id);
+      const byId = new Map(all.map((d) => [d.id, d]));
+      return all
+        .filter((d) => !query.status || d.status === query.status)
+        .sort((a, b) => a.code.localeCompare(b.code))
+        .map((d) => present.dependency(d, d.parentCode || (d.parentId && byId.get(d.parentId) ? byId.get(d.parentId).code : null)));
+    },
+
+    createCitizen(ctx, munCode, body, meta = {}) {
+      const { mun } = gate(ctx, 'municipal.citizens.create', munCode);
+      const input = V.validateCitizenCreate(body);
+      const doc = store.insertCitizen({ id: store.newId(), municipalityId: mun.id, ...input, createdBy: ctx.userId, createdAt: clock() });
+      audit(ctx, mun, 'CITIZEN_CREATED', 'Citizen', 'success', { ...meta, entityId: doc.id });
+      return present.citizen(doc);
+    },
+
+    /** Ciudadanos visibles: todos (M) o los vinculados a expedientes en alcance y los creados por el actor. */
+    searchCitizens(ctx, munCode, query = {}) {
+      const { mun, scope } = gate(ctx, 'municipal.citizens.read', munCode);
+      let visible = store.citizens(mun.id);
+      if (scope !== 'M' && scope !== 'ALL') {
+        const filter = scopedFilter(ctx);
+        const linked = new Set((filter ? store.findRequests(filter) : []).filter((r) => access.canReadRequest(ctx, r)).map((r) => r.citizenId));
+        visible = visible.filter((c) => linked.has(c.id) || c.createdBy === ctx.userId);
+      }
+      if (query.q) {
+        const q = String(query.q).toLocaleLowerCase('es-MX');
+        visible = visible.filter((c) => c.fullName.toLocaleLowerCase('es-MX').includes(q));
+      }
+      visible.sort((a, b) => a.fullName.localeCompare(b.fullName, 'es-MX'));
+      const { slice, pagination } = page(visible, query);
+      return { items: slice.map(present.citizen), pagination };
+    },
+
+    async updateRequest(ctx, munCode, folioValue, body, expectedVersion, meta = {}) {
+      const { mun } = gate(ctx, 'municipal.requests.update', munCode);
+      const input = V.validateRequestUpdate(body);
+      const current = loadInScope(ctx, mun, folioValue, meta);
+      if (access.TERMINAL.includes(current.status)) throw new MunicipalError(409, 'INVALID_TRANSITION', 'Expediente concluido');
+      if (!access.canWriteRequest(ctx, current, 'municipal.requests.update')) throw new MunicipalError(403, 'FORBIDDEN', 'Sin permiso sobre este expediente');
+      if (expectedVersion !== current.version) throw new MunicipalError(409, 'CONFLICT', 'La solicitud cambió; recargue');
+      if (input.confidentiality && input.confidentiality !== current.confidentiality &&
+          !access.canWriteRequest(ctx, current, 'municipal.requests.readConfidential'))
+        throw new MunicipalError(403, 'FORBIDDEN', 'Cambiar la confidencialidad requiere municipal.requests.readConfidential');
+      const at = clock();
+      const saved = await store.transaction(async () => {
+        const updated = store.updateRequest(current.id, current.version, {
+          ...input, version: current.version + 1, updatedAt: at,
+          history: [...(current.history || []), editEntry(ctx.userId, at, current.status, Object.keys(input))],
+        });
+        audit(ctx, mun, 'REQUEST_UPDATED', 'Request', 'success', { ...meta, entityId: current.id, folio: current.folio });
+        return updated;
+      }).catch((e) => {
+        if (e.code === 'STALE_VERSION') throw new MunicipalError(409, 'CONFLICT', 'La solicitud cambió; recargue');
+        throw e;
+      });
+      return toDto(ctx, mun, saved);
+    },
+
+    async createGrant(ctx, munCode, folioValue, body, meta = {}) {
+      const { mun } = gate(ctx, 'municipal.requests.grant', munCode);
+      const input = V.validateGrantCreate(body, clock());
+      const request = loadInScope(ctx, mun, folioValue, meta);
+      if (!access.canWriteRequest(ctx, request, 'municipal.requests.grant')) {
+        if (access.TERMINAL.includes(request.status)) throw new MunicipalError(409, 'INVALID_TRANSITION', 'Expediente concluido');
+        throw new MunicipalError(403, 'FORBIDDEN', 'Sin permiso para compartir este expediente');
+      }
+      let granteeDependencyId = null;
+      if (input.granteeDependency) {
+        const dep = depByCode(mun).get(input.granteeDependency);
+        if (!dep || dep.status !== 'ACTIVA') throw new MunicipalError(400, 'VALIDATION_ERROR', 'Dependencia inválida');
+        granteeDependencyId = dep.id;
+      }
+      if (input.granteeUserId) {
+        if (input.granteeUserId === ctx.userId) throw new MunicipalError(400, 'VALIDATION_ERROR', 'No puede compartirse consigo mismo');
+        const target = store.membershipsOf(input.granteeUserId).find((m) => m.municipalityId === mun.id && access.isMembershipActive(m, clock()));
+        if (!target) throw new MunicipalError(400, 'VALIDATION_ERROR', 'El usuario no tiene membresía vigente en el municipio');
+      }
+      const grant = {
+        id: store.newId(), requestId: request.id, municipalityId: mun.id, granteeUserId: input.granteeUserId,
+        granteeDependencyId, level: input.level, expiresAt: input.expiresAt, revokedAt: null, grantedBy: ctx.userId, createdAt: clock(),
+      };
+      store.addGrant(grant);
+      audit(ctx, mun, 'GRANT_CREATED', 'Grant', 'success', { ...meta, entityId: grant.id, folio: request.folio });
+      return { id: grant.id, folio: request.folio, granteeUserId: grant.granteeUserId || undefined, granteeDependency: input.granteeDependency || undefined, level: grant.level, expiresAt: grant.expiresAt ? grant.expiresAt.toISOString() : null };
+    },
+
+    revokeGrant(ctx, munCode, folioValue, grantId, meta = {}) {
+      const { mun } = gate(ctx, 'municipal.requests.grant', munCode);
+      const request = loadInScope(ctx, mun, folioValue, meta);
+      const grant = store.grant(grantId);
+      if (!grant || grant.requestId !== request.id || grant.municipalityId !== mun.id || grant.revokedAt) throw notFound();
+      const openView = access.TERMINAL.includes(request.status) ? { ...request, status: 'EN_TRAMITE' } : request;
+      if (!access.canWriteRequest(ctx, openView, 'municipal.requests.grant'))
+        throw new MunicipalError(403, 'FORBIDDEN', 'Sin permiso para revocar');
+      store.revokeGrant(grantId, clock());
+      audit(ctx, mun, 'GRANT_REVOKED', 'Grant', 'success', { ...meta, entityId: grantId, folio: request.folio });
+    },
+
+    verifyFolio(ctx, munCode, folioValue, meta) {
+      const { mun } = gate(ctx, 'municipal.requests.read', munCode);
+      const r = loadInScope(ctx, mun, folioValue, meta);
+      const parts = folio.parseFolio(r.folio);
+      return { folio: r.folio, type: r.type, ownerDependency: codeOf(mun)(r.ownerDependencyId), year: parts.year, sequence: parts.sequence, status: r.status, createdAt: present.iso(r.createdAt) };
+    },
+
+    listAuditEvents(ctx, munCode, query = {}) {
+      const { mun } = gate(ctx, 'municipal.audit.read', munCode);
+      const rows = store.auditEvents()
+        .filter((e) => e.municipalityId === mun.id)
+        .filter((e) => !query.folio || e.folio === query.folio)
+        .filter((e) => !query.entityId || e.entityId === query.entityId)
+        .filter((e) => !query.from || e.at >= query.from)
+        .filter((e) => !query.to || e.at < query.to)
+        .sort((a, b) => b.at - a.at);
+      const { slice, pagination } = page(rows, query);
+      return { items: slice.map(present.auditEvent), pagination };
     },
 
     receipt(ctx, munCode, folioValue) {

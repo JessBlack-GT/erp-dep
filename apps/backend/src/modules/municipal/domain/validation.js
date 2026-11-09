@@ -90,4 +90,53 @@ function validateIdempotencyKey(key) {
   return key;
 }
 
-module.exports = { SERVER_OWNED, CHANNELS, CONFIDENTIALITY, REQUEST_TYPES, ValidationError, validateRequestCreate, validateCitizenCreate, validateIdempotencyKey };
+/** @param {unknown} body  RequestUpdate: solo asunto, descripción y confidencialidad. */
+function validateRequestUpdate(body) {
+  const b = shape(body, ['subject', 'description', 'confidentiality'], []);
+  if (!Object.keys(b).length) throw new ValidationError('Indique al menos un campo');
+  const out = {};
+  if (b.subject !== undefined) out.subject = text(b.subject, 'subject', 5, 200);
+  if (b.description !== undefined) out.description = text(b.description, 'description', 0, 5000);
+  if (b.confidentiality !== undefined) {
+    if (!CONFIDENTIALITY.includes(b.confidentiality)) throw new ValidationError('Confidencialidad inválida', ['confidentiality']);
+    out.confidentiality = b.confidentiality;
+  }
+  return out;
+}
+
+/** @param {unknown} body  Transition: forma estricta; las reglas de estado viven en request-state. */
+function validateTransitionInput(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ValidationError('Cuerpo inválido');
+  const allowed = ['action', 'version', 'toDependencies', 'assignedUserId', 'note'];
+  const unknown = Object.keys(body).filter((k) => !allowed.includes(k));
+  if (unknown.length) throw new ValidationError('Campos no permitidos', unknown);
+  const b = /** @type {Record<string, any>} */ (body);
+  if (!Number.isInteger(b.version) || b.version < 0) throw new ValidationError('version obligatoria (entero ≥ 0)', ['version']);
+  if (b.toDependencies !== undefined && (!Array.isArray(b.toDependencies) || b.toDependencies.some((d) => !DEP.test(d))))
+    throw new ValidationError('Dependencias inválidas', ['toDependencies']);
+  if (b.assignedUserId !== undefined && !OBJECT_ID.test(b.assignedUserId)) throw new ValidationError('Usuario inválido', ['assignedUserId']);
+  if (b.note !== undefined && typeof b.note !== 'string') throw new ValidationError('Nota inválida', ['note']);
+  return b;
+}
+
+/**
+ * @param {unknown} body  GrantCreate: exactamente un destinatario (usuario o dependencia).
+ * @param {Date} now
+ */
+function validateGrantCreate(body, now) {
+  const b = shape(body, ['granteeUserId', 'granteeDependency', 'level', 'expiresAt'], ['level']);
+  if (!['READ', 'CONTRIBUTE'].includes(b.level)) throw new ValidationError('Nivel inválido', ['level']);
+  const hasUser = b.granteeUserId !== undefined;
+  const hasDep = b.granteeDependency !== undefined;
+  if (hasUser === hasDep) throw new ValidationError('Indique un usuario o una dependencia (solo uno)', ['granteeUserId', 'granteeDependency']);
+  if (hasUser && !OBJECT_ID.test(b.granteeUserId)) throw new ValidationError('Usuario inválido', ['granteeUserId']);
+  if (hasDep && !DEP.test(b.granteeDependency)) throw new ValidationError('Dependencia inválida', ['granteeDependency']);
+  let expiresAt = null;
+  if (b.expiresAt !== undefined) {
+    expiresAt = typeof b.expiresAt === 'string' ? new Date(b.expiresAt) : new Date(NaN);
+    if (Number.isNaN(expiresAt.getTime()) || expiresAt <= now) throw new ValidationError('expiresAt debe ser una fecha futura', ['expiresAt']);
+  }
+  return { granteeUserId: hasUser ? b.granteeUserId : null, granteeDependency: hasDep ? b.granteeDependency : null, level: b.level, expiresAt };
+}
+
+module.exports = { SERVER_OWNED, CHANNELS, CONFIDENTIALITY, REQUEST_TYPES, ValidationError, validateRequestCreate, validateCitizenCreate, validateIdempotencyKey, validateRequestUpdate, validateTransitionInput, validateGrantCreate, OBJECT_ID, DEP };

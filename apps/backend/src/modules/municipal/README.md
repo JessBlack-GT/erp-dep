@@ -1,6 +1,6 @@
 # modules/municipal — MuniERP IA (Fase 1, preparación)
 
-**Estado: NO MONTADO.** Nada en `app.js` ni en `routes/index.js` importa este módulo (verificado por
+**Estado: NO MONTADO** (capa HTTP lista desde F1-04). Nada en `app.js` ni en `routes/index.js` importa este módulo (verificado por
 `tests/municipal/permissions-structure.test.js`). Montarlo es la dependencia **C-01** de Codex.
 
 | Carpeta | Contenido | RQ |
@@ -15,9 +15,15 @@
 | `domain/documents.js` | Validación de archivos por firma binaria y cabeceras de descarga privada | RQ05 |
 | `domain/receipt.js` | Acuse para canal presencial sin datos de contacto | RQ06 |
 | `application/municipal.service.js` | Casos de uso independientes de Express/Mongo | todos |
+| `application/presenters.js` | DTO del contrato (lista blanca de campos) | todos |
+| `http/municipal.router.js` | Router Express: tabla de 24 operaciones (19 implementadas, 5 → 501 F1-12) | todos |
+| `http/params.js`, `http/errors.js` | Validación de ruta/consulta/cabeceras; errores `{success,error,code}` | — |
+| `http/erp-identity.js` | Única puerta al núcleo: `authenticateToken` + `requireCurrentUser` del ERP | RQ05 |
+| `http/isolated-app.js` | App Express aislada para pruebas (no abre puertos) | — |
 | `mocks/*`, `storage/memory-storage.js` | Almacén y almacenamiento **en memoria** con datos **sintéticos** | — |
 
-Reglas: solo importa de sí mismo y de módulos nativos de Node; código compatible con Express 4 y 5
+Reglas: solo importa de sí mismo, de módulos nativos de Node, de `express` (solo `http/`) y de los
+middlewares de identidad del ERP (solo `http/erp-identity.js`); código compatible con Express 4 y 5
 (sin rutas `*`, sin `req.param`); `// @ts-check` + JSDoc en lugar de TypeScript compilado.
 
 Pruebas: `tests/municipal/*.test.js` (se incluyen en `npm test` del backend por el glob existente).

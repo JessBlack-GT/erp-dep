@@ -69,14 +69,21 @@ describe('MuniERP — matriz municipal congelada (04-ROLES-PERMISOS)', () => {
 });
 
 describe('MuniERP — frontera de módulo (MT-61)', () => {
-  it('el módulo municipal solo importa de sí mismo o de módulos nativos de Node', () => {
+  it('el módulo municipal solo importa de sí mismo, de Node y —en http/— de express', () => {
     const builtin = new Set(require('module').builtinModules);
+    const HTTP = path.join(MODULE, 'http') + path.sep;
+    const IDENTITY = path.join(MODULE, 'http', 'erp-identity.js');
+    // Única puerta al núcleo: los middlewares centrales de identidad del ERP (sin modificarlos).
+    const CORE_ALLOWED = new Set([path.join(SRC, 'middleware', 'authenticate'), path.join(SRC, 'middleware', 'authorize')]);
     for (const file of walk(MODULE))
       for (const req of requiresOf(file)) {
+        const where = `${path.relative(SRC, file)} importa ${req}`;
         if (req.startsWith('.')) {
           const target = path.resolve(path.dirname(file), req);
-          assert.ok(target.startsWith(MODULE + path.sep), `${path.relative(SRC, file)} importa ${req}`);
-        } else assert.ok(builtin.has(req), `${path.relative(SRC, file)} importa paquete ${req}`);
+          if (target.startsWith(MODULE + path.sep)) continue;
+          assert.ok(file === IDENTITY && CORE_ALLOWED.has(target), where);
+        } else if (req === 'express') assert.ok(file.startsWith(HTTP), where);
+        else assert.ok(builtin.has(req), where);
       }
   });
 

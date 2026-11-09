@@ -13,7 +13,7 @@ function scenario({ now = T0 } = {}) {
   const clock = () => new Date(current.getTime());
   const dependencies = fx.buildDependencies();
   const memberships = fx.buildMemberships(now);
-  const store = createMemoryStore({ municipalities: fx.MUNICIPALITIES, dependencies, citizens: fx.buildCitizens() });
+  const store = createMemoryStore({ municipalities: fx.MUNICIPALITIES, dependencies, citizens: fx.buildCitizens(), memberships });
   const storage = createMemoryStorage();
   const service = createMunicipalService({ store, storage, clock });
   const munId = (code) => fx.MUNICIPALITIES.find((m) => m.code === code).id;

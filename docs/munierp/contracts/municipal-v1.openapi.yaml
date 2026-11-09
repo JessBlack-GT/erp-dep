@@ -1,11 +1,23 @@
 openapi: 3.1.0
 info:
   title: MuniERP IA — API municipal conectada a YJ Nexo ERP
-  version: 1.0.0-draft.1
+  version: 1.0.0-draft.2
   description: |
     Propuesta versionada. Fuente de verdad para `apps/backend/src/modules/municipal`.
     Estado: BORRADOR. La capa de aplicación y la política de acceso están implementadas y probadas
     en memoria, pero la API **no está montada**: montarla requiere revisión de Codex (C-01).
+
+    Cambios draft.2 (2026-11-09, F1-04 capa HTTP aislada):
+    - Implementación HTTP en `modules/municipal/http/` sobre Express aislado; 19 operaciones
+      implementadas y 5 marcadas `x-status: pending` (F1-12) que responden 501 tras autenticar.
+    - Respuestas 401/503 en todas las operaciones (identidad central del ERP); códigos de error
+      INTERNAL_ERROR y NOT_IMPLEMENTED; campo opcional `fields` en errores de validación.
+    - ETag (versión) en createRequest/getRequest/updateRequest/transitionRequest; If-Match en PATCH.
+    - Esquemas de respuesta explícitos: Citizen, Grant, AuditEvent; RequestSummary con `subject`
+      opcional (omitido para alcance META); historial con acción EDITAR y `fields`.
+    - getRequest usa anyOf (Request | RequestSummary).
+    - Cabecera X-Request-Id: se acepta del cliente si es válida o se genera; se devuelve siempre.
+    - Parámetros de consulta desconocidos → 400.
 
     Cambios draft.1 (2026-10-26, requisitos oficiales RQ01–RQ06):
     - `channel` obligatorio en RequestCreate (RQ06) y visible en RequestSummary.
@@ -49,6 +61,7 @@ paths:
                         type: array
                         items: { $ref: '#/components/schemas/MyMembership' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/dependencies:
     parameters: [ { $ref: '#/components/parameters/Mun' } ]
@@ -72,9 +85,12 @@ paths:
                       data: { type: array, items: { $ref: '#/components/schemas/Dependency' } }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
     post:
       summary: Crear dependencia
       operationId: createDependency
+      x-status: pending
+      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.dependencies.manage
       requestBody:
@@ -96,6 +112,8 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /municipalities/{mun}/dependencies/{code}:
     parameters:
@@ -104,6 +122,8 @@ paths:
     patch:
       summary: Actualizar nombre/estado de una dependencia (el código es inmutable)
       operationId: updateDependency
+      x-status: pending
+      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.dependencies.manage
       requestBody:
@@ -116,21 +136,31 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /municipalities/{mun}/memberships:
     parameters: [ { $ref: '#/components/parameters/Mun' } ]
     get:
       summary: Listar membresías
       operationId: listMemberships
+      x-status: pending
+      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.memberships.read
       x-scope: TITULAR solo ve membresías de sus dependencias
       responses:
         '200': { description: OK }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       summary: Asignar un usuario existente de YJ Nexo al municipio
       operationId: createMembership
+      x-status: pending
+      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.memberships.manage
       description: |
@@ -147,6 +177,9 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /municipalities/{mun}/memberships/{membershipId}:
     parameters:
@@ -155,6 +188,8 @@ paths:
     patch:
       summary: Cambiar rol, dependencias, vigencia o estado de una membresía
       operationId: updateMembership
+      x-status: pending
+      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.memberships.manage
       requestBody:
@@ -167,6 +202,9 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /municipalities/{mun}/citizens:
     parameters: [ { $ref: '#/components/parameters/Mun' } ]
@@ -181,9 +219,19 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/CitizenCreate' }
       responses:
-        '201': { description: Creado }
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Citizen' } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
     get:
       summary: Buscar ciudadanos (solo los vinculados a expedientes en alcance, o creados por el actor)
       operationId: searchCitizens
@@ -194,8 +242,21 @@ paths:
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/Limit' }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/Citizen' } }
+                      pagination: { $ref: '#/components/schemas/Pagination' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests:
     parameters: [ { $ref: '#/components/parameters/Mun' } ]
@@ -232,6 +293,8 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
     get:
       summary: Listar solicitudes en alcance
       operationId: listRequests
@@ -257,6 +320,8 @@ paths:
                       data: { type: array, items: { $ref: '#/components/schemas/RequestSummary' } }
                       pagination: { $ref: '#/components/schemas/Pagination' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests/{folio}:
     parameters:
@@ -278,11 +343,13 @@ paths:
                   - type: object
                     properties:
                       data:
-                        oneOf:
+                        anyOf:
                           - $ref: '#/components/schemas/Request'
                           - $ref: '#/components/schemas/RequestSummary'
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
     patch:
       summary: Editar asunto/descripción/confidencialidad (no estado, no folio)
       operationId: updateRequest
@@ -296,11 +363,23 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/RequestUpdate' }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK (nueva versión en ETag)
+          headers:
+            ETag: { schema: { type: string }, description: Versión vigente entre comillas }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Request' } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests/{folio}/transitions:
     parameters:
@@ -323,11 +402,25 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/Transition' }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK (nueva versión en ETag)
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Request' } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { description: Transición inválida desde el estado actual o versión obsoleta }
+        '409':
+          description: Transición inválida (INVALID_TRANSITION) o versión obsoleta (CONFLICT)
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests/{folio}/grants:
     parameters:
@@ -344,10 +437,21 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/GrantCreate' }
       responses:
-        '201': { description: Creado }
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Grant' } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests/{folio}/grants/{grantId}:
     parameters:
@@ -363,6 +467,8 @@ paths:
         '204': { description: Revocado }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests/{folio}/history:
     parameters:
@@ -387,6 +493,8 @@ paths:
                       data: { type: array, items: { $ref: '#/components/schemas/HistoryEntry' } }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests/{folio}/receipt:
     parameters:
@@ -409,6 +517,8 @@ paths:
                     properties: { data: { $ref: '#/components/schemas/Receipt' } }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests/{folio}/documents:
     parameters:
@@ -438,6 +548,8 @@ paths:
                             - $ref: '#/components/schemas/RestrictedDocument'
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
     post:
       summary: Adjuntar documento privado (PDF, PNG o JPEG, ≤ 5 MB)
       operationId: uploadDocument
@@ -470,6 +582,8 @@ paths:
         '413':
           description: Archivo mayor a 5 MB
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/requests/{folio}/documents/{documentId}/content:
     parameters:
@@ -498,6 +612,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/indicators:
     parameters: [ { $ref: '#/components/parameters/Mun' } ]
@@ -524,6 +639,8 @@ paths:
                     properties: { data: { $ref: '#/components/schemas/Indicators' } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/folios/{folio}:
     parameters:
@@ -546,6 +663,8 @@ paths:
                   - type: object
                     properties: { data: { $ref: '#/components/schemas/FolioInfo' } }
         '404': { $ref: '#/components/responses/NotFound' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /municipalities/{mun}/audit-events:
     parameters: [ { $ref: '#/components/parameters/Mun' } ]
@@ -562,8 +681,21 @@ paths:
         - { $ref: '#/components/parameters/Page' }
         - { $ref: '#/components/parameters/Limit' }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK (más reciente primero)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/AuditEvent' } }
+                      pagination: { $ref: '#/components/schemas/Pagination' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
 components:
   securitySchemes:
@@ -602,6 +734,12 @@ components:
     NotFound:
       description: No existe o está fuera del alcance del usuario (indistinguible)
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    ServiceUnavailable:
+      description: La autorización central no está disponible (falla cerrada)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotImplemented:
+      description: Operación del contrato pendiente de su historia (ver x-pending-story)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     Conflict:
       description: Duplicado, idempotencia con otro cuerpo o versión obsoleta
       content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
@@ -619,7 +757,8 @@ components:
         error: { type: string }
         code:
           type: string
-          enum: [VALIDATION_ERROR, UNAUTHORIZED, MUNICIPAL_MEMBERSHIP_REQUIRED, FORBIDDEN, NOT_FOUND, CONFLICT, INVALID_TRANSITION, PAYLOAD_TOO_LARGE, AUTHORIZATION_UNAVAILABLE]
+          enum: [VALIDATION_ERROR, UNAUTHORIZED, MUNICIPAL_MEMBERSHIP_REQUIRED, FORBIDDEN, NOT_FOUND, CONFLICT, INVALID_TRANSITION, PAYLOAD_TOO_LARGE, AUTHORIZATION_UNAVAILABLE, NOT_IMPLEMENTED, INTERNAL_ERROR]
+        fields: { type: array, items: { type: string }, description: Campos rechazados (solo VALIDATION_ERROR) }
     Pagination:
       type: object
       properties:
@@ -763,6 +902,7 @@ components:
         assignedDependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
         confidentiality: { $ref: '#/components/schemas/Confidentiality' }
         channel: { $ref: '#/components/schemas/Channel' }
+        subject: { type: string, description: Presente en listados salvo alcance META (auditor) }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
     Request:
@@ -777,18 +917,7 @@ components:
             version: { type: integer }
             history:
               type: array
-              items:
-                type: object
-                properties:
-                  at: { type: string, format: date-time }
-                  action: { type: string }
-                  fromStatus: { $ref: '#/components/schemas/RequestStatus' }
-                  toStatus: { $ref: '#/components/schemas/RequestStatus' }
-                  actorId: { $ref: '#/components/schemas/ObjectId' }
-                  actorName: { type: string }
-                  assignedUserId: { $ref: '#/components/schemas/ObjectId' }
-                  toDependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
-                  note: { type: string }
+              items: { $ref: '#/components/schemas/HistoryEntry' }
     Transition:
       type: object
       additionalProperties: false
@@ -817,12 +946,13 @@ components:
       properties:
         at: { type: string, format: date-time }
         actorId: { $ref: '#/components/schemas/ObjectId' }
-        action: { type: string, enum: [REGISTRAR, TURNAR, ASIGNAR, ESPERAR_CIUDADANO, REANUDAR, CERRAR, CANCELAR] }
+        action: { type: string, enum: [REGISTRAR, EDITAR, TURNAR, ASIGNAR, ESPERAR_CIUDADANO, REANUDAR, CERRAR, CANCELAR] }
         fromStatus: { oneOf: [ { $ref: '#/components/schemas/RequestStatus' }, { type: 'null' } ] }
         toStatus: { $ref: '#/components/schemas/RequestStatus' }
         assignedUserId: { $ref: '#/components/schemas/ObjectId' }
         toDependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
         note: { type: string }
+        fields: { type: array, items: { type: string }, description: Campos editados (acción EDITAR) }
     Receipt:
       type: object
       required: [folio, municipality, dependency, subject, status, statusLabel, channel, registeredAt]
@@ -885,6 +1015,29 @@ components:
         byStatus: { type: object, additionalProperties: { type: integer } }
         byDependency: { type: object, additionalProperties: { type: integer } }
         byChannel: { type: object, additionalProperties: { type: integer } }
+    Grant:
+      type: object
+      required: [id, folio, level, expiresAt]
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        folio: { $ref: '#/components/schemas/Folio' }
+        granteeUserId: { $ref: '#/components/schemas/ObjectId' }
+        granteeDependency: { $ref: '#/components/schemas/DependencyCode' }
+        level: { type: string, enum: [READ, CONTRIBUTE] }
+        expiresAt: { type: [string, 'null'], format: date-time }
+    AuditEvent:
+      type: object
+      required: [at, actorId, action, entity, result]
+      properties:
+        at: { type: string, format: date-time }
+        actorId: { $ref: '#/components/schemas/ObjectId' }
+        action: { type: string }
+        entity: { type: string, enum: [Request, Document, Citizen, Grant] }
+        entityId: { $ref: '#/components/schemas/ObjectId' }
+        folio: { $ref: '#/components/schemas/Folio' }
+        result: { type: string, enum: [success, denied] }
+        ip: { type: string }
+        requestId: { type: string }
     FolioInfo:
       type: object
       required: [folio, type, ownerDependency, year, sequence, status]

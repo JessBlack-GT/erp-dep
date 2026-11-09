@@ -89,4 +89,9 @@ function registrationEntry(actorId, at) {
   return Object.freeze({ at: new Date(at.getTime()), actorId, action: 'REGISTRAR', fromStatus: null, toStatus: 'REGISTRADA' });
 }
 
-module.exports = { STATUSES, ACTIONS, TransitionError, applyTransition, registrationEntry };
+/** Edición de contenido (PATCH): no cambia el estado pero también queda en el historial (RQ02). */
+function editEntry(actorId, at, status, fields) {
+  return Object.freeze({ at: new Date(at.getTime()), actorId, action: 'EDITAR', fromStatus: status, toStatus: status, fields: Object.freeze([...fields]) });
+}
+
+module.exports = { STATUSES, ACTIONS, TransitionError, applyTransition, registrationEntry, editEntry };

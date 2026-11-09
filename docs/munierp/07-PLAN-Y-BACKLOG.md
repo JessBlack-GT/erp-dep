@@ -26,7 +26,7 @@ aplique) en `docs/qa/MUNI-XX-VALIDATION.md`. "HECHO-A" **no** equivale a aprobad
 | 1 | F1-01 | Política de acceso y catálogo municipal | RQ03, RQ05 | MUNI-02 | `modules/municipal/policy/*` | Matriz 04 congelada; admin/superadmin ERP sin acceso; filtro ≡ regla | MT-04…07, 10…19b, 60 | **HECHO-A** |
 | 2 | F1-02 | Frontera del módulo y no regresión | — | MUNI-01 (parte) | `tests/municipal/permissions-structure.test.js` | ERP no importa el módulo; módulo solo importa de sí mismo | MT-60, MT-61 | **HECHO-A** |
 | 3 | F1-03 | Folios únicos e idempotencia | RQ01 | MUNI-08 | `domain/folio.js`, servicio | Formato; contador por dep./año; rollback sin huecos; reintento = mismo folio | MT-30…36 | **HECHO-A** (real: BLOQ C-05) |
-| 4 | F1-04 | Router HTTP municipal + middleware `requireMunicipal` | RQ03, RQ05 | MUNI-01, MUNI-02 | `modules/municipal/http/*` (nuevo) | Rutas del contrato; 401/403/404/503; compatible Express 4/5; **no montado** hasta C-01 | MT-01…03, 08 con supertest sobre app aislada | PENDIENTE |
+| 4 | F1-04 | Router HTTP municipal + middleware `requireMunicipal` | RQ03, RQ05 | MUNI-01, MUNI-02 | `modules/municipal/http/*` (nuevo) | Rutas del contrato; 401/403/404/503; compatible Express 4/5; **no montado** hasta C-01 | MT-01…03, 08, MT-H01…H12 | **HECHO-A** (2026-11-09, ver 10) |
 | 5 | F1-05 | Repositorio Mongo + modelos `municipal_*` | RQ01–RQ05 | MUNI-03…09 | `modules/municipal/infra/*` (nuevo) | Mismo contrato que el almacén en memoria; índices únicos; transacciones | Suite H-mock re-ejecutada contra Mongo | BLOQ (C-05) |
 | 6 | F1-06 | Registro de solicitudes y ciudadanos | RQ01, RQ03, RQ06 | MUNI-07, MUNI-09 | servicio, validación | Campos del servidor rechazados; sin CURP; canal obligatorio | MT-18, 19c, 92 | **HECHO-A** (ciudadanos HTTP pendiente) |
 | 7 | F1-07 | Asignación, turnado e historial | RQ02 | MUNI-10 | `domain/request-state.js` | Actor, fecha y estado en cada cambio; versión optimista | MT-40…47 | **HECHO-A** (MT-47 BLOQ C-05) |
@@ -42,8 +42,8 @@ aplique) en `docs/qa/MUNI-XX-VALIDATION.md`. "HECHO-A" **no** equivale a aprobad
 | — | F1-17 | Endurecimiento de sesión | — | MUNI-13 | auth | Ver C-13 | — | BLOQ (C-13, núcleo) |
 | — | F1-18 | Diseño de IA opcional (Python + FastAPI) | — | MUNI-14 | `docs/munierp/10-IA.md` | Evaluación de impacto; sin PII externa | Revisión | Fuera de Fase 1 |
 
-**Siguiente paso recomendado sin tocar el núcleo:** F1-04 (router HTTP probado con supertest sobre
-una app Express aislada, sin montar) y F1-12. Después, al resolverse C-01/C-05, F1-05 y F1-14.
+**Siguiente paso recomendado sin tocar el núcleo:** F1-12 (las 5 operaciones que hoy responden 501).
+Después, al resolverse C-01/C-05, F1-05 y F1-14.
 
 ## Riesgos
 

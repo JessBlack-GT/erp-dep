@@ -146,14 +146,43 @@ Android.
 
 | Estado | Casos |
 |---|---|
+| **Ejecutado y aprobado — HTTP aislado (F1-04, 2026-11-09)** | MT-01, MT-02, MT-03, MT-08, MT-09 (lectura), MT-19c, MT-53, MT-H01…MT-H12 (§L). Identidad central real del ERP; `resolveAccess` simulado; almacén en memoria |
 | **Ejecutado y aprobado** (U / H-mock / jest) | MT-04, MT-05, MT-06, MT-07, MT-10, MT-11, MT-12, MT-13, MT-14, MT-15, MT-16, MT-17, MT-18, MT-19, MT-19b, MT-30, MT-32*, MT-33, MT-34, MT-35, MT-36, MT-40, MT-41, MT-42, MT-43, MT-44, MT-45, MT-46, MT-50*, MT-52, MT-60, MT-61, MT-70, MT-71, MT-72, MT-74*, MT-75, MT-80…MT-88, MT-92, MT-93, MT-94, MT-95 |
 | **Ejecutado parcial** | MT-31 (50 creaciones concurrentes en memoria; falta concurrencia real en Atlas), MT-62 (ver §Ejecución) |
-| **Pendiente: requiere montaje HTTP (C-01)** | MT-01, MT-02, MT-03, MT-08, MT-09, MT-19c, MT-20…MT-22, MT-53 |
+| **Pendiente: historia F1-12** | MT-09 (escritura), MT-10 vía HTTP, MT-20…MT-22 (hoy 501) |
+| **Pendiente: montaje en el ERP (C-01)** | Repetición de §L dentro de `app.js` (limitador global, CORS, helmet) |
 | **Pendiente: requiere base QA autorizada (C-05)** | MT-31 real, MT-32 real, MT-47, MT-50 real, MT-51, MT-74 (Mongo), MT-89 |
 | **Pendiente: E2E** | MT-63, MT-64, MT-90, MT-91, MT-96 |
 | Diseñado sin prueba aún | MT-73 |
 
 \* En memoria: demuestran la regla, no la garantía transaccional de Mongo.
+
+## L. Capa HTTP (F1-04) — `tests/municipal/http.test.js` y `http-contract.test.js`
+
+| ID | Caso | Esperado | Resultado 2026-11-09 |
+|---|---|---|---|
+| MT-H01 | Sin token / JWT inválido / expirado / `kind: refresh` | 401 `UNAUTHORIZED` | ✅ |
+| MT-H02 | Usuario inactivo en el ERP con membresía activa | 401 | ✅ |
+| MT-H03 | Sesión revocada (`sessionVersion`) | 401 | ✅ |
+| MT-H04 | Base de autorización caída | 503 `AUTHORIZATION_UNAVAILABLE`, sin detalles | ✅ |
+| MT-H05 | Claims falsificados; `X-User-Id`/`X-Role` en cabeceras; `userId` en consulta; `createdBy` en cuerpo | 403 / ignorado / 400 / 400 | ✅ |
+| MT-H06 | Superadmin/admin ERP, membresía vencida, municipio inexistente | 403 `MUNICIPAL_MEMBERSHIP_REQUIRED` | ✅ |
+| MT-H07 | Alta 201 + ETag + DTO sin campos internos; Idempotency-Key ausente 400; reintento 200; otro cuerpo 409; JSON mal formado 400 | Según contrato | ✅ |
+| MT-H08 | 25 altas concurrentes **simuladas**; colisión de folio forzada | Folios únicos consecutivos; 409 con rollback del contador | ✅ (memoria) |
+| MT-H09 | Otra dependencia, folio inexistente y mal formado | 404 idéntico; denegación con IP y `requestId` | ✅ |
+| MT-H10 | PATCH sin If-Match 400 / obsoleto 409 / correcto 200 + `EDITAR`; cambio de confidencialidad sin permiso 403; transiciones 200/400/403/409 | Según contrato | ✅ |
+| MT-H11 | Documentos: 201, MIME falso 400, > 5 MB 413, concluido 409, descarga con cabeceras privadas, no autorizada 403/404 | Según contrato | ✅ |
+| MT-H12 | Cada respuesta JSON validada contra el esquema del contrato (ajv); 24 rutas = 24 operaciones; pendientes ↔ 501 | Sin desviaciones | ✅ |
+
+## Ejecución 2026-11-09 (F1-04)
+
+| Suite | Resultado |
+|---|---|
+| Municipal backend | **101 passing, 0 failing** |
+| Backend completo sin `phase1.stability` | **1033 passing, 0 failing** |
+| Mutaciones de la capa HTTP | 4/4 detectadas |
+| `phase1.stability` | No concluyó: el equipo se desconectó durante la ejecución |
+| Frontend municipal (11) | Sin cambios en F1-04; última ejecución aprobada 2026-10-26 |
 
 ## Ejecución 2026-10-26 (rama local `codex/munierp-fase0-arquitectura`)
 

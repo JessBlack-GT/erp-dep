@@ -14,6 +14,7 @@ function createMemoryStore(seed = {}) {
     requests: [],
     documents: [],
     grants: [...(seed.grants || [])],
+    memberships: [...(seed.memberships || [])],
     counters: {},
     audit: [],
   };
@@ -34,14 +35,21 @@ function createMemoryStore(seed = {}) {
         throw error;
       }
     },
+    municipalityById: (id) => state.municipalities.find((m) => m.id === id) || null,
     municipalityByCode: (code) => state.municipalities.find((m) => m.code === code) || null,
     dependencies: (municipalityId) => state.dependencies.filter((d) => d.municipalityId === municipalityId),
+    citizens: (municipalityId) => state.citizens.filter((c) => c.municipalityId === municipalityId).map((c) => structuredClone(c)),
+    insertCitizen(doc) { state.citizens.push(structuredClone(doc)); return structuredClone(doc); },
+    membershipsOf: (userId) => state.memberships.filter((m) => m.userId === userId).map((m) => structuredClone(m)),
+    membershipsIn: (municipalityId) => state.memberships.filter((m) => m.municipalityId === municipalityId).map((m) => structuredClone(m)),
     citizen: (municipalityId, id) => state.citizens.find((c) => c.id === id && c.municipalityId === municipalityId) || null,
     nextSequence(key) {
       state.counters[key] = (state.counters[key] || 0) + 1;
       return state.counters[key];
     },
     counter: (key) => state.counters[key] || 0,
+    /** Solo pruebas: retrocede un contador para simular una colisión de folio. */
+    setCounterForTest(key, value) { state.counters[key] = value; },
     insertRequest(doc) {
       if (failNextInsert) { failNextInsert = false; throw new Error('Fallo simulado de escritura'); }
       if (state.requests.some((r) => r.municipalityId === doc.municipalityId && r.folio === doc.folio))
@@ -64,6 +72,7 @@ function createMemoryStore(seed = {}) {
     insertDocument(doc) { state.documents.push(structuredClone(doc)); return structuredClone(doc); },
     documentsOf: (requestId) => state.documents.filter((d) => d.requestId === requestId).map((d) => structuredClone(d)),
     addGrant(g) { state.grants.push(structuredClone(g)); },
+    grant: (id) => structuredClone(state.grants.find((g) => g.id === id) || null),
     revokeGrant(id, at) { const g = state.grants.find((x) => x.id === id); if (g) g.revokedAt = at; },
     grantsFor: (municipalityId) => state.grants.filter((g) => g.municipalityId === municipalityId).map((g) => structuredClone(g)),
     appendAudit(event) { state.audit.push(Object.freeze(structuredClone(event))); },
