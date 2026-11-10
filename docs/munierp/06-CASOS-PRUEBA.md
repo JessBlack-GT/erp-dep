@@ -305,3 +305,13 @@ La suite de contrato en memoria NO certifica MongoDB: L2 es aproximación y L3 q
 | Playwright F1-13 (18 escenarios, incluido el 16 nuevo) | Windows: Chromium 158, Firefox 158, WebKit 27.2 | **54/54** |
 
 Los dobles NO certifican MongoDB. Detalle: [15-F1-05-ADAPTADOR-MONGODB.md](15-F1-05-ADAPTADOR-MONGODB.md).
+
+## Resultados F1-14 (2026-11-10) — bitácora de auditoría y preparación L3
+
+- Backend municipal (mocha): **279 aprobadas, 22 pendientes (L3 y doble sin MongoDB), 0 fallidas**. Nuevas:
+  `http-f114.test.js` (4: auditor/denegaciones/aislamiento, idempotencia entre municipios, errores sin
+  exposición), índice y filtro de idempotencia en `mongo-adapter.test.js`, guardas L3 en `persistence.test.js`.
+- Jest municipal: **67/67** (nuevo `municipal.audit.test.js`, 11).
+- Playwright Windows, API SIMULADA: **96/96** (Chromium, Firefox, WebKit; F1-14 ×14 y regresión F1-13 ×18).
+  Primer intento 87/96 por selector `textbox` frente al `role="search"` del `Input` (C-19); corregida la prueba.
+- L3 RC-30/32/33/34/35: **escritos, no ejecutados** (requieren `munierp_qa`, C-05). No se aprueban.

@@ -7,6 +7,7 @@ export { RequestList, RequestStatusBadge } from './components/RequestList';
 export { IndicatorsPanel } from './components/IndicatorsPanel';
 export { ReceiptView } from './components/ReceiptView';
 export { RequestDetail } from './components/RequestDetail';
+export { AuditLog } from './components/AuditLog';
 export { createMunicipalApi, municipalBaseUrl } from './municipalApi';
 export { OptionGroup } from './components/OptionGroup';
 export { createMockMunicipalApi } from './mockApi';

@@ -69,10 +69,12 @@ export async function createServiceBackedWorld({ save } = {}) {
   const r5 = await create('u_tit_dif', 'DIF', 'Seguimiento confidencial (prueba)', { confidentiality: 'CONFIDENCIAL' });
   // Z1: otro municipio (aislamiento).
   const z1 = await create('u_zzz_tit_obp', 'OBP', 'Solicitud de otro municipio', {}, 'ZZZ', fx.MUNICIPALITIES[1].id, 11);
+  // F1-14: un intento fuera de alcance registrado con IP y requestId SINTÉTICOS (la bitácora no debe mostrarlos).
+  tick(); await service.getRequest(await ctx('u_op_tes'), 'SJH', r1.folio, { ip: '192.0.2.10', requestId: 'qa-seed-denegado' }).catch(() => {});
 
   const folios = { r1: r1.folio, r2: r2.folio, r3: r3.folio, r4: r4.folio, r5: r5.folio, z1: z1.folio };
 
-  function apiFor(persona, { latencyMs = 0, failFirst = null, tamperDocuments = false } = {}) {
+  function apiFor(persona, { latencyMs = 0, failFirst = null, tamperDocuments = false, mun = 'SJH' } = {}) {
     const failed = new Set();
     const wrap = (name, fn) => async (...args) => {
       if (latencyMs) await new Promise((r) => setTimeout(r, latencyMs));
@@ -82,28 +84,33 @@ export async function createServiceBackedWorld({ save } = {}) {
       }
       try { return await fn(...args); } catch (e) { throw toApiError(e); }
     };
-    const c = () => ctx(persona);
+    const munId = (fx.MUNICIPALITIES.find((m) => m.code === mun) || {}).id || SJH;
+    const c = () => ctx(persona, munId);
     return {
       isMock: true,
       mockLabel: SERVICE_BACKED_LABEL,
       persona,
       myMemberships: wrap('myMemberships', () => service.myMemberships(fx.USERS[persona])),
-      listDependencies: wrap('listDependencies', async () => service.listDependencies(await c(), 'SJH', { status: 'ACTIVA' })),
-      searchCitizens: wrap('searchCitizens', async () => (await service.searchCitizens(await c(), 'SJH', {})).items),
-      listMemberships: wrap('listMemberships', async (q = {}) => (await service.listMemberships(await c(), 'SJH', q)).items),
-      listRequests: wrap('listRequests', async (q = {}) => service.listRequests(await c(), 'SJH', q)),
-      getRequest: wrap('getRequest', async (folio) => ({ data: await service.getRequest(await c(), 'SJH', folio, { ip: '127.0.0.1', requestId: 'qa-ui' }) })),
-      getRequestHistory: wrap('getRequestHistory', async (folio) => service.getHistory(await c(), 'SJH', folio)),
-      listDocuments: wrap('listDocuments', async (folio) => service.listDocuments(await c(), 'SJH', folio)),
-      transitionRequest: wrap('transitionRequest', async (folio, body) => { tick(1); return service.transition(await c(), 'SJH', folio, body, { ip: '127.0.0.1', requestId: 'qa-ui' }); }),
-      getIndicators: wrap('getIndicators', async () => service.indicators(await c(), 'SJH', { from: new Date('2026-10-01T00:00:00Z'), to: new Date('2026-11-01T00:00:00Z') })),
-      createRequest: wrap('createRequest', async (body, key) => { tick(1); return service.createRequest(await c(), 'SJH', body, key, { ip: '127.0.0.1', requestId: 'qa-ui' }); }),
-      getReceipt: wrap('getReceipt', async (folio) => service.receipt(await c(), 'SJH', folio)),
+      listDependencies: wrap('listDependencies', async () => service.listDependencies(await c(), mun, { status: 'ACTIVA' })),
+      searchCitizens: wrap('searchCitizens', async () => (await service.searchCitizens(await c(), mun, {})).items),
+      listMemberships: wrap('listMemberships', async (q = {}) => (await service.listMemberships(await c(), mun, q)).items),
+      listRequests: wrap('listRequests', async (q = {}) => service.listRequests(await c(), mun, q)),
+      getRequest: wrap('getRequest', async (folio) => ({ data: await service.getRequest(await c(), mun, folio, { ip: '127.0.0.1', requestId: 'qa-ui' }) })),
+      getRequestHistory: wrap('getRequestHistory', async (folio) => service.getHistory(await c(), mun, folio)),
+      listDocuments: wrap('listDocuments', async (folio) => service.listDocuments(await c(), mun, folio)),
+      transitionRequest: wrap('transitionRequest', async (folio, body) => { tick(1); return service.transition(await c(), mun, folio, body, { ip: '127.0.0.1', requestId: 'qa-ui' }); }),
+      getIndicators: wrap('getIndicators', async () => service.indicators(await c(), mun, { from: new Date('2026-10-01T00:00:00Z'), to: new Date('2026-11-01T00:00:00Z') })),
+      createRequest: wrap('createRequest', async (body, key) => { tick(1); return service.createRequest(await c(), mun, body, key, { ip: '127.0.0.1', requestId: 'qa-ui' }); }),
+      // F1-14: el servicio aplica municipal.audit.read; `mun` permite probar el aislamiento (?mun=ZZZ).
+      listAuditEvents: wrap('listAuditEvents', async (q = {}) => service.listAuditEvents(await c(), mun, {
+        ...q, from: q.from ? new Date(q.from) : undefined, to: q.to ? new Date(q.to) : undefined,
+      })),
+      getReceipt: wrap('getReceipt', async (folio) => service.receipt(await c(), mun, folio)),
       downloadDocument: wrap('downloadDocument', async (folio, doc) => {
-        const out = await service.downloadDocument(await c(), 'SJH', folio, doc.id, { ip: '127.0.0.1', requestId: 'qa-ui' });
+        const out = await service.downloadDocument(await c(), mun, folio, doc.id, { ip: '127.0.0.1', requestId: 'qa-ui' });
         // `tamperDocuments` (solo QA) simula contenido alterado en el transporte: el lector debe rechazarlo.
         const bytes = new Uint8Array(tamperDocuments ? Buffer.from('contenido-no-valido') : out.buffer);
-        const info = inspectPrivateDocument(bytes, { contentType: out.headers['Content-Type'], doc });
+        const info = inspectPrivateDocument(bytes, { contentType: out.headers['Content-Type'], doc, folio });
         if (save) save({ bytes, headers: out.headers, info }, doc);
         return { saved: true, filename: info.filename };
       }),

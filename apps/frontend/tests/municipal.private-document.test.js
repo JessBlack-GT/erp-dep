@@ -3,7 +3,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { inspectPrivateDocument, safeFilename, savePrivateDocumentWeb, PRIVATE_MIME_TYPES } from '../src/features/municipal/privateDocument';
+import { inspectPrivateDocument, localFilename, savePrivateDocumentWeb, PRIVATE_MIME_TYPES, PRIVATE_MAX_BYTES } from '../src/features/municipal/privateDocument';
 import { createMunicipalApi, municipalModel } from '../src/features/municipal';
 
 const PDF = new Uint8Array(Buffer.from('%PDF-1.4\n% sintetico\n'));
@@ -12,10 +12,11 @@ const JPG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2]);
 const doc = (mimeType, size, filename = 'Oficio.pdf') => ({ id: '0000000000000000000000d1', mimeType, size, filename });
 
 describe('C-21 — verificación del documento privado', () => {
-  test('acepta PDF, PNG y JPEG con firma, tipo y tamaño coherentes', () => {
-    expect(inspectPrivateDocument(PDF, { contentType: 'application/pdf', doc: doc('application/pdf', PDF.length) })).toEqual({ mimeType: 'application/pdf', filename: 'Oficio.pdf' });
-    expect(inspectPrivateDocument(PNG, { contentType: 'image/png', doc: doc('image/png', PNG.length, 'foto.png') }).filename).toBe('foto.png');
-    expect(inspectPrivateDocument(JPG, { contentType: 'image/jpeg; charset=binary', doc: doc('image/jpeg', JPG.length, 'foto.jpeg') }).filename).toBe('foto.jpeg');
+  const F = 'SJH-OBP-SOL-2026-000001';
+  test('acepta PDF, PNG y JPEG con firma, tipo y tamaño coherentes; el nombre es generado', () => {
+    expect(inspectPrivateDocument(PDF, { contentType: 'application/pdf', doc: doc('application/pdf', PDF.length), folio: F })).toEqual({ mimeType: 'application/pdf', filename: `${F}-documento-0000d1.pdf` });
+    expect(inspectPrivateDocument(PNG, { contentType: 'image/png', doc: doc('image/png', PNG.length, 'foto de Juan.png'), folio: F }).filename).toBe(`${F}-documento-0000d1.png`);
+    expect(inspectPrivateDocument(JPG, { contentType: 'image/jpeg; charset=binary', doc: doc('image/jpeg', JPG.length, 'x.jpeg'), folio: F }).filename).toBe(`${F}-documento-0000d1.jpg`);
     expect(Object.keys(PRIVATE_MIME_TYPES)).toEqual(['application/pdf', 'image/png', 'image/jpeg']);
   });
 
@@ -29,13 +30,20 @@ describe('C-21 — verificación del documento privado', () => {
     expect(() => inspectPrivateDocument(bytes, { contentType, doc: d })).toThrow(expect.objectContaining({ code: 'DOCUMENT_INTEGRITY' }));
   });
 
-  test('nombre local saneado: sin rutas ni caracteres reservados y con extensión coherente', () => {
-    expect(safeFilename('../../etc/passwd', 'application/pdf')).toBe('passwd.pdf');
-    expect(safeFilename('C:\\Users\\x\\informe final.pdf', 'application/pdf')).toBe('informe final.pdf');
-    expect(safeFilename('foto<1>|?.exe', 'image/png')).toBe('foto1.png');
-    expect(safeFilename('   ', 'image/jpeg')).toBe('documento.jpg');
-    expect(safeFilename('.oculto', 'application/pdf')).toBe('oculto.pdf');
-    expect(safeFilename('a'.repeat(300) + '.pdf', 'application/pdf').length).toBeLessThanOrEqual(104);
+  test.each([206, 302, 401, 403, 404, 503])('rechaza respuesta HTTP %i', (status) => {
+    expect(() => inspectPrivateDocument(PDF, { contentType: 'application/pdf', doc: doc('application/pdf', PDF.length), status })).toThrow(expect.objectContaining({ code: 'DOCUMENT_INTEGRITY' }));
+  });
+
+  test('rechaza contenido mayor al tope de 5 MiB aunque el metadato lo declare', () => {
+    const big = new Uint8Array(PRIVATE_MAX_BYTES + 1);
+    big.set([0x25, 0x50, 0x44, 0x46, 0x2d]);
+    expect(() => inspectPrivateDocument(big, { contentType: 'application/pdf', doc: doc('application/pdf', big.length) })).toThrow(expect.objectContaining({ code: 'DOCUMENT_INTEGRITY' }));
+  });
+
+  test('nombre local: nunca toma el nombre original; folio y id inválidos se sustituyen', () => {
+    expect(localFilename({ folio: 'SJH-OBP-SOL-2026-000001', docId: '0000000000000000000000d1', mimeType: 'application/pdf' })).toBe('SJH-OBP-SOL-2026-000001-documento-0000d1.pdf');
+    expect(localFilename({ folio: '../../etc', docId: '../x', mimeType: 'image/png' })).toBe('expediente-documento-000000.png');
+    expect(localFilename({ folio: 'SJH-OBP-SOL-2026-000001', docId: 'ABCDEF123456', mimeType: 'image/jpeg' })).toBe('SJH-OBP-SOL-2026-000001-documento-123456.jpg');
   });
 
   test('entrega web con enlace blob temporal que se revoca', () => {

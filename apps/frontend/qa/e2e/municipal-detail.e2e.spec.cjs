@@ -59,7 +59,8 @@ test('04 documentos autorizados: descarga real del PDF por el servicio', async (
   const buttons = page.getByRole('button', { name: /^Descargar / });
   await expect(buttons).toHaveCount(2);
   const [download] = await Promise.all([page.waitForEvent('download'), buttons.first().click()]);
-  expect(download.suggestedFilename()).toMatch(/^Oficio de inspecci(o|ó)n\.pdf$/);
+  // C-21: nombre local generado (folio + id abreviado), nunca el nombre que subió el usuario.
+  expect(download.suggestedFilename()).toMatch(/^SJH-OBP-SOL-2026-000001-documento-[0-9a-f]{6}\.pdf$/);
   const stream = await download.createReadStream();
   const chunks = []; for await (const c of stream) chunks.push(c);
   expect(Buffer.concat(chunks).toString('latin1')).toMatch(/^%PDF-1\.4/);

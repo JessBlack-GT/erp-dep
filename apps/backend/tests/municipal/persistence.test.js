@@ -114,3 +114,29 @@ describe('F1-05 — guardia de persistencia QA (sin conexión)', () => {
     assert.strictEqual(databaseInUri('mongodb://h:27017'), null);
   });
 });
+
+describe('F1-14 — preparación L3 (sin MongoDB)', () => {
+  const { CASES } = require('./repository-contract/cases');
+  const { decideCase } = require('./repository-contract/define');
+  const { checkQaPersistence: guard } = require('../../src/modules/municipal/persistence/qa-guard');
+
+  it('los 7 casos L3 tienen implementación para MongoDB real', () => {
+    const l3 = CASES.filter((c) => c.level === 'L3');
+    assert.deepStrictEqual(l3.map((c) => c.id).sort(), ['RC-29', 'RC-30', 'RC-31', 'RC-32', 'RC-33', 'RC-34', 'RC-35']);
+    for (const c of l3) assert.strictEqual(typeof c.run, 'function', c.id);
+  });
+
+  it('sin MongoDB real autorizado, todo L3 queda PENDIENTE (nunca aprobado) y L1/L2 se ejecutan', () => {
+    for (const kind of ['memory', 'mongo-double']) {
+      for (const c of CASES) assert.strictEqual(decideCase(c, kind), c.level === 'L3' ? 'pending' : 'run', `${kind} ${c.id}`);
+    }
+    for (const c of CASES) assert.strictEqual(decideCase(c, 'mongo'), 'run', c.id);
+    assert.strictEqual(decideCase({ level: 'L3' }, 'mongo'), 'pending', 'un L3 sin implementación sigue pendiente');
+  });
+
+  it('en este entorno la guardia no autoriza: el ejecutor real queda omitido y su entorno de conexión no se carga', () => {
+    assert.strictEqual(guard(process.env).allowed, false);
+    const loaded = Object.keys(require.cache).filter((k) => /repository-contract[\\/]mongo-env\.js$/.test(k));
+    assert.deepStrictEqual(loaded, [], 'mongo-env.js (único que crea MongoClient) no se requirió');
+  });
+});

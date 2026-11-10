@@ -23,7 +23,9 @@ function createMongoContractEnvFactory({ env = process.env } = {}) {
   const runId = new Date().toISOString().replace(/\D/g, '').slice(0, 14);
   let client;
   let n = 0;
+  const metrics = [];
   return {
+    metrics,
     async open() {
       client = new MongoClient(env.MUNICIPAL_QA_URI, { retryWrites: true });
       await client.connect();
@@ -40,10 +42,17 @@ function createMongoContractEnvFactory({ env = process.env } = {}) {
         const docs = seed[logical].map(({ id, ...rest }) => ({ _id: id, ...rest }));
         if (docs.length) await db.collection(names[logical]).insertMany(docs);
       }
+      const bucket = new GridFSBucket(db, { bucketName: names.files });
       return {
         store: createMongoStore({ db, runTransaction: createTransactionRunner(client), prefix }),
-        storage: createGridFsStorage({ bucket: new GridFSBucket(db, { bucketName: names.files }) }),
-        mongo: { db, prefix },
+        storage: createGridFsStorage({ bucket }),
+        mongo: {
+          db, prefix, names, client, bucket,
+          /** Segunda conexión independiente (RC-35); el caso la cierra. */
+          newClient: async () => { const c = new MongoClient(env.MUNICIPAL_QA_URI, { readPreference: 'primary' }); await c.connect(); return c; },
+          /** Mediciones para la evidencia (sin datos personales). */
+          record: (caseId, values) => metrics.push({ caseId, prefix, at: new Date().toISOString(), ...values }),
+        },
       };
     },
   };

@@ -2,6 +2,7 @@
  * MuniERP IA — espacio de trabajo municipal (prototipo de Fase 1).
  *
  * F1-13: al elegir una fila se abre el detalle del expediente (RequestDetail) y «Volver» regresa a la lista.
+ * F1-14: con `municipal.audit.read` aparece «Bitácora de auditoría» (AuditLog, solo lectura).
  *
  * ⚠️ NO REGISTRADO en MainNavigator ni en Sidebar: añadir la entrada condicionada a membresías es
  * parte de F1-11 y requiere revisión de Codex. Por defecto usa la API simulada (sin red, datos
@@ -17,6 +18,8 @@ import { RequestList } from './components/RequestList';
 import { RequestIntakeForm } from './components/RequestIntakeForm';
 import { ReceiptView } from './components/ReceiptView';
 import { RequestDetail } from './components/RequestDetail';
+import { AuditLog } from './components/AuditLog';
+import { AUDIT_PERMISSION } from './model';
 
 export function MunicipalWorkspaceScreen({ api: injected }) {
   const api = useMemo(() => injected || createMockMunicipalApi(), [injected]);
@@ -26,6 +29,7 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
   const [receipt, setReceipt] = useState(null);
   const [formKey, setFormKey] = useState(0);
   const [selectedFolio, setSelectedFolio] = useState(null);
+  const [view, setView] = useState('requests');
 
   const load = useCallback(async () => {
     try {
@@ -76,6 +80,15 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
   const banner = api.isMock ? (
     <Text variant="caption" testID="municipal-mock-banner">{api.mockLabel || 'Modo prototipo: datos sintéticos, sin conexión al servidor.'}</Text>
   ) : null;
+  // F1-14: la entrada solo aparece con el permiso; el servidor vuelve a autorizar cada consulta.
+  const canAudit = (state.memberships[0].permissions || []).includes(AUDIT_PERMISSION);
+  if (view === 'audit' && canAudit)
+    return (
+      <ScrollView contentContainerStyle={styles.page} testID="municipal-workspace-audit">
+        {banner}
+        <AuditLog api={api} membership={state.memberships[0]} dependencies={state.dependencies} onBack={() => setView('requests')} />
+      </ScrollView>
+    );
   if (selectedFolio)
     return (
       <ScrollView contentContainerStyle={styles.page} testID="municipal-workspace-detail">
@@ -93,6 +106,7 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
     <ScrollView contentContainerStyle={styles.page} testID="municipal-workspace">
       <Text variant="heading1" accessibilityRole="header">{`MuniERP · ${mun.name}`}</Text>
       {banner}
+      {canAudit ? <Button variant="secondary" label="Bitácora de auditoría" onPress={() => setView('audit')} testID="workspace-open-audit" /> : null}
       <IndicatorsPanel data={state.indicators} />
       <View style={[styles.columns, wide && styles.columnsWide]}>
         <View style={[styles.column, wide && styles.columnHalf]}>

@@ -10,6 +10,7 @@
  *    u_op_tes, u_vent, u_aud, u_sup, u_consulta_obp, u_tit_dif, u_reg (sin membresía), u_admin_erp.
  *    `?latency=<ms>` simula latencia; `?fail=getRequest,listDocuments` falla la primera llamada.
  *    `?openFolio=r1|r2|r3|r4|r5|z1|<folio>` abre directamente el detalle (prueba de acceso directo).
+ *    `?view=audit` abre la bitácora (F1-14); `&mun=ZZZ` consulta otro municipio (aislamiento).
  *
  * Parámetros de URL del modo básico:
  *   ?scenario=no-membership  → usuario sin membresía
@@ -20,7 +21,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { View } from 'react-native';
-import { MunicipalWorkspaceScreen, RequestDetail, createMockMunicipalApi } from '../src/features/municipal';
+import { MunicipalWorkspaceScreen, RequestDetail, AuditLog, createMockMunicipalApi } from '../src/features/municipal';
 import { Text } from '../src/components/common';
 import { savePrivateDocumentWeb } from '../src/features/municipal/privateDocument';
 import { createServiceBackedWorld } from './service-backed-api';
@@ -59,7 +60,7 @@ async function main() {
     // C-21: el arnés entrega documentos con el lector privado municipal, no con el exportador comercial.
     const world = await createServiceBackedWorld({ save: (out) => savePrivateDocumentWeb(out.bytes, out.info) });
     const fail = (params.get('fail') || '').split(',').filter(Boolean);
-    api = world.apiFor(persona, { latencyMs: Math.min(Number(params.get('latency')) || 0, 5000), failFirst: fail, tamperDocuments: params.get('tamperDocs') === '1' });
+    api = world.apiFor(persona, { latencyMs: Math.min(Number(params.get('latency')) || 0, 5000), failFirst: fail, tamperDocuments: params.get('tamperDocs') === '1', mun: /^[A-Z]{3}$/.test(params.get('mun') || '') ? params.get('mun') : 'SJH' });
     // Solo QA: folios sembrados y revocación de la membresía de la persona actual.
     window.__muniFolios = world.folios;
     window.__muniRevokeCurrent = () => world.revoke(persona);
@@ -71,6 +72,18 @@ async function main() {
   document.documentElement.dataset.muniScenario = scenario;
   const openFolio = params.get('openFolio');
   const root = createRoot(document.getElementById('root'));
+  if (persona && params.get('view') === 'audit') {
+    // F1-14: bitácora directa para cualquier persona; el servicio decide (403 sin permiso o sin membresía).
+    const [membership] = await api.myMemberships();
+    const dependencies = membership ? await api.listDependencies().catch(() => []) : [];
+    root.render(
+      <View style={{ flex: 1 }}>
+        <Text variant="caption" testID="municipal-mock-banner">{api.mockLabel}</Text>
+        <AuditLog api={api} membership={membership} dependencies={dependencies} />
+      </View>,
+    );
+    return;
+  }
   if (persona && openFolio) {
     // Acceso directo al detalle: equivale a abrir un enlace a un folio. Sin membresía no se pide nada.
     const folio = (window.__muniFolios && window.__muniFolios[openFolio]) || openFolio;

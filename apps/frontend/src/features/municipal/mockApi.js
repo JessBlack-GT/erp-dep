@@ -77,6 +77,8 @@ export function createMockMunicipalApi({ delayMs = 0 } = {}) {
     },
     listDocuments: () => wait([]),
     listMemberships: () => wait([]),
+    // La persona del mock básico es SUPERVISOR_MUNICIPAL, que no tiene municipal.audit.read: igual que el servidor, 403.
+    listAuditEvents: () => Promise.reject(Object.assign(new Error('Sin permisos municipales suficientes'), { status: 403, code: 'FORBIDDEN' })),
     transitionRequest: () => Promise.reject(Object.assign(new Error('La API simulada básica no registra transiciones'), { status: 403, code: 'FORBIDDEN' })),
     downloadDocument: () => Promise.reject(Object.assign(new Error('No encontrado'), { status: 404, code: 'NOT_FOUND' })),
     getReceipt: (folio) => {

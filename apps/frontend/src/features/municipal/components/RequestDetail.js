@@ -10,32 +10,16 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import { Text, Card, Badge, Button, TextArea, LoadingSpinner } from '../../../components/common';
+import { Text, Badge, Button, TextArea, LoadingSpinner } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { OptionGroup } from './OptionGroup';
 import { RequestStatusBadge } from './RequestList';
+import { Field, Section } from './Section';
 import {
   REQUEST_TYPES, CONFIDENTIALITY_LABELS, CHANNEL_LABELS, HISTORY_LABELS, statusInfo, spokenFolio,
   availableActions, validateAction, actorLabel, formatDateTime, describeApiError,
 } from '../model';
 
-function Field({ label, value, testID }) {
-  return (
-    <View style={styles.field} testID={testID}>
-      <Text variant="caption" color="secondary">{label}</Text>
-      <Text>{value || '—'}</Text>
-    </View>
-  );
-}
-
-function Section({ title, children, testID }) {
-  return (
-    <Card style={styles.section} testID={testID}>
-      <Text variant="heading3" accessibilityRole="header">{title}</Text>
-      {children}
-    </Card>
-  );
-}
 
 export function historyItemLabel(h) {
   const from = h.fromStatus ? statusInfo(h.fromStatus).label : null;

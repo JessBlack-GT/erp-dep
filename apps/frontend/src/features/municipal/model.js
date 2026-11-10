@@ -163,3 +163,92 @@ export function describeApiError(error) {
   if (status === 400) return { kind: 'validation', message: (error && error.message) || 'Revise los datos capturados.' };
   return { kind: 'network', message: 'No fue posible comunicarse con el servidor. Intente de nuevo.' };
 }
+
+/* ------------------------------ F1-14: bitácora de auditoría ------------------------------ */
+
+/** Permiso del contrato para GET /audit-events (matriz vigente: solo AUDITOR_MUNICIPAL). */
+export const AUDIT_PERMISSION = 'municipal.audit.read';
+
+const transitionLabel = (action) => (TRANSITIONS[action] ? TRANSITIONS[action].label : null);
+
+/** Nombre legible de cada `action` que registra el servidor. Las desconocidas se muestran con su código. */
+export const AUDIT_ACTION_LABELS = {
+  REQUEST_CREATED: 'Registro de solicitud',
+  REQUEST_UPDATED: 'Edición de solicitud',
+  ...Object.fromEntries(Object.keys(TRANSITIONS).map((a) => [`REQUEST_${a}`, `Transición: ${transitionLabel(a)}`])),
+  DOCUMENT_UPLOADED: 'Documento adjuntado',
+  DOCUMENT_DOWNLOADED: 'Documento descargado',
+  DOCUMENT_INTEGRITY_FAILED: 'Documento con integridad fallida',
+  ACCESS_DENIED: 'Acceso denegado',
+  DEPENDENCY_CREATED: 'Alta de dependencia',
+  DEPENDENCY_UPDATED: 'Cambio de dependencia',
+  MEMBERSHIP_CREATED: 'Alta de membresía',
+  MEMBERSHIP_UPDATED: 'Cambio de membresía',
+  MEMBERSHIP_REVOKED: 'Revocación de membresía',
+  CITIZEN_CREATED: 'Alta de ciudadano',
+  GRANT_CREATED: 'Acceso compartido',
+  GRANT_REVOKED: 'Acceso compartido revocado',
+};
+
+export const AUDIT_ENTITY_LABELS = { Request: 'Expediente', Document: 'Documento', Citizen: 'Ciudadano', Grant: 'Acceso compartido', Dependency: 'Dependencia', Membership: 'Membresía' };
+export const AUDIT_RESULT_LABELS = { success: { label: 'Permitido', variant: 'success' }, denied: { label: 'Denegado', variant: 'error' } };
+export const AUDIT_PAGE_SIZES = [10, 20, 50];
+
+export function auditActionLabel(action) {
+  return AUDIT_ACTION_LABELS[action] || `Acción registrada (${String(action || 'sin código')})`;
+}
+
+/** Recurso afectado sin exponer identificadores completos: folio si existe; si no, id abreviado. */
+export function auditResourceLabel(e) {
+  const entity = AUDIT_ENTITY_LABELS[e.entity] || e.entity || 'Recurso';
+  if (e.folio) return `${entity} ${e.folio}`;
+  if (typeof e.entityId === 'string' && e.entityId.length >= 6) return `${entity} ···${e.entityId.slice(-6)}`;
+  return entity;
+}
+
+/** Dependencia derivada del folio (formato público MUN-DEP-TIPO-AAAA-NNNNNN), nunca inferida de otra forma. */
+export function dependencyFromFolio(folio, dependencies = []) {
+  if (typeof folio !== 'string' || !FOLIO_PATTERN.test(folio)) return null;
+  const code = folio.split('-')[1];
+  const dep = dependencies.find((d) => d.code === code);
+  return dep ? dep.name : code;
+}
+
+/** Etiqueta accesible de una fila (no incluye IP ni requestId). */
+export function auditEventAccessibilityLabel(e, dependencies = []) {
+  const dep = dependencyFromFolio(e.folio, dependencies);
+  const result = (AUDIT_RESULT_LABELS[e.result] || { label: e.result || '' }).label;
+  return [auditActionLabel(e.action), auditResourceLabel(e), dep ? `dependencia ${dep}` : null, result, formatDateTime(e.at), `por ${actorLabel(e.actorId)}`].filter(Boolean).join(', ');
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const OBJECT_ID_RE = /^[0-9a-f]{24}$/;
+/** Inicio del día en Ciudad de México (UTC−6, sin horario de verano desde 2022) en ISO. */
+const mxStartOfDay = (date) => new Date(`${date}T00:00:00-06:00`);
+
+/**
+ * Filtros del contrato: folio, entityId, from, to, page, limit. Las fechas se capturan como
+ * AAAA-MM-DD; «Hasta» es inclusivo en la interfaz (se envía el inicio del día siguiente, ya que el
+ * servidor usa `to` exclusivo). Devuelve { errors, query }.
+ */
+export function buildAuditQuery(values = {}) {
+  const errors = {};
+  const query = {};
+  const folio = (values.folio || '').trim().toUpperCase();
+  const entityId = (values.entityId || '').trim().toLowerCase();
+  const from = (values.from || '').trim();
+  const to = (values.to || '').trim();
+  if (folio) { if (FOLIO_PATTERN.test(folio)) query.folio = folio; else errors.folio = 'Folio con formato MUN-DEP-TIPO-AAAA-NNNNNN.'; }
+  if (entityId) { if (OBJECT_ID_RE.test(entityId)) query.entityId = entityId; else errors.entityId = 'Identificador de 24 caracteres hexadecimales.'; }
+  const valid = (d) => DATE_RE.test(d) && !Number.isNaN(mxStartOfDay(d).getTime()) && mxStartOfDay(d).toISOString().slice(0, 10) === d;
+  if (from) { if (valid(from)) query.from = mxStartOfDay(from).toISOString(); else errors.from = 'Fecha con formato AAAA-MM-DD.'; }
+  if (to) {
+    if (valid(to)) query.to = new Date(mxStartOfDay(to).getTime() + 24 * 3600 * 1000).toISOString();
+    else errors.to = 'Fecha con formato AAAA-MM-DD.';
+  }
+  if (query.from && query.to && query.from >= query.to) errors.to = '«Hasta» debe ser igual o posterior a «Desde».';
+  const limit = Number(values.limit) || 10;
+  query.limit = AUDIT_PAGE_SIZES.includes(limit) ? limit : 10;
+  query.page = Math.max(Number(values.page) || 1, 1);
+  return { errors, query };
+}

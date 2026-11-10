@@ -10,6 +10,7 @@ No forma parte de la app ni de su navegación.
 | `build-municipal-harness.cjs` | Compila el arnés con la misma configuración de esbuild que `scripts/web.cjs` |
 | `service-backed-api.js` + `shims/` | F1-13: servicio municipal **real** con almacén en memoria dentro del navegador (`?persona=`, `?openFolio=`, `?latency=`, `?fail=`) |
 | `e2e/municipal-detail.e2e.spec.cjs` | F1-13: 17 casos del detalle de expediente (10 escenarios pedidos) |
+| `e2e/municipal-audit.e2e.spec.cjs` | F1-14: 14 casos de la bitácora de auditoría (`?view=audit&persona=`, `&mun=ZZZ` para aislamiento) |
 | `e2e/evidence.cjs` | Captura por prueba, registro JSONL y bloqueo de red externa |
 | `run-windows.ps1` | Ejecución en Windows con el Playwright global (detecta `cli.js`, fija `NODE_PATH`) |
 | `e2e/municipal.e2e.spec.cjs` | 14 escenarios: carga, validación, CURP, registro, teclado, foco, continuidad, errores, membresía, accesibilidad, 3 anchos, impresión |
@@ -23,6 +24,7 @@ cd apps\frontend
 node qa\build-municipal-harness.cjs qa\dist-municipal
 powershell -ExecutionPolicy Bypass -File qa\run-windows.ps1                        # 3 navegadores
 powershell -ExecutionPolicy Bypass -File qa\run-windows.ps1 -Spec municipal-detail # solo F1-13
+powershell -ExecutionPolicy Bypass -File qa\run-windows.ps1 -Spec "municipal-(audit|detail)" # F1-14 + regresión F1-13
 ```
 
 `run-windows.ps1` no instala nada: usa `QA_CHROMIUM_EXE`, `QA_FIREFOX_EXE` y `QA_WEBKIT_EXE` si están

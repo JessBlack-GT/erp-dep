@@ -109,6 +109,18 @@ describe('F1-05 paso 3 — adaptador MongoDB (dobles controlados; no certifica M
       assert.deepStrictEqual(unique.filter((n) => !UNIQUE_INDEX_ERRORS[n]), []);
     });
 
+    it('idempotencia: índice único Y filtro con municipio + usuario + clave (las dos defensas)', async () => {
+      const ix = INDEXES.requests.find((i) => i.name === 'uniq_request_idempotency');
+      assert.deepStrictEqual(ix.key, { municipalityId: 1, createdBy: 1, idempotencyKey: 1 });
+      assert.strictEqual(ix.unique, true);
+      const { fake, store } = setup();
+      await store.requestByIdempotency(A, 'u1', 'clave-001');
+      assert.deepStrictEqual(fake.calls.at(-1).filter, { municipalityId: A, createdBy: 'u1', idempotencyKey: 'clave-001' });
+      await store.insertRequest(requestDoc(store, { key: 'clave-002' }));
+      await store.insertRequest(requestDoc(store, { municipalityId: B, code: 'ZZZ', key: 'clave-002' }));
+      assert.strictEqual(fake.raw('requests').length, 2, 'misma clave del mismo usuario en otro municipio: permitida por el índice');
+    });
+
     it('folio duplicado e idempotencia duplicada llegan al servicio con el código esperado', async () => {
       const { store } = setup();
       await store.insertRequest(requestDoc(store, { key: 'clave-001' }));

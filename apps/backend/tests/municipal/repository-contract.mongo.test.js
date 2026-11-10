@@ -25,7 +25,14 @@ if (!verdict.allowed || !confirmed) {
   const factory = createMongoContractEnvFactory();
   describe('MongoDB real munierp_qa (autorizado)', () => {
     before(async function () { this.timeout(60000); await factory.open(); });
-    after(() => factory.close());
+    after(async () => {
+      if (process.env.MUNICIPAL_QA_EVIDENCE_DIR) {
+        const fs = require('fs');
+        fs.mkdirSync(process.env.MUNICIPAL_QA_EVIDENCE_DIR, { recursive: true });
+        fs.writeFileSync(require('path').join(process.env.MUNICIPAL_QA_EVIDENCE_DIR, 'l3-mediciones.json'), JSON.stringify(factory.metrics, null, 2));
+      }
+      await factory.close();
+    });
     defineRepositoryContract({ label: 'MongoDB real munierp_qa', kind: 'mongo', createEnv: factory.createEnv });
   });
 }

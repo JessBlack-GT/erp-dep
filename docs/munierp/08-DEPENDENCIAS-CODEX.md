@@ -79,3 +79,17 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
   id con municipio. Sin cambios en draft.3.
 - Dependencias vigentes: C-01, C-05, C-08, C-15, C-16, C-17, C-18, C-19, C-20, C-21.
 
+
+## Actualización 2026-11-10 (F1-14)
+
+| ID | Prio | Hallazgo | Impacto | Propuesta | Archivos |
+|---|---|---|---|---|---|
+| C-22 | P2 | draft.3 no expone documentos `PENDIENTE` ni su estado; la bitácora no registra su creación | La conciliación de documentos no puede construirse sin inferir estado | `GET …/documents/pending` y `POST …/documents/{id}/reconciliation` (CONFIRMAR con sha256 / DESCARTAR sin borrar), permiso `municipal.documents.reconcile` (doc 16 §3) | OpenAPI draft.4, router, matriz de permisos |
+| C-23 | P3 (política) | `ADMIN_MUNICIPAL` no tiene `municipal.audit.read` | El administrador ve «acceso denegado» en la bitácora | Mantener (separación de funciones) o conceder lectura; decisión del responsable | `policy/permissions` (no modificado) |
+
+- **Bundle probado por Codex `8a18610` → actual:** diferencias de integración en doc 16 §6 (idempotencia por
+  municipio, 409 transitorio, integridad sha256, lector privado alineado con `privateDocumentPolicy`).
+- **C-19:** el `Input` de esta rama sigue con `role="search"`; las pruebas F1-14 aceptan `search` o ninguno
+  para no depender de la corrección pendiente.
+- Encabezados web: todos exponen nivel 1 en RN Web; reportar junto con C-18/C-19.
+- Dependencias vigentes: C-01, C-05, C-08, C-15, C-16, C-17, C-18, C-19, C-20, C-21, C-22, C-23.

@@ -55,6 +55,11 @@ export function createMunicipalApi({ client = apiClient, mun = 'SJH', platform =
     listDocuments: async (folio) => data(await call('get', m(`/requests/${enc(folio)}/documents`))),
     transitionRequest: async (folio, body) => data(await call('post', m(`/requests/${enc(folio)}/transitions`), {}, body)),
     getIndicators: async (params) => data(await call('get', m('/indicators'), { params })),
+    /** F1-14: bitácora (solo lectura). Filtros del contrato: folio, entityId, from, to, page, limit. */
+    listAuditEvents: async (params) => {
+      const res = await call('get', m('/audit-events'), { params });
+      return { items: data(res) || [], pagination: res.data && res.data.pagination };
+    },
     createRequest: async (body, key) => {
       const res = await call('post', m('/requests'), { headers: { 'Idempotency-Key': key } }, body);
       return { status: res.status, data: data(res) };
@@ -74,7 +79,7 @@ export function createMunicipalApi({ client = apiClient, mun = 'SJH', platform =
       const url = m(`/requests/${enc(folio)}/documents/${enc(doc.id)}/content`);
       const res = await call('get', url, { responseType: 'arraybuffer' });
       const bytes = new Uint8Array(res.data);
-      const info = inspectPrivateDocument(bytes, { contentType: res.headers && res.headers['content-type'], doc });
+      const info = inspectPrivateDocument(bytes, { contentType: res.headers && res.headers['content-type'], doc, folio, status: res.status });
       return savePrivateDocumentWeb(bytes, info);
     },
   };

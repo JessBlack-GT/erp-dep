@@ -36,13 +36,17 @@ aplique) en `docs/qa/MUNI-XX-VALIDATION.md`. "HECHO-A" **no** equivale a aprobad
 | 11 | F1-11 | Interfaz web municipal adaptable | RQ03, RQ04, RQ06 | MUNI-12 | `features/municipal/*` | Prototipo con mock; entrada en navegación solo con membresía | MT-93…95; MT-90/91/96 E2E | **HECHO-A** prototipo; navegación BLOQ (C-11) |
 | 12 | F1-12 | Dependencias y membresías (administración) | RQ05 | MUNI-04, MUNI-05 | servicio + UI admin | Unicidad por municipio; regla de asignación corregida (04 ¹) | MT-09, 10, 20…22, MT-F01…F08 | **HECHO-A** (2026-11-09, ver 11) |
 | 13 | F1-13 | Detalle de expediente (historial + documentos) en UI | RQ02, RQ05 | MUNI-12 | `features/municipal/*` | Historial legible; descarga en web y Android (`react-native-blob-util` ya instalado) | 16 Jest + 17 Playwright (Chromium nube y Windows) | **HECHO-A** (2026-11-10, ver 13) |
-| 14 | F1-14 | Bootstrap QA y runner real | todos | MUNI-03, MUNI-11 | `scripts/municipal-*.cjs` | Rechaza producción; limpia solo su `runId`; sin datos reales | Todos los R | BLOQ (C-05) |
+| 14 | F1-14 | Bitácora de auditoría en UI + conciliación PENDIENTE + casos L3 | RQ02, RQ05 | MUNI-06, MUNI-11 | `features/municipal/components/AuditLog.js`, `tests/municipal/repository-contract/*` | Solo con `municipal.audit.read` decidido por el servidor; sin IP/requestId; L3 sin falso aprobado | 11 Jest + 4 HTTP + 14×3 Playwright | **HECHO-A** bitácora (ver 16); conciliación BLOQ (C-22); L3 escritos, ejecución BLOQ (C-05) |
 | 15 | F1-15 | Validación E2E: teclado, celular, ventanilla | RQ06 | nuevo | `apps/frontend/qa/*` | MT-90, 91, 96 con evidencia | E2E | Parcial: MT-90 y MT-94 en Chromium con API simulada; faltan Firefox/WebKit, APK y WCAG completo |
 | — | F1-16 | Higiene de secretos del repo | — | MUNI-00 | `.gitignore` | Ver C-10 | — | BLOQ (C-10, núcleo) |
 | — | F1-17 | Endurecimiento de sesión | — | MUNI-13 | auth | Ver C-13 | — | BLOQ (C-13, núcleo) |
 | — | F1-18 | Diseño de IA opcional (Python + FastAPI) | — | MUNI-14 | `docs/munierp/10-IA.md` | Evaluación de impacto; sin PII externa | Revisión | Fuera de Fase 1 |
 
-**Siguiente paso recomendado (2026-11-10, tras F1-05 paso 3):** sin Atlas, **F1-14 — conciliación de
+**Siguiente paso recomendado (2026-11-10, tras F1-14):** **F1-15a — administración de membresías y
+dependencias en la interfaz** para ADMIN_MUNICIPAL (las operaciones F1-12 ya existen en servidor y draft.3).
+Decisiones pendientes: C-22 (conciliación) y C-23 (acceso del administrador a la bitácora).
+
+**Anterior (tras F1-05 paso 3):** sin Atlas, **F1-14 — conciliación de
 documentos PENDIENTE y bitácora de auditoría en la interfaz** (RQ05): lista de solo lectura para
 ADMIN/AUDITOR con `GET /audit-events` (ya en draft.3) y un informe de PENDIENTE sin borrado; requiere
 proponer a Codex el endpoint de PENDIENTE o resolverlo por bitácora. F1-05 se cierra cuando C-05 permita

@@ -8,8 +8,10 @@
  * cada lectura) y aquí se VERIFICA antes de entregarlo al usuario:
  *  - MIME permitido (PDF, PNG, JPEG) y coincidente con el metadato del documento;
  *  - firma del contenido (bytes iniciales) coherente con el MIME;
- *  - tamaño coincidente con el metadato;
- *  - nombre saneado sin rutas ni caracteres reservados y con extensión coherente.
+ *  - respuesta HTTP 200 y tamaño coincidente con el metadato, con tope de 5 MiB (el del servidor);
+ *  - nombre local GENERADO (folio + id abreviado + extensión de la lista permitida): nunca se usa el
+ *    nombre que subió el usuario, como pide la política de Codex (`utils/privateDocumentPolicy`, aún
+ *    sin integrar en esta rama; al integrarse, la verificación debe delegarse en ella para no duplicarla).
  *
  * Web: se entrega con un enlace temporal (`blob:`) que se revoca al terminar. Android/iOS: NO
  * disponible hasta el lector privado nativo (caché privada, visor interno, caducidad y revocación,
@@ -38,24 +40,28 @@ export class PrivateDocumentError extends Error {
 
 const baseMime = (contentType) => String(contentType || '').split(';')[0].trim().toLowerCase();
 
-/** Nombre local seguro: sin rutas, sin caracteres reservados ni de control, con extensión coherente. */
-export function safeFilename(name, mimeType) {
-  const exts = PRIVATE_MIME_TYPES[mimeType] || [];
-  let base = String(name || '').split(/[\\/]/).pop();
-  base = base.replace(/[\u0000-\u001f\u007f<>:"|?*]/g, '').replace(/\s+/g, ' ').replace(/^[.\s]+/, '').trim().slice(0, 100);
-  const ext = (base.match(/\.([A-Za-z0-9]+)$/) || [])[1];
-  if (!base || base.replace(/\.[A-Za-z0-9]+$/, '') === '') base = 'documento';
-  if (!ext || !exts.includes(ext.toLowerCase())) base = `${base.replace(/\.[A-Za-z0-9]+$/, '')}.${exts[0] || 'bin'}`;
-  return base;
+/** Tope de tamaño: igual al del servidor (domain/documents.js MAX_BYTES) y al de la política de Codex. */
+export const PRIVATE_MAX_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Nombre local generado: `<folio>-documento-<6 últimos del id>.<ext>`. No contiene el nombre original
+ * (que puede llevar datos personales) ni rutas; la extensión sale de la lista permitida.
+ */
+export function localFilename({ folio, docId, mimeType }) {
+  const ext = (PRIVATE_MIME_TYPES[mimeType] || ['bin'])[0];
+  const safeFolio = /^[A-Z]{3}-[A-Z]{3}-[A-Z]{3}-\d{4}-\d{6}$/.test(String(folio || '')) ? folio : 'expediente';
+  const tail = /^[0-9a-f]{6,}$/i.test(String(docId || '')) ? String(docId).slice(-6).toLowerCase() : '000000';
+  return `${safeFolio}-documento-${tail}.${ext}`;
 }
 
 /**
  * Verifica el contenido recibido contra el metadato del documento. Lanza PrivateDocumentError
  * (`DOCUMENT_INTEGRITY`) si algo no coincide; nunca entrega contenido no verificado.
  * @param {Uint8Array} bytes
- * @param {{ contentType: string, doc: { mimeType: string, size?: number, filename?: string } }} input
+ * @param {{ contentType: string, doc: { id?: string, mimeType: string, size?: number }, folio?: string, status?: number }} input
  */
-export function inspectPrivateDocument(bytes, { contentType, doc }) {
+export function inspectPrivateDocument(bytes, { contentType, doc, folio, status = 200 }) {
+  if (status !== 200) throw new PrivateDocumentError('DOCUMENT_INTEGRITY', 'Documento no disponible.');
   const declared = baseMime(doc && doc.mimeType);
   const received = baseMime(contentType);
   if (!PRIVATE_MIME_TYPES[declared]) throw new PrivateDocumentError('DOCUMENT_INTEGRITY', 'Tipo de documento no permitido.');
@@ -63,9 +69,10 @@ export function inspectPrivateDocument(bytes, { contentType, doc }) {
   const sig = SIGNATURES[declared];
   if (!bytes || bytes.length < sig.length || !sig.every((b, i) => bytes[i] === b))
     throw new PrivateDocumentError('DOCUMENT_INTEGRITY', 'El contenido recibido no corresponde al tipo del documento.');
+  if (bytes.length > PRIVATE_MAX_BYTES) throw new PrivateDocumentError('DOCUMENT_INTEGRITY', 'El documento supera el tamaño permitido.');
   if (typeof doc.size === 'number' && bytes.length !== doc.size)
     throw new PrivateDocumentError('DOCUMENT_INTEGRITY', 'El tamaño recibido no coincide con el del documento.');
-  return { mimeType: declared, filename: safeFilename(doc.filename, declared) };
+  return { mimeType: declared, filename: localFilename({ folio, docId: doc.id, mimeType: declared }) };
 }
 
 /**

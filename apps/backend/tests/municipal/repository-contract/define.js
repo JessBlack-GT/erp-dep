@@ -14,6 +14,16 @@ const { CASES, LEVEL_LABEL } = require('./cases');
 const { withFaults } = require('./faults');
 const { assertRepositoryPort } = require('../../../src/modules/municipal/persistence/repository-port');
 
+/**
+ * Decisión explícita por caso: 'run' o 'pending'. Sin MongoDB real autorizado (`kind !== 'mongo'`),
+ * todo L3 queda PENDIENTE: nunca se aprueba por ausencia de la base.
+ * @param {{ level: string, run?: Function }} c @param {string} kind
+ */
+function decideCase(c, kind) {
+  if (c.level !== 'L3') return 'run';
+  return kind === 'mongo' && typeof c.run === 'function' ? 'run' : 'pending';
+}
+
 function defineRepositoryContract(impl) {
   describe(`Contrato del repositorio municipal — ${impl.label}`, () => {
     const areas = [...new Set(CASES.map((c) => c.area))];
@@ -22,7 +32,7 @@ function defineRepositoryContract(impl) {
         for (const c of CASES.filter((x) => x.area === area)) {
           const label = c.level === 'L2' && impl.kind === 'mongo' ? 'L2 concurrencia en MongoDB real' : LEVEL_LABEL[c.level];
           const title = `${c.id} [${label}] ${c.title}`;
-          if (c.level === 'L3' && (impl.kind !== 'mongo' || !c.run)) { it(`${title} — pendiente: ${c.verify}`); continue; }
+          if (decideCase(c, impl.kind) === 'pending') { it(`${title} — pendiente: ${c.verify}`); continue; }
           it(title, async () => {
             const env = await impl.createEnv();
             try {
@@ -39,4 +49,4 @@ function defineRepositoryContract(impl) {
   });
 }
 
-module.exports = { defineRepositoryContract };
+module.exports = { defineRepositoryContract, decideCase };

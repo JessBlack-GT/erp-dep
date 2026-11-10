@@ -390,7 +390,39 @@ const CASES = [
       assert.ok(r.ok, r.problems.join('; '));
     } },
   { id: 'RC-30', area: 'Errores de persistencia', level: 'L3', title: 'transacción multi-documento real: writeConcern majority, readConcern snapshot y reintento de TransientTransactionError',
-    verify: 'Forzar conflicto de escritura entre dos sesiones (WriteConflict) y verificar reintento sin duplicar folio.' },
+    verify: 'Forzar conflicto de escritura entre dos sesiones (WriteConflict) y verificar reintento sin duplicar folio.',
+    async run({ mongo, store }) {
+      // 1) El SERVIDOR detecta el conflicto entre dos transacciones abiertas (sin reintento del ejecutor).
+      const counters = mongo.db.collection(mongo.names.counters);
+      const key = 'SJH:RCT:SOL:2026';
+      await counters.insertOne({ _id: key, seq: 0 });
+      const options = { readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' }, readPreference: 'primary' };
+      const a = mongo.client.startSession();
+      const b = mongo.client.startSession();
+      try {
+        a.startTransaction(options);
+        b.startTransaction(options);
+        await counters.updateOne({ _id: key }, { $inc: { seq: 1 } }, { session: a });
+        const conflict = await counters.updateOne({ _id: key }, { $inc: { seq: 1 } }, { session: b }).then(() => null, (e) => e);
+        assert.ok(conflict, 'la segunda transacción debe fallar');
+        assert.ok(typeof conflict.hasErrorLabel === 'function' && conflict.hasErrorLabel('TransientTransactionError'), `etiqueta transitoria esperada: ${conflict && conflict.codeName}`);
+        await b.abortTransaction();
+        await a.commitTransaction();
+      } finally {
+        await a.endSession();
+        await b.endSession();
+      }
+      assert.strictEqual((await counters.findOne({ _id: key })).seq, 1, 'solo la transacción confirmada cuenta');
+      // 2) Con el ejecutor del adaptador (withTransaction reintenta): 20 altas simultáneas → 20 folios únicos y consecutivos.
+      const created = await Promise.all(Array.from({ length: 20 }, (_, i) => store.transaction(async (tx) => {
+        const seq = await tx.nextSequence('SJH:OBP:SOL:2026');
+        return tx.insertRequest(requestDoc(tx, { sequence: seq, key: `rc30-${i}` }));
+      })));
+      const folios = created.map((r) => r.folio).sort();
+      assert.strictEqual(new Set(folios).size, 20);
+      assert.strictEqual(folios[19], 'SJH-OBP-SOL-2026-000020');
+      assert.strictEqual(await store.nextSequence('SJH:OBP:SOL:2026'), 21, 'sin huecos ni dobles incrementos');
+    } },
   { id: 'RC-31', area: 'Aislamiento municipal', level: 'L3', title: 'el arranque rechaza una topología sin réplica (standalone) y una base distinta de munierp_qa',
     verify: 'hello() sin setName → error de arranque; qa-guard rechaza otra base antes de conectar.',
     async run({ mongo }) {
@@ -399,13 +431,86 @@ const CASES = [
       assert.strictEqual(mongo.db.databaseName, 'munierp_qa');
     } },
   { id: 'RC-32', area: 'Documentos privados', level: 'L3', title: 'GridFS: binario fuera de la transacción, PENDIENTE huérfano conciliable, sha256 verificado al leer',
-    verify: 'Cortar la subida a GridFS tras insertar metadatos → queda PENDIENTE; la conciliación lo reporta sin borrar.' },
+    verify: 'Cortar la subida a GridFS tras insertar metadatos → queda PENDIENTE; la conciliación lo reporta sin borrar.',
+    async run({ mongo, store, storage }) {
+      const crypto = require('crypto');
+      const key = crypto.randomBytes(16).toString('hex');
+      const bytes = Buffer.from('%PDF-1.4\n% L3 sintetico\n');
+      const uploadedAt = new Date(Date.now() - 3600 * 1000);
+      const doc = { id: store.newId(), municipalityId: A, requestId: 'rc32', folio: 'SJH-OBP-SOL-2026-000001', mimeType: 'application/pdf', size: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex'), storageKey: key, status: 'PENDIENTE', confidentiality: 'PUBLICA', uploadedAt };
+      await store.insertDocument(doc);
+      // Subida interrumpida: el flujo se aborta antes de cerrar (sin documento completo en files.files).
+      const upload = mongo.bucket.openUploadStream(key);
+      upload.write(bytes.subarray(0, 4));
+      await upload.abort();
+      assert.strictEqual(await code(storage.get(key)), 'NOT_FOUND', 'sin binario utilizable');
+      assert.deepStrictEqual((await store.pendingDocuments(A, new Date())).map((d) => d.id), [doc.id], 'conciliable');
+      assert.strictEqual((await store.documentsOf(A, 'rc32'))[0].status, 'PENDIENTE', 'nada se borró ni se marcó');
+      // Reintento correcto: el binario se guarda fuera de la transacción y se verifica su huella al leer.
+      await storage.put(key, bytes);
+      const back = await storage.get(key);
+      assert.strictEqual(crypto.createHash('sha256').update(back).digest('hex'), doc.sha256);
+      // El índice único de files.filename impide un segundo binario con la misma clave (también en carrera).
+      const second = await new Promise((resolve) => {
+        const up = mongo.bucket.openUploadStream(key);
+        up.once('error', resolve);
+        up.once('finish', () => resolve(null));
+        up.end(Buffer.from('otro'));
+      });
+      assert.ok(second && second.code === 11000, 'el servidor rechaza el duplicado por índice');
+    } },
   { id: 'RC-33', area: 'Historial y auditoría', level: 'L3', title: 'el usuario de aplicación no puede modificar ni borrar municipal_audit_events (rol de Atlas)',
-    verify: 'updateOne/deleteOne sobre la bitácora con el usuario de la app → error de autorización del servidor.' },
+    verify: 'Privilegios efectivos del usuario de la app sobre municipal_audit_events: sin update ni remove (comprobación de solo lectura).',
+    async run({ mongo }) {
+      // Solo lectura: se inspeccionan los privilegios efectivos; no se intenta modificar ni borrar.
+      // Se usa el nombre canónico (sin prefijo de prueba), que es el que tendrá el rol de Atlas.
+      const status = await mongo.db.command({ connectionStatus: 1, showPrivileges: true });
+      const privileges = (status.authInfo && status.authInfo.authenticatedUserPrivileges) || [];
+      const audit = 'municipal_audit_events';
+      const applies = (r) => r && (r.anyResource || r.cluster || ((r.db === 'munierp_qa' || r.db === '') && (r.collection === '' || r.collection === audit)));
+      const actions = new Set(privileges.filter((p) => applies(p.resource)).flatMap((p) => p.actions));
+      assert.ok(actions.has('insert') && actions.has('find'), 'la app debe poder insertar y leer la bitácora');
+      for (const forbidden of ['update', 'remove', 'dropCollection', 'collMod', 'anyAction'])
+        assert.ok(!actions.has(forbidden), `la app no debe tener ${forbidden} sobre ${audit}`);
+    } },
   { id: 'RC-34', area: 'Historial y auditoría', level: 'L3', title: 'historial con $push bajo concurrencia real y medición del tamaño del documento (límite 16 MB)',
-    verify: 'Muchas transiciones concurrentes con versión; tamaño BSON medido frente al umbral de la decisión diferida.' },
+    verify: 'Muchas transiciones concurrentes con versión; tamaño BSON medido frente al umbral de la decisión diferida.',
+    async run({ mongo, store }) {
+      const saved = await store.insertRequest(requestDoc(store));
+      let version = 0;
+      let history = saved.history;
+      const rounds = 25;
+      for (let round = 0; round < rounds; round += 1) {
+        // Cinco escritores compiten con la MISMA versión: el servidor debe aceptar exactamente uno.
+        const entry = (w) => ({ at: new Date(), actorId: fx.USERS.u_tit_obp, action: 'EDITAR', fromStatus: 'REGISTRADA', toStatus: 'REGISTRADA', note: `ronda ${round} escritor ${w}` });
+        const results = await Promise.allSettled([0, 1, 2, 3, 4].map((w) => store.transaction((tx) => tx.updateRequest(A, saved.id, version, { version: version + 1, history: [...history, entry(w)] }))));
+        const won = results.filter((r) => r.status === 'fulfilled');
+        assert.strictEqual(won.length, 1, `ronda ${round}: un solo ganador`);
+        assert.ok(results.filter((r) => r.status === 'rejected').every((r) => ['STALE_VERSION', 'TRANSIENT_CONFLICT'].includes(r.reason.code)));
+        version += 1;
+        history = won[0].value.history;
+      }
+      const [stored] = await store.findRequests({ $and: [{ municipalityId: A }, { _id: saved.id }] });
+      assert.strictEqual(stored.version, rounds);
+      assert.strictEqual(stored.history.length, rounds + 1, 'ninguna entrada perdida ni duplicada');
+      const [{ size }] = await mongo.db.collection(mongo.names.requests).aggregate([{ $match: { _id: saved.id } }, { $project: { size: { $bsonSize: '$$ROOT' } } }]).toArray();
+      mongo.record('RC-34', { rounds, bsonBytes: size, bytesPerEntry: Math.round(size / (rounds + 1)) });
+      assert.ok(size < 1024 * 1024, `tamaño ${size} B lejos del límite de 16 MB`);
+    } },
   { id: 'RC-35', area: 'Revocación de membresías', level: 'L3', title: 'revocación visible en la siguiente petición con lecturas primary tras commit (sin caché)',
-    verify: 'Revocar en una sesión y leer desde otra conexión inmediatamente: la membresía aparece INACTIVA.' },
+    verify: 'Revocar en una sesión y leer desde otra conexión inmediatamente: la membresía aparece INACTIVA.',
+    async run({ mongo, store }) {
+      const id = fx.oid(303);
+      await store.transaction((tx) => tx.updateMembership(A, id, 0, { status: 'INACTIVA' }));
+      const other = await mongo.newClient();
+      try {
+        const doc = await other.db('munierp_qa').collection(mongo.names.memberships).findOne({ _id: id, municipalityId: A }, { readPreference: 'primary' });
+        assert.strictEqual(doc.status, 'INACTIVA', 'visible desde otra conexión sin esperar');
+        assert.strictEqual(doc.version, 1);
+      } finally {
+        await other.close();
+      }
+    } },
 ];
 
 const LEVEL_LABEL = {
