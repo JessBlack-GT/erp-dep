@@ -26,7 +26,7 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
 | C-17 | P2 | `ajv` y `js-yaml` en pruebas | La validación de respuestas contra el contrato usa dependencias transitivas de ESLint; si cambian, la suite se omite explícitamente | Declararlas como devDependencies del backend | `apps/backend/package.json` |
 | C-18 | P2 | `Card` (componente común) descarta `accessibilityLabel` cuando no es interactiva | Encontrado por Playwright: filas sin nombre accesible. MuniERP lo rodea en su propio componente | Pasar `accessibilityLabel` también a la rama `View` | `apps/frontend/src/components/common/Card.js` |
 | C-19 | P2 | `Input` declara `accessibilityRole="search"` en todos los campos | Los lectores de pantalla anuncian cada campo como búsqueda (WCAG 4.1.2) | Usar el rol por defecto o uno configurable | `apps/frontend/src/components/common/Input.js` |
-| C-20 | P2 | Herramientas de QA E2E | Playwright solo está disponible con Chromium en la nube; Firefox/WebKit requieren ejecutar en Windows (2026-11-10: Chromium 158 en Windows 31/31; faltan los binarios de Firefox y WebKit) o declarar `@playwright/test` y navegadores en CI | Decidir dónde corre E2E (CI o equipo) | CI |
+| C-20 | P2 | Herramientas de QA E2E | Playwright solo está disponible con Chromium en la nube; Firefox/WebKit requieren ejecutar en Windows (**2026-11-10 13:25: 93/93 en Windows — Chromium 158, Firefox 158 con `firefox-1569`, WebKit 27.2 con `webkit-2386`, rutas explícitas como el ejecutor de M07**) o declarar `@playwright/test` y navegadores en CI | Decidir dónde corre E2E (CI o equipo) | CI |
 | C-21 | P2 | `downloadFile.android.js` solo acepta PDF/XLSX y rotula «Reporte de inventario» | Los documentos municipales también pueden ser PNG/JPEG; en Android fallarían con «Formato de reporte no compatible» (F1-13) | Parámetros opcionales `mimeTypes` y `description` sin cambiar el comportamiento actual | `apps/frontend/src/utils/downloadFile.android.js` |
 | C-14 | P2 | CORS | Solo si la interfaz municipal se publica en otro dominio | Ninguno si vive en la misma app de Cloudflare Pages | `config/cors.js` |
 
@@ -48,3 +48,19 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
 | `User` | Identidad referenciada por `municipal_memberships.userId` | Sin campos nuevos |
 | `shared/services/email` | (Futuro) avisos a funcionarios | Sin cambios |
 | `errorHandler`, helmet, CORS, rate limit | Transversales | Ver C-08 |
+
+## Actualización 2026-11-10 (F1-05 pasos 1–2)
+
+- **C-05:** la guardia `persistence/qa-guard.js` exige `munierp_qa` exclusiva y una autorización
+  `MUNICIPAL_QA_AUTHORIZED` **propia**; rechaza la reutilizada de M07/Ventas u otra base compartida.
+  Sin C-05 el ejecutor Mongo de la suite de contrato queda omitido.
+- **C-18/C-19:** revisado el diff de Codex (sin integrarlo). Ajustes municipales hechos para que no se
+  dupliquen etiquetas con el Card corregido (`RequestList` estático, `ReceiptView`); probados con el
+  Card actual y con una réplica de prueba del corregido. Pendiente la verificación conjunta con el
+  núcleo real en la integración (doc 14 §5).
+- **C-21:** se adopta la indicación de Codex: no usar el exportador de reportes Android para documentos
+  municipales privados; F1-13 sigue usando `downloadFile` solo en web. El lector privado Android queda
+  como historia propia.
+- **Contrato:** X-02 y X-04 retiradas, X-01 propuesta aditiva, X-03 diferida
+  ([contracts/PROPUESTAS-DRAFT4.md](contracts/PROPUESTAS-DRAFT4.md)); draft.3 sigue vigente.
+- Dependencias vigentes: C-01, C-05, C-08, C-15, C-16, C-17, C-18, C-19, C-20, C-21.

@@ -37,22 +37,23 @@ export async function createServiceBackedWorld({ save } = {}) {
   const store = createMemoryStore({ municipalities: fx.MUNICIPALITIES, dependencies: fx.buildDependencies(), citizens: fx.buildCitizens(), memberships });
   const service = createMunicipalService({ store, storage: createMemoryStorage(), clock, userLookup: async (id) => (Object.values(fx.USERS).includes(id) ? { id } : null) });
   const SJH = fx.MUNICIPALITIES[0].id;
-  const ctx = (userKey, munId = SJH) =>
-    buildAccessContext({ erpAccess: { id: fx.USERS[userKey] }, memberships: store.membershipsOf(fx.USERS[userKey]), grants: store.grantsFor(munId), municipalityId: munId, now: clock() });
+  // Igual que la capa HTTP: membresías y concesiones se leen del puerto (asíncrono desde F1-05) en cada llamada.
+  const ctx = async (userKey, munId = SJH) =>
+    buildAccessContext({ erpAccess: { id: fx.USERS[userKey] }, memberships: await store.membershipsOf(fx.USERS[userKey]), grants: await store.grantsFor(munId), municipalityId: munId, now: clock() });
   let n = 0;
   const create = async (user, dep, subject, extra = {}, mun = 'SJH', munId = SJH, citizen = 0) => {
     tick(1);
-    const r = await service.createRequest(ctx(user, munId), mun, { type: 'SOL', ownerDependency: dep, subject, citizenId: fx.oid(400 + citizen), channel: 'PRESENCIAL', ...extra }, `seed-key-${++n}-qa`);
+    const r = await service.createRequest(await ctx(user, munId), mun, { type: 'SOL', ownerDependency: dep, subject, citizenId: fx.oid(400 + citizen), channel: 'PRESENCIAL', ...extra }, `seed-key-${++n}-qa`);
     return r.data;
   };
-  const move = async (user, folio, body) => { tick(); return service.transition(ctx(user), 'SJH', folio, body); };
+  const move = async (user, folio, body) => { tick(); return service.transition(await ctx(user), 'SJH', folio, body); };
 
   // R1: en trámite, asignado, con un documento público y uno confidencial.
   const r1 = await create('u_op_obp', 'OBP', 'Reparación de luminaria en calle sintética', { description: 'Luminaria apagada frente al número 10 (dato de prueba).' });
   await move('u_tit_obp', r1.folio, { action: 'TURNAR', version: 0, toDependencies: ['OBP'], note: 'Se atiende en Obras' });
   await move('u_tit_obp', r1.folio, { action: 'ASIGNAR', version: 1, assignedUserId: fx.USERS.u_op_obp });
-  tick(); await service.uploadDocument(ctx('u_op_obp'), 'SJH', r1.folio, { filename: 'Oficio de inspección.pdf', mimeType: 'application/pdf', contentBase64: PDF('oficio sintetico') });
-  tick(); await service.uploadDocument(ctx('u_tit_obp'), 'SJH', r1.folio, { filename: 'Dictamen interno.pdf', mimeType: 'application/pdf', contentBase64: PDF('dictamen sintetico'), confidentiality: 'CONFIDENCIAL' });
+  tick(); await service.uploadDocument(await ctx('u_op_obp'), 'SJH', r1.folio, { filename: 'Oficio de inspección.pdf', mimeType: 'application/pdf', contentBase64: PDF('oficio sintetico') });
+  tick(); await service.uploadDocument(await ctx('u_tit_obp'), 'SJH', r1.folio, { filename: 'Dictamen interno.pdf', mimeType: 'application/pdf', contentBase64: PDF('dictamen sintetico'), confidentiality: 'CONFIDENCIAL' });
   // R2: registrada, sin documentos.
   const r2 = await create('u_vent', 'OBP', 'Bache en calle de prueba', { channel: 'TELEFONO' });
   // R3: concluida con nota.
@@ -85,27 +86,27 @@ export async function createServiceBackedWorld({ save } = {}) {
       mockLabel: SERVICE_BACKED_LABEL,
       persona,
       myMemberships: wrap('myMemberships', () => service.myMemberships(fx.USERS[persona])),
-      listDependencies: wrap('listDependencies', () => service.listDependencies(c(), 'SJH', { status: 'ACTIVA' })),
-      searchCitizens: wrap('searchCitizens', () => service.searchCitizens(c(), 'SJH', {}).items),
-      listMemberships: wrap('listMemberships', (q = {}) => service.listMemberships(c(), 'SJH', q).items),
-      listRequests: wrap('listRequests', (q = {}) => service.listRequests(c(), 'SJH', q)),
-      getRequest: wrap('getRequest', (folio) => ({ data: service.getRequest(c(), 'SJH', folio, { ip: '127.0.0.1', requestId: 'qa-ui' }) })),
-      getRequestHistory: wrap('getRequestHistory', (folio) => service.getHistory(c(), 'SJH', folio)),
-      listDocuments: wrap('listDocuments', (folio) => service.listDocuments(c(), 'SJH', folio)),
-      transitionRequest: wrap('transitionRequest', async (folio, body) => { tick(1); return service.transition(c(), 'SJH', folio, body, { ip: '127.0.0.1', requestId: 'qa-ui' }); }),
-      getIndicators: wrap('getIndicators', () => service.indicators(c(), 'SJH', { from: new Date('2026-10-01T00:00:00Z'), to: new Date('2026-11-01T00:00:00Z') })),
-      createRequest: wrap('createRequest', (body, key) => { tick(1); return service.createRequest(c(), 'SJH', body, key, { ip: '127.0.0.1', requestId: 'qa-ui' }); }),
-      getReceipt: wrap('getReceipt', (folio) => service.receipt(c(), 'SJH', folio)),
+      listDependencies: wrap('listDependencies', async () => service.listDependencies(await c(), 'SJH', { status: 'ACTIVA' })),
+      searchCitizens: wrap('searchCitizens', async () => (await service.searchCitizens(await c(), 'SJH', {})).items),
+      listMemberships: wrap('listMemberships', async (q = {}) => (await service.listMemberships(await c(), 'SJH', q)).items),
+      listRequests: wrap('listRequests', async (q = {}) => service.listRequests(await c(), 'SJH', q)),
+      getRequest: wrap('getRequest', async (folio) => ({ data: await service.getRequest(await c(), 'SJH', folio, { ip: '127.0.0.1', requestId: 'qa-ui' }) })),
+      getRequestHistory: wrap('getRequestHistory', async (folio) => service.getHistory(await c(), 'SJH', folio)),
+      listDocuments: wrap('listDocuments', async (folio) => service.listDocuments(await c(), 'SJH', folio)),
+      transitionRequest: wrap('transitionRequest', async (folio, body) => { tick(1); return service.transition(await c(), 'SJH', folio, body, { ip: '127.0.0.1', requestId: 'qa-ui' }); }),
+      getIndicators: wrap('getIndicators', async () => service.indicators(await c(), 'SJH', { from: new Date('2026-10-01T00:00:00Z'), to: new Date('2026-11-01T00:00:00Z') })),
+      createRequest: wrap('createRequest', async (body, key) => { tick(1); return service.createRequest(await c(), 'SJH', body, key, { ip: '127.0.0.1', requestId: 'qa-ui' }); }),
+      getReceipt: wrap('getReceipt', async (folio) => service.receipt(await c(), 'SJH', folio)),
       downloadDocument: wrap('downloadDocument', async (folio, doc) => {
-        const out = await service.downloadDocument(c(), 'SJH', folio, doc.id, { ip: '127.0.0.1', requestId: 'qa-ui' });
+        const out = await service.downloadDocument(await c(), 'SJH', folio, doc.id, { ip: '127.0.0.1', requestId: 'qa-ui' });
         if (save) save(out, doc.filename);
         return { saved: true };
       }),
     };
   }
 
-  return { apiFor, folios, store, service, fx, revoke: (userKey) => {
-    const m = store.membershipsOf(fx.USERS[userKey]).find((x) => x.municipalityId === SJH);
-    if (m) store.updateMembership(m.id, m.version || 0, { status: 'INACTIVA' });
+  return { apiFor, folios, store, service, fx, revoke: async (userKey) => {
+    const m = (await store.membershipsOf(fx.USERS[userKey])).find((x) => x.municipalityId === SJH);
+    if (m) await store.updateMembership(m.id, m.version || 0, { status: 'INACTIVA' });
   } };
 }

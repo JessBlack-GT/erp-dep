@@ -44,66 +44,69 @@ const ok = (res, status, data, extra = {}) => res.status(status).json({ success:
  * @type {Array<{ method: 'get'|'post'|'patch'|'delete', path: string, operationId: string, handler?: Function }>}
  */
 function routeTable(service) {
+  /** Contexto municipal (asíncrono desde F1-05: membresías y concesiones salen del puerto). */
   const ctx = (req) => req.municipalCtx(P.mun(req.params.mun));
   const meta = (req) => req.municipalMeta;
+  const list = (res, r) => ok(res, 200, r.items, { pagination: r.pagination });
   return [
     { method: 'get', path: '/me/memberships', operationId: 'listMyMemberships',
-      handler: (req, res) => ok(res, 200, service.myMemberships(req.user.id)) },
+      handler: async (req, res) => ok(res, 200, await service.myMemberships(req.user.id)) },
 
     { method: 'get', path: '/municipalities/{mun}/dependencies', operationId: 'listDependencies',
-      handler: (req, res) => ok(res, 200, service.listDependencies(ctx(req), req.params.mun, P.parseQuery(req.query, { status: P.q.activeStatus }))) },
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 200, await service.listDependencies(c, req.params.mun, P.parseQuery(req.query, { status: P.q.activeStatus })));
+      } },
     { method: 'post', path: '/municipalities/{mun}/dependencies', operationId: 'createDependency',
-      handler: (req, res) => ok(res, 201, service.createDependency(ctx(req), req.params.mun, req.body, meta(req))) },
+      handler: async (req, res) => ok(res, 201, await service.createDependency(await ctx(req), req.params.mun, req.body, meta(req))) },
     { method: 'patch', path: '/municipalities/{mun}/dependencies/{code}', operationId: 'updateDependency',
-      handler: (req, res) => {
-        const c = ctx(req);
-        return ok(res, 200, service.updateDependency(c, req.params.mun, P.depCodeOr404(req.params.code), req.body, meta(req)));
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 200, await service.updateDependency(c, req.params.mun, P.depCodeOr404(req.params.code), req.body, meta(req)));
       } },
     { method: 'get', path: '/municipalities/{mun}/memberships', operationId: 'listMemberships',
-      handler: (req, res) => {
+      handler: async (req, res) => {
         const query = P.parseQuery(req.query, { role: P.q.role, dependency: P.q.dependency, status: P.q.activeStatus, page: P.q.page, limit: P.q.limit });
-        const r = service.listMemberships(ctx(req), req.params.mun, query);
-        return ok(res, 200, r.items, { pagination: r.pagination });
+        return list(res, await service.listMemberships(await ctx(req), req.params.mun, query));
       } },
     { method: 'post', path: '/municipalities/{mun}/memberships', operationId: 'createMembership',
-      handler: async (req, res) => ok(res, 201, await service.createMembership(ctx(req), req.params.mun, req.body, meta(req))) },
+      handler: async (req, res) => ok(res, 201, await service.createMembership(await ctx(req), req.params.mun, req.body, meta(req))) },
     { method: 'patch', path: '/municipalities/{mun}/memberships/{membershipId}', operationId: 'updateMembership',
-      handler: (req, res) => {
-        const c = ctx(req);
-        return ok(res, 200, service.updateMembership(c, req.params.mun, P.objectIdOr404(req.params.membershipId), req.body, meta(req)));
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 200, await service.updateMembership(c, req.params.mun, P.objectIdOr404(req.params.membershipId), req.body, meta(req)));
       } },
 
     { method: 'post', path: '/municipalities/{mun}/citizens', operationId: 'createCitizen',
-      handler: (req, res) => ok(res, 201, service.createCitizen(ctx(req), req.params.mun, req.body, meta(req))) },
+      handler: async (req, res) => ok(res, 201, await service.createCitizen(await ctx(req), req.params.mun, req.body, meta(req))) },
     { method: 'get', path: '/municipalities/{mun}/citizens', operationId: 'searchCitizens',
-      handler: (req, res) => {
-        const r = service.searchCitizens(ctx(req), req.params.mun, P.parseQuery(req.query, { q: P.q.search, page: P.q.page, limit: P.q.limit }));
-        return ok(res, 200, r.items, { pagination: r.pagination });
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return list(res, await service.searchCitizens(c, req.params.mun, P.parseQuery(req.query, { q: P.q.search, page: P.q.page, limit: P.q.limit })));
       } },
 
     { method: 'post', path: '/municipalities/{mun}/requests', operationId: 'createRequest',
       handler: async (req, res) => {
-        const c = ctx(req);
+        const c = await ctx(req);
         const r = await service.createRequest(c, req.params.mun, req.body, P.idempotencyKey(req), meta(req));
         if (r.data.version !== undefined) res.set('ETag', `"${r.data.version}"`);
         return ok(res, r.status, r.data);
       } },
     { method: 'get', path: '/municipalities/{mun}/requests', operationId: 'listRequests',
-      handler: (req, res) => {
+      handler: async (req, res) => {
         const query = P.parseQuery(req.query, { status: P.q.status, dependency: P.q.dependency, assignedToMe: P.q.bool, page: P.q.page, limit: P.q.limit });
-        const r = service.listRequests(ctx(req), req.params.mun, query);
-        return ok(res, 200, r.items, { pagination: r.pagination });
+        return list(res, await service.listRequests(await ctx(req), req.params.mun, query));
       } },
     { method: 'get', path: '/municipalities/{mun}/requests/{folio}', operationId: 'getRequest',
-      handler: (req, res) => {
-        const c = ctx(req);
-        const data = service.getRequest(c, req.params.mun, P.folio(req.params.folio), meta(req));
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        const data = await service.getRequest(c, req.params.mun, P.folio(req.params.folio), meta(req));
         if (data.version !== undefined) res.set('ETag', `"${data.version}"`);
         return ok(res, 200, data);
       } },
     { method: 'patch', path: '/municipalities/{mun}/requests/{folio}', operationId: 'updateRequest',
       handler: async (req, res) => {
-        const c = ctx(req);
+        const c = await ctx(req);
         const folio = P.folio(req.params.folio);
         const version = P.ifMatchVersion(req);
         const data = await service.updateRequest(c, req.params.mun, folio, req.body, version, meta(req));
@@ -112,48 +115,65 @@ function routeTable(service) {
       } },
     { method: 'post', path: '/municipalities/{mun}/requests/{folio}/transitions', operationId: 'transitionRequest',
       handler: async (req, res) => {
-        const c = ctx(req);
+        const c = await ctx(req);
         const data = await service.transition(c, req.params.mun, P.folio(req.params.folio), req.body, meta(req));
         res.set('ETag', `"${data.version}"`);
         return ok(res, 200, data);
       } },
     { method: 'post', path: '/municipalities/{mun}/requests/{folio}/grants', operationId: 'createGrant',
-      handler: async (req, res) => ok(res, 201, await service.createGrant(ctx(req), req.params.mun, P.folio(req.params.folio), req.body, meta(req))) },
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 201, await service.createGrant(c, req.params.mun, P.folio(req.params.folio), req.body, meta(req)));
+      } },
     { method: 'delete', path: '/municipalities/{mun}/requests/{folio}/grants/{grantId}', operationId: 'revokeGrant',
-      handler: (req, res) => {
-        const c = ctx(req);
-        service.revokeGrant(c, req.params.mun, P.folio(req.params.folio), P.objectIdOr404(req.params.grantId), meta(req));
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        await service.revokeGrant(c, req.params.mun, P.folio(req.params.folio), P.objectIdOr404(req.params.grantId), meta(req));
         return res.status(204).end();
       } },
     { method: 'get', path: '/municipalities/{mun}/requests/{folio}/history', operationId: 'getRequestHistory',
-      handler: (req, res) => ok(res, 200, service.getHistory(ctx(req), req.params.mun, P.folio(req.params.folio))) },
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 200, await service.getHistory(c, req.params.mun, P.folio(req.params.folio)));
+      } },
     { method: 'get', path: '/municipalities/{mun}/requests/{folio}/receipt', operationId: 'getRequestReceipt',
-      handler: (req, res) => ok(res, 200, service.receipt(ctx(req), req.params.mun, P.folio(req.params.folio))) },
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 200, await service.receipt(c, req.params.mun, P.folio(req.params.folio)));
+      } },
     { method: 'get', path: '/municipalities/{mun}/requests/{folio}/documents', operationId: 'listDocuments',
-      handler: (req, res) => ok(res, 200, service.listDocuments(ctx(req), req.params.mun, P.folio(req.params.folio))) },
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 200, await service.listDocuments(c, req.params.mun, P.folio(req.params.folio)));
+      } },
     { method: 'post', path: '/municipalities/{mun}/requests/{folio}/documents', operationId: 'uploadDocument',
-      handler: async (req, res) => ok(res, 201, await service.uploadDocument(ctx(req), req.params.mun, P.folio(req.params.folio), req.body, meta(req))) },
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 201, await service.uploadDocument(c, req.params.mun, P.folio(req.params.folio), req.body, meta(req)));
+      } },
     { method: 'get', path: '/municipalities/{mun}/requests/{folio}/documents/{documentId}/content', operationId: 'downloadDocument',
       handler: async (req, res) => {
-        const c = ctx(req);
+        const c = await ctx(req);
         const out = await service.downloadDocument(c, req.params.mun, P.folio(req.params.folio), P.objectIdOr404(req.params.documentId), meta(req));
         res.status(200).set(out.headers);
         return res.end(out.buffer);
       } },
     { method: 'get', path: '/municipalities/{mun}/indicators', operationId: 'getIndicators',
-      handler: (req, res) => {
+      handler: async (req, res) => {
         const query = P.parseQuery(req.query, { from: P.q.dateTime, to: P.q.dateTime, dependency: P.q.dependency, slaDays: P.q.slaDays });
         if (!query.from || !query.to) throw new HttpError(400, 'VALIDATION_ERROR', 'from y to son obligatorios', ['from', 'to']);
         if (query.from >= query.to) throw new HttpError(400, 'VALIDATION_ERROR', 'from debe ser anterior a to', ['from', 'to']);
-        return ok(res, 200, service.indicators(ctx(req), req.params.mun, query));
+        return ok(res, 200, await service.indicators(await ctx(req), req.params.mun, query));
       } },
     { method: 'get', path: '/municipalities/{mun}/folios/{folio}', operationId: 'verifyFolio',
-      handler: (req, res) => ok(res, 200, service.verifyFolio(ctx(req), req.params.mun, P.folio(req.params.folio), meta(req))) },
+      handler: async (req, res) => {
+        const c = await ctx(req);
+        return ok(res, 200, await service.verifyFolio(c, req.params.mun, P.folio(req.params.folio), meta(req)));
+      } },
     { method: 'get', path: '/municipalities/{mun}/audit-events', operationId: 'listAuditEvents',
-      handler: (req, res) => {
+      handler: async (req, res) => {
         const query = P.parseQuery(req.query, { entityId: P.q.objectId, folio: P.q.folio, from: P.q.dateTime, to: P.q.dateTime, page: P.q.page, limit: P.q.limit });
-        const r = service.listAuditEvents(ctx(req), req.params.mun, query);
-        return ok(res, 200, r.items, { pagination: r.pagination });
+        return list(res, await service.listAuditEvents(await ctx(req), req.params.mun, query));
       } },
   ];
 }
@@ -178,14 +198,14 @@ function createMunicipalRouter({ service, store, clock = () => new Date(), ident
   router.use((req, res, next) => {
     if (!req.user || typeof req.user.id !== 'string' || !req.user.id) return next(new HttpError(401, 'UNAUTHORIZED', 'No autenticado'));
     const userId = req.user.id;
-    req.municipalCtx = (munCode) => {
-      const municipality = store.municipalityByCode(munCode);
+    req.municipalCtx = async (munCode) => {
+      const municipality = await store.municipalityByCode(munCode);
       // Municipio inexistente: misma respuesta que sin membresía (no revela qué municipios existen).
       if (!municipality) throw new HttpError(403, 'MUNICIPAL_MEMBERSHIP_REQUIRED', 'Sin acceso al municipio');
       return buildAccessContext({
         erpAccess: { id: userId },
-        memberships: store.membershipsOf(userId),
-        grants: store.grantsFor(municipality.id),
+        memberships: await store.membershipsOf(userId),
+        grants: await store.grantsFor(municipality.id),
         municipalityId: municipality.id,
         now: clock(),
       });

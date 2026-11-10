@@ -6,14 +6,18 @@ import React from 'react';
 import { View, Platform, StyleSheet } from 'react-native';
 import { Text, Card, Button } from '../../../components/common';
 import { spacing } from '../../../theme';
-import { statusInfo, spokenFolio, formatDate } from '../model';
+import { statusInfo, formatDate } from '../model';
 
 export function ReceiptView({ receipt, onDone, testID = 'municipal-receipt' }) {
   if (!receipt) return null;
   const canPrint = Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.print === 'function';
   return (
-    <Card testID={testID} accessibilityLabel={`Acuse de solicitud, folio ${spokenFolio(receipt.folio)}`}>
-      <Text variant="heading3">Acuse de solicitud</Text>
+    // C-18: sin accessibilityLabel en el contenedor. Con el Card corregido, una etiqueta en el contenedor
+    // se anunciaría además del contenido (folio dos veces) y podría agrupar los botones hijos. La
+    // estructura accesible la da el encabezado; el folio se lee como texto (sin aria-label en un
+    // elemento genérico, que los lectores de pantalla web ignoran).
+    <Card testID={testID}>
+      <Text variant="heading3" accessibilityRole="header">Acuse de solicitud</Text>
       <Text>{receipt.municipality}</Text>
       <View style={styles.folio}>
         <Text variant="caption">Folio</Text>

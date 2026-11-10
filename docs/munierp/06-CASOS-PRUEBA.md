@@ -282,3 +282,15 @@ fase) ni E2E.
 
 Detalle y evidencias: [13-F1-13-DETALLE-Y-QA.md](13-F1-13-DETALLE-Y-QA.md). Ninguna prueba usó HTTP real,
 JWT, MongoDB ni Atlas.
+
+## Resultados F1-05 pasos 1–2 (2026-11-10) — en memoria y API SIMULADA
+
+| Suite | Entorno | Resultado |
+|---|---|---|
+| Backend municipal (incluye contrato del repositorio y guardia QA) | VM Linux, Node 22 | **163 pasan, 8 pendientes** (7 casos L3 que requieren MongoDB real + ejecutor Mongo omitido) |
+| Backend completo | VM Linux, Node 22, 3 lotes | **1 116 pasan, 0 fallan** (ESLint de Fase 1 re-ejecutada con límite amplio) |
+| Jest municipal (detalle 16, prototipo 12, compatibilidad C-18/C-19 8) | VM Linux | **36/36** |
+| Playwright F1-12 (14) + F1-13 (17) | **Windows: Chromium 158, Firefox 158, WebKit 27.2** | **93/93** |
+
+La suite de contrato en memoria NO certifica MongoDB: L2 es aproximación y L3 queda pendiente. Detalle:
+[14-F1-05-PUERTO-Y-CONTRATO.md](14-F1-05-PUERTO-Y-CONTRATO.md).

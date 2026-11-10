@@ -136,7 +136,7 @@ describe('F1-04 HTTP municipal (Express aislado)', function () {
       assert.strictEqual(b.body.data.folio, a.body.data.folio);
       const c = await call('post', '/municipalities/SJH/requests', { user: 'u_vent', headers: h, body: body('TES'), expect: 409, operationId: 'createRequest' });
       assert.strictEqual(c.body.code, 'CONFLICT');
-      assert.strictEqual(s.store.allRequests().length, 1);
+      assert.strictEqual(s.store.testing.allRequests().length, 1);
     });
 
     it('JSON mal formado → 400; campos del servidor → 400 con lista de campos', async () => {
@@ -157,11 +157,11 @@ describe('F1-04 HTTP municipal (Express aislado)', function () {
 
     it('colisión de folio forzada → 409 CONFLICT y sin duplicado almacenado', async () => {
       await create('u_op_obp', 'OBP');
-      s.store.setCounterForTest('SJH:OBP:SOL:2026', 0);
+      s.store.testing.setCounterForTest('SJH:OBP:SOL:2026', 0);
       const r = await call('post', '/municipalities/SJH/requests', { user: 'u_op_obp', headers: { 'Idempotency-Key': key() }, body: body('OBP'), expect: 409, operationId: 'createRequest' });
       assert.strictEqual(r.body.code, 'CONFLICT');
-      assert.strictEqual(s.store.allRequests().filter((x) => x.folio === 'SJH-OBP-SOL-2026-000001').length, 1);
-      assert.strictEqual(s.store.counter('SJH:OBP:SOL:2026'), 0, 'rollback del contador');
+      assert.strictEqual(s.store.testing.allRequests().filter((x) => x.folio === 'SJH-OBP-SOL-2026-000001').length, 1);
+      assert.strictEqual(s.store.testing.counter('SJH:OBP:SOL:2026'), 0, 'rollback del contador');
     });
 
     it('listado: paginación, filtros válidos y rechazo de parámetros desconocidos o fuera de rango', async () => {
@@ -186,7 +186,7 @@ describe('F1-04 HTTP municipal (Express aislado)', function () {
       const malformed = await call('get', '/municipalities/SJH/requests/no-es-folio', { user: 'u_op_tes', expect: 404 });
       assert.deepStrictEqual(other.body, missing.body);
       assert.deepStrictEqual(missing.body, malformed.body);
-      const denied = s.store.auditEvents().filter((e) => e.action === 'ACCESS_DENIED');
+      const denied = s.store.testing.auditEvents().filter((e) => e.action === 'ACCESS_DENIED');
       assert.strictEqual(denied.length, 1);
       assert.strictEqual(denied[0].folio, a.folio);
       assert.ok(denied[0].requestId && denied[0].ip, 'la denegación registra requestId e IP');
@@ -327,7 +327,7 @@ describe('F1-04 HTTP municipal (Express aislado)', function () {
       await call('get', p(d.id), { user: 'u_admin_mun', expect: 403 });
       await call('get', p(s.fx.oid(999)), { user: 'u_tit_obp', expect: 404 });
       await call('get', p('../../etc'), { user: 'u_tit_obp', expect: 404 });
-      assert.ok(!JSON.stringify(s.store.auditEvents()).includes(PDF64), 'contenido nunca en bitácora');
+      assert.ok(!JSON.stringify(s.store.testing.auditEvents()).includes(PDF64), 'contenido nunca en bitácora');
     });
 
     it('documento CONFIDENCIAL listado como restringido para CONSULTA y no descargable', async () => {
@@ -384,7 +384,7 @@ describe('F1-04 HTTP municipal (Express aislado)', function () {
   });
 
   describe('Salvaguarda de despliegue (C-01)', () => {
-    it('el router municipal se niega a construirse con NODE_ENV=production sin allowProduction', () => {
+    it('el router municipal se niega a construirse con NODE_ENV=production sin allowProduction', async () => {
       const { createMunicipalRouter } = require('../../src/modules/municipal/http/municipal.router');
       const deps = { service: {}, store: s.store, identity: [(req, res, next) => next()] };
       assert.throws(() => createMunicipalRouter({ ...deps, environment: 'production' }), /deshabilitada en producción/);

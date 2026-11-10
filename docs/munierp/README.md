@@ -3,7 +3,7 @@
 MuniERP IA es la solución especializada para la gestión municipal de **San Juan Huactzinco,
 Tlaxcala**, **conectada** a YJ Nexo ERP (sistema principal). No es un segundo ERP.
 
-Estado (2026-11-10): **Fase 1 en curso — F1-04, F1-12 y F1-13 hechas (aisladas, sin montar); F1-05 diseñada.**
+Estado (2026-11-10): **Fase 1 en curso — F1-04, F1-12 y F1-13 hechas (aisladas, sin montar); F1-05 pasos 1–2 hechos en memoria (puerto asíncrono y suite de contrato); sin MongoDB.**
 Dominio, API HTTP y prototipo de interfaz **aislados y sin montar**, con pruebas ejecutadas en memoria
 y datos sintéticos. Base auditada `main@d5b64b0`; nada en `main` cambia.
 
@@ -23,6 +23,8 @@ y datos sintéticos. Base auditada `main@d5b64b0`; nada en `main` cambia.
 | 12 | Historia F1-12 y QA con Playwright | [11-F1-12-Y-QA-PLAYWRIGHT.md](11-F1-12-Y-QA-PLAYWRIGHT.md) |
 | 13 | Diseño técnico F1-05 (repositorio MongoDB, sin conexión) | [12-F1-05-DISENO-MONGODB.md](12-F1-05-DISENO-MONGODB.md) |
 | 14 | Historia F1-13: detalle de expediente y QA Playwright (nube y Windows) | [13-F1-13-DETALLE-Y-QA.md](13-F1-13-DETALLE-Y-QA.md) |
+| 15 | F1-05 pasos 1–2: puerto asíncrono, suite de contrato, Playwright 3 navegadores, C-18/C-19 | [14-F1-05-PUERTO-Y-CONTRATO.md](14-F1-05-PUERTO-Y-CONTRATO.md) |
+| 16 | Propuestas de contrato X-01…X-04 (draft.4 no publicada) | [contracts/PROPUESTAS-DRAFT4.md](contracts/PROPUESTAS-DRAFT4.md) |
 | — | Código de dominio (no montado) | [`apps/backend/src/modules/municipal/`](../../apps/backend/src/modules/municipal/README.md) |
 
 ## Decisiones clave

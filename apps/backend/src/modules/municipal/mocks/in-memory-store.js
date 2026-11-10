@@ -1,110 +1,272 @@
 // @ts-check
 'use strict';
 /**
- * Almacén en memoria con la misma interfaz que tendrá el repositorio Mongo (pendiente).
- * transaction() aplica todo o nada (copia y restauración), para probar rollback de folios (MT-32).
+ * Almacén municipal EN MEMORIA que implementa el puerto asíncrono de persistencia
+ * (persistence/repository-port.js). F1-05 paso 1: el servicio ya no depende de que el almacén sea
+ * síncrono, de modo que el adaptador MongoDB (diseño en docs/munierp/12) podrá sustituirlo sin
+ * cambiar la capa de aplicación.
+ *
+ * Semántica que replica (y que la suite de contrato verifica contra cualquier implementación):
+ *  - Todas las operaciones del puerto devuelven promesas; `newId()` es síncrono (como `new ObjectId()`).
+ *  - `transaction(fn)` llama a `fn(tx)` con un repositorio ligado a la transacción. Se trabaja sobre una
+ *    copia del estado confirmado; al terminar sin error se confirma, con error se descarta (todo o nada).
+ *    Las lecturas fuera de la transacción ven solo el estado confirmado.
+ *  - Las transacciones y las escrituras sueltas se SERIALIZAN (cola). Esto evita pérdidas de
+ *    actualizaciones en memoria, pero NO equivale al aislamiento por instantáneas, a los reintentos de
+ *    `TransientTransactionError` ni a los índices únicos de MongoDB: eso solo se certifica contra Mongo.
+ *  - Toda consulta de colección exige el municipio (`MISSING_MUNICIPALITY`), igual que el repositorio Mongo.
+ *  - Los objetos devueltos son copias: mutarlos no altera el almacén.
+ *
+ * `store.testing` (síncrono) es SOLO para pruebas: inspección del estado confirmado e inyección de
+ * fallos. No forma parte del puerto y el adaptador Mongo no lo implementará.
  */
 const { matches } = require('./filter-match');
 
-function createMemoryStore(seed = {}) {
-  let state = {
-    municipalities: [...(seed.municipalities || [])],
-    dependencies: [...(seed.dependencies || [])],
-    citizens: [...(seed.citizens || [])],
+const clone = (v) => (v === undefined ? undefined : structuredClone(v));
+const fail = (code, message) => Object.assign(new Error(message), { code });
+
+function requireMunicipalityId(municipalityId) {
+  if (typeof municipalityId !== 'string' || !municipalityId) throw fail('MISSING_MUNICIPALITY', 'municipalityId obligatorio');
+}
+
+/** El filtro debe fijar un municipio en su raíz o en un $and de primer nivel. */
+function hasMunicipalityScope(filter) {
+  if (!filter || typeof filter !== 'object') return false;
+  if (typeof filter.municipalityId === 'string' && filter.municipalityId) return true;
+  return Array.isArray(filter.$and) && filter.$and.some(hasMunicipalityScope);
+}
+
+function initialState(seed) {
+  return {
+    municipalities: clone(seed.municipalities || []),
+    dependencies: clone(seed.dependencies || []),
+    citizens: clone(seed.citizens || []),
     requests: [],
     documents: [],
-    grants: [...(seed.grants || [])],
-    memberships: [...(seed.memberships || [])],
+    grants: clone(seed.grants || []),
+    memberships: clone(seed.memberships || []),
     counters: {},
     audit: [],
   };
+}
+
+/**
+ * @param {{ municipalities?: any[], dependencies?: any[], citizens?: any[], memberships?: any[], grants?: any[] }} [seed]
+ */
+function createMemoryStore(seed = {}) {
+  let committed = initialState(seed);
   let seq = 0x900;
   const newId = () => (seq++).toString(16).padStart(24, '0');
-  let failNextInsert = false;
+  /** Fallos inyectados por nombre de operación (solo pruebas). */
+  const faults = new Map();
+  let queue = Promise.resolve();
 
-  const store = {
-    newId,
-    /** Fuerza un fallo en la siguiente inserción de solicitud (solo pruebas de rollback). */
-    failNextRequestInsert() { failNextInsert = true; },
-    async transaction(fn) {
-      const snapshot = structuredClone(state);
-      try {
-        return await fn();
-      } catch (error) {
-        state = snapshot;
-        throw error;
-      }
-    },
-    municipalityById: (id) => state.municipalities.find((m) => m.id === id) || null,
-    municipalityByCode: (code) => state.municipalities.find((m) => m.code === code) || null,
-    dependencies: (municipalityId) => state.dependencies.filter((d) => d.municipalityId === municipalityId).map((d) => structuredClone(d)),
-    insertDependency(doc) {
-      if (state.dependencies.some((d) => d.municipalityId === doc.municipalityId && d.code === doc.code))
-        throw Object.assign(new Error('Dependencia duplicada'), { code: 'DUPLICATE_DEPENDENCY' });
-      state.dependencies.push(structuredClone(doc));
-      return structuredClone(doc);
-    },
-    updateDependency(id, patch) {
-      const i = state.dependencies.findIndex((d) => d.id === id);
-      if (i < 0) throw Object.assign(new Error('Dependencia inexistente'), { code: 'NOT_FOUND' });
-      state.dependencies[i] = { ...state.dependencies[i], ...structuredClone(patch) };
-      return structuredClone(state.dependencies[i]);
-    },
-    membership: (id) => structuredClone(state.memberships.find((m) => m.id === id) || null),
-    insertMembership(doc) {
-      if (state.memberships.some((m) => m.userId === doc.userId && m.municipalityId === doc.municipalityId))
-        throw Object.assign(new Error('Membresía duplicada'), { code: 'DUPLICATE_MEMBERSHIP' });
-      state.memberships.push(structuredClone(doc));
-      return structuredClone(doc);
-    },
-    updateMembership(id, expectedVersion, patch) {
-      const i = state.memberships.findIndex((m) => m.id === id && (m.version || 0) === expectedVersion);
-      if (i < 0) throw Object.assign(new Error('Versión obsoleta'), { code: 'STALE_VERSION' });
-      state.memberships[i] = { ...state.memberships[i], ...structuredClone(patch), version: expectedVersion + 1 };
-      return structuredClone(state.memberships[i]);
-    },
-    citizens: (municipalityId) => state.citizens.filter((c) => c.municipalityId === municipalityId).map((c) => structuredClone(c)),
-    insertCitizen(doc) { state.citizens.push(structuredClone(doc)); return structuredClone(doc); },
-    membershipsOf: (userId) => state.memberships.filter((m) => m.userId === userId).map((m) => structuredClone(m)),
-    membershipsIn: (municipalityId) => state.memberships.filter((m) => m.municipalityId === municipalityId).map((m) => structuredClone(m)),
-    citizen: (municipalityId, id) => state.citizens.find((c) => c.id === id && c.municipalityId === municipalityId) || null,
-    nextSequence(key) {
-      state.counters[key] = (state.counters[key] || 0) + 1;
-      return state.counters[key];
-    },
-    counter: (key) => state.counters[key] || 0,
-    /** Solo pruebas: retrocede un contador para simular una colisión de folio. */
-    setCounterForTest(key, value) { state.counters[key] = value; },
-    insertRequest(doc) {
-      if (failNextInsert) { failNextInsert = false; throw new Error('Fallo simulado de escritura'); }
-      if (state.requests.some((r) => r.municipalityId === doc.municipalityId && r.folio === doc.folio))
-        throw Object.assign(new Error('Folio duplicado'), { code: 'DUPLICATE_FOLIO' });
-      if (state.requests.some((r) => r.createdBy === doc.createdBy && r.idempotencyKey === doc.idempotencyKey))
-        throw Object.assign(new Error('Clave de idempotencia duplicada'), { code: 'DUPLICATE_IDEMPOTENCY' });
-      state.requests.push(structuredClone(doc));
-      return structuredClone(doc);
-    },
-    requestByIdempotency: (createdBy, key) => structuredClone(state.requests.find((r) => r.createdBy === createdBy && r.idempotencyKey === key) || null),
-    findRequests: (filter) => state.requests.filter((r) => matches(r, filter)).map((r) => structuredClone(r)),
-    /** Busca SIN filtro de alcance; solo para registrar denegaciones (nunca se devuelve al cliente). */
-    existsByFolio: (municipalityId, folio) => state.requests.some((r) => r.municipalityId === municipalityId && r.folio === folio),
-    updateRequest(id, expectedVersion, patch) {
-      const i = state.requests.findIndex((r) => r.id === id && r.version === expectedVersion);
-      if (i < 0) throw Object.assign(new Error('Versión obsoleta'), { code: 'STALE_VERSION' });
-      state.requests[i] = { ...state.requests[i], ...structuredClone(patch) };
-      return structuredClone(state.requests[i]);
-    },
-    insertDocument(doc) { state.documents.push(structuredClone(doc)); return structuredClone(doc); },
-    documentsOf: (requestId) => state.documents.filter((d) => d.requestId === requestId).map((d) => structuredClone(d)),
-    addGrant(g) { state.grants.push(structuredClone(g)); },
-    grant: (id) => structuredClone(state.grants.find((g) => g.id === id) || null),
-    revokeGrant(id, at) { const g = state.grants.find((x) => x.id === id); if (g) g.revokedAt = at; },
-    grantsFor: (municipalityId) => state.grants.filter((g) => g.municipalityId === municipalityId).map((g) => structuredClone(g)),
-    appendAudit(event) { state.audit.push(Object.freeze(structuredClone(event))); },
-    auditEvents: () => state.audit.map((e) => structuredClone(e)),
-    allRequests: () => state.requests.map((r) => structuredClone(r)),
+  /** Ejecuta `fn` en exclusiva respecto a otras transacciones y escrituras sueltas. */
+  function exclusive(fn) {
+    const run = queue.then(fn, fn);
+    queue = run.then(() => undefined, () => undefined);
+    return run;
+  }
+
+  function injected(op) {
+    const f = faults.get(op);
+    if (!f) return;
+    faults.delete(op);
+    throw f;
+  }
+
+  /**
+   * Operaciones del puerto sobre un estado. `write(fn)` decide cómo se aplica una escritura:
+   * dentro de una transacción, directamente; fuera, en exclusiva sobre el estado confirmado.
+   */
+  function bind(getState, write, transaction) {
+    const read = async (fn) => fn(getState());
+    return {
+      newId,
+      transaction,
+
+      municipalityById: (id) => read((s) => clone(s.municipalities.find((m) => m.id === id) || null)),
+      municipalityByCode: (code) => read((s) => clone(s.municipalities.find((m) => m.code === code) || null)),
+
+      dependencies: (municipalityId) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return s.dependencies.filter((d) => d.municipalityId === municipalityId).map(clone);
+      }),
+      insertDependency: (doc) => write((s) => {
+        injected('insertDependency');
+        requireMunicipalityId(doc.municipalityId);
+        if (s.dependencies.some((d) => d.municipalityId === doc.municipalityId && d.code === doc.code))
+          throw fail('DUPLICATE_DEPENDENCY', 'Dependencia duplicada');
+        s.dependencies.push(clone(doc));
+        return clone(doc);
+      }),
+      updateDependency: (id, patch) => write((s) => {
+        injected('updateDependency');
+        const i = s.dependencies.findIndex((d) => d.id === id);
+        if (i < 0) throw fail('NOT_FOUND', 'Dependencia inexistente');
+        s.dependencies[i] = { ...s.dependencies[i], ...clone(patch), id: s.dependencies[i].id, municipalityId: s.dependencies[i].municipalityId };
+        return clone(s.dependencies[i]);
+      }),
+
+      membership: (id) => read((s) => clone(s.memberships.find((m) => m.id === id) || null)),
+      membershipsOf: (userId) => read((s) => s.memberships.filter((m) => m.userId === userId).map(clone)),
+      membershipsIn: (municipalityId) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return s.memberships.filter((m) => m.municipalityId === municipalityId).map(clone);
+      }),
+      insertMembership: (doc) => write((s) => {
+        injected('insertMembership');
+        requireMunicipalityId(doc.municipalityId);
+        if (s.memberships.some((m) => m.userId === doc.userId && m.municipalityId === doc.municipalityId))
+          throw fail('DUPLICATE_MEMBERSHIP', 'Membresía duplicada');
+        s.memberships.push(clone(doc));
+        return clone(doc);
+      }),
+      updateMembership: (id, expectedVersion, patch) => write((s) => {
+        injected('updateMembership');
+        const i = s.memberships.findIndex((m) => m.id === id && (m.version || 0) === expectedVersion);
+        if (i < 0) throw fail('STALE_VERSION', 'Versión obsoleta');
+        const prev = s.memberships[i];
+        s.memberships[i] = { ...prev, ...clone(patch), id: prev.id, userId: prev.userId, municipalityId: prev.municipalityId, version: expectedVersion + 1 };
+        return clone(s.memberships[i]);
+      }),
+
+      citizens: (municipalityId) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return s.citizens.filter((c) => c.municipalityId === municipalityId).map(clone);
+      }),
+      citizen: (municipalityId, id) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return clone(s.citizens.find((c) => c.id === id && c.municipalityId === municipalityId) || null);
+      }),
+      insertCitizen: (doc) => write((s) => {
+        injected('insertCitizen');
+        requireMunicipalityId(doc.municipalityId);
+        s.citizens.push(clone(doc));
+        return clone(doc);
+      }),
+
+      nextSequence: (key) => write((s) => {
+        injected('nextSequence');
+        s.counters[key] = (s.counters[key] || 0) + 1;
+        return s.counters[key];
+      }),
+
+      insertRequest: (doc) => write((s) => {
+        injected('insertRequest');
+        requireMunicipalityId(doc.municipalityId);
+        if (s.requests.some((r) => r.municipalityId === doc.municipalityId && r.folio === doc.folio))
+          throw fail('DUPLICATE_FOLIO', 'Folio duplicado');
+        if (doc.idempotencyKey && s.requests.some((r) => r.createdBy === doc.createdBy && r.idempotencyKey === doc.idempotencyKey))
+          throw fail('DUPLICATE_IDEMPOTENCY', 'Clave de idempotencia duplicada');
+        s.requests.push(clone(doc));
+        return clone(doc);
+      }),
+      requestByIdempotency: (createdBy, key) => read((s) => clone(s.requests.find((r) => r.createdBy === createdBy && r.idempotencyKey === key) || null)),
+      findRequests: (filter) => read((s) => {
+        if (!hasMunicipalityScope(filter)) throw fail('MISSING_MUNICIPALITY', 'Consulta de expedientes sin municipio');
+        return s.requests.filter((r) => matches(r, filter)).map(clone);
+      }),
+      /** Busca SIN filtro de alcance; solo para registrar denegaciones (nunca se devuelve al cliente). */
+      existsByFolio: (municipalityId, folio) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return s.requests.some((r) => r.municipalityId === municipalityId && r.folio === folio);
+      }),
+      /** Compara y sustituye por versión. El `patch` trae la versión nueva y el historial completo. */
+      updateRequest: (id, expectedVersion, patch) => write((s) => {
+        injected('updateRequest');
+        const i = s.requests.findIndex((r) => r.id === id && r.version === expectedVersion);
+        if (i < 0) throw fail('STALE_VERSION', 'Versión obsoleta');
+        const prev = s.requests[i];
+        const next = { ...prev, ...clone(patch), id: prev.id, municipalityId: prev.municipalityId, folio: prev.folio, createdAt: prev.createdAt, createdBy: prev.createdBy };
+        const oldHistory = prev.history || [];
+        if (!Array.isArray(next.history) || next.history.length < oldHistory.length ||
+            JSON.stringify(next.history.slice(0, oldHistory.length)) !== JSON.stringify(oldHistory))
+          throw fail('HISTORY_REWRITE', 'El historial solo admite añadir entradas');
+        s.requests[i] = next;
+        return clone(next);
+      }),
+
+      insertDocument: (doc) => write((s) => {
+        injected('insertDocument');
+        requireMunicipalityId(doc.municipalityId);
+        if (s.documents.some((d) => d.storageKey === doc.storageKey)) throw fail('DUPLICATE_STORAGE_KEY', 'Clave de almacenamiento duplicada');
+        s.documents.push(clone(doc));
+        return clone(doc);
+      }),
+      updateDocumentStatus: (id, status) => write((s) => {
+        injected('updateDocumentStatus');
+        const d = s.documents.find((x) => x.id === id);
+        if (!d) throw fail('NOT_FOUND', 'Documento inexistente');
+        d.status = status;
+        return clone(d);
+      }),
+      documentsOf: (requestId) => read((s) => s.documents.filter((d) => d.requestId === requestId).map(clone)),
+
+      addGrant: (g) => write((s) => {
+        injected('addGrant');
+        requireMunicipalityId(g.municipalityId);
+        s.grants.push(clone(g));
+        return clone(g);
+      }),
+      grant: (id) => read((s) => clone(s.grants.find((g) => g.id === id) || null)),
+      revokeGrant: (id, at) => write((s) => {
+        injected('revokeGrant');
+        const g = s.grants.find((x) => x.id === id);
+        if (!g || g.revokedAt) return false;
+        g.revokedAt = clone(at);
+        return true;
+      }),
+      grantsFor: (municipalityId) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return s.grants.filter((g) => g.municipalityId === municipalityId).map(clone);
+      }),
+
+      /** Bitácora de solo inserción. */
+      appendAudit: (event) => write((s) => {
+        injected('appendAudit');
+        requireMunicipalityId(event.municipalityId);
+        s.audit.push(Object.freeze(clone(event)));
+      }),
+      auditEvents: (municipalityId) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return s.audit.filter((e) => e.municipalityId === municipalityId).map(clone);
+      }),
+    };
+  }
+
+  async function transaction(fn) {
+    return exclusive(async () => {
+      const draft = { state: clone(committed) };
+      /** @type {any} */
+      let tx;
+      tx = bind(() => draft.state, async (op) => op(draft.state), (inner) => inner(tx));
+      const result = await fn(tx);
+      committed = draft.state;
+      return result;
+    });
+  }
+
+  const store = bind(() => committed, (op) => exclusive(async () => op(committed)), transaction);
+
+  /** SOLO PRUEBAS (síncrono, estado confirmado). No es parte del puerto. */
+  store.testing = {
+    allRequests: () => committed.requests.map(clone),
+    auditEvents: () => committed.audit.map(clone),
+    counter: (key) => committed.counters[key] || 0,
+    grantsFor: (municipalityId) => committed.grants.filter((g) => g.municipalityId === municipalityId).map(clone),
+    memberships: () => committed.memberships.map(clone),
+    documents: () => committed.documents.map(clone),
+    /** Retrocede un contador para simular una colisión de folio. */
+    setCounterForTest(key, value) { committed.counters[key] = value; },
+    /** Hace fallar la siguiente llamada a `op` (p. ej. 'insertRequest', 'appendAudit'). */
+    failNext(op, error = new Error('Fallo simulado de escritura')) { faults.set(op, error); },
+    failNextRequestInsert() { faults.set('insertRequest', new Error('Fallo simulado de escritura')); },
+    addGrant(g) { committed.grants.push(clone(g)); },
+    revokeGrant(id, at) { const g = committed.grants.find((x) => x.id === id); if (g) g.revokedAt = clone(at); },
+    insertMembership(doc) { committed.memberships.push(clone(doc)); },
   };
   return store;
 }
 
-module.exports = { createMemoryStore };
+module.exports = { createMemoryStore, hasMunicipalityScope };

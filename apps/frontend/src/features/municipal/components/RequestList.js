@@ -22,12 +22,13 @@ export function RequestList({ items, onSelect, testID = 'municipal-request-list'
         <Card
           key={r.folio}
           onPress={onSelect ? () => onSelect(r) : undefined}
-          accessibilityLabel={requestAccessibilityLabel(r)}
+          // C-18: la etiqueta va en Card SOLO si es interactiva (botón). En modo estático va en el
+          // elemento interior: así no se duplica cuando se integre el Card corregido por Codex (que ya
+          // reenvía accessibilityLabel) y sigue funcionando con el Card actual (que la descarta).
+          accessibilityLabel={onSelect ? requestAccessibilityLabel(r) : undefined}
           style={styles.row}
           testID={onSelect ? `request-${r.folio}` : undefined}
         >
-          {/* Card (componente común del ERP) descarta accessibilityLabel cuando no es interactiva
-              (hallazgo Playwright 2026-11-09, C-18); en ese caso la etiqueta va en este elemento. */}
           <View
             accessibilityRole={onSelect ? undefined : 'listitem'}
             accessibilityLabel={onSelect ? undefined : requestAccessibilityLabel(r)}

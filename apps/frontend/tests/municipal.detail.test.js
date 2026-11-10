@@ -12,6 +12,10 @@ import { createServiceBackedWorld } from '../qa/service-backed-api';
 const backendState = require('../../backend/src/modules/municipal/domain/request-state');
 const backendPermissions = require('../../backend/src/modules/municipal/policy/permissions');
 
+// La primera prueba siembra el mundo con el servicio real y compila los módulos del backend en frío;
+// en equipos lentos supera los 5 s por defecto de Jest (medido: 16-18 s en la VM de QA).
+jest.setTimeout(30000);
+
 async function setup(persona, options) {
   const saved = [];
   const world = await createServiceBackedWorld({ save: (out, filename) => saved.push({ filename, bytes: out.buffer, headers: out.headers }) });
@@ -109,7 +113,7 @@ describe('F1-13 — detalle con autorización real', () => {
 
   test('membresía revocada: mensaje de membresía, sin datos', async () => {
     const ctx = await setup('u_tit_obp');
-    ctx.world.revoke('u_tit_obp');
+    await ctx.world.revoke('u_tit_obp');
     const { findByTestId } = renderDetail(ctx, ctx.world.folios.r1);
     expect(await findByTestId('detail-error-message')).toHaveTextContent(/membresía municipal vigente/);
   });

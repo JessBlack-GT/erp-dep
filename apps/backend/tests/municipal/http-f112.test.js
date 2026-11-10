@@ -122,7 +122,7 @@ describe('F1-12 dependencias y membresías (HTTP aislado)', function () {
       const list = await call('get', '/municipalities/SJH/requests', { user: 'u_reg', expect: 200 });
       assert.deepStrictEqual(list.body.data.map((x) => x.folio), [t.folio]);
       await call('get', `/municipalities/SJH/requests/${o.folio}`, { user: 'u_reg', expect: 404 });
-      assert.ok(s.store.auditEvents().some((e) => e.action === 'MEMBERSHIP_CREATED' && e.requestId && e.ip));
+      assert.ok(s.store.testing.auditEvents().some((e) => e.action === 'MEMBERSHIP_CREATED' && e.requestId && e.ip));
     });
 
     it('rechazos: a sí mismo 403, ADMIN 400, sin dependencias 400, dependencia ajena 400, vigencia pasada 400, duplicada 409', async () => {
@@ -154,7 +154,7 @@ describe('F1-12 dependencias y membresías (HTTP aislado)', function () {
       const denied = await call('get', `/municipalities/SJH/requests/${t.folio}`, { user: 'u_op_tes', expect: 403 });
       assert.strictEqual(denied.body.code, 'MUNICIPAL_MEMBERSHIP_REQUIRED');
       assert.deepStrictEqual((await call('get', '/me/memberships', { user: 'u_op_tes', expect: 200 })).body.data, []);
-      assert.ok(s.store.auditEvents().some((e) => e.action === 'MEMBERSHIP_REVOKED'));
+      assert.ok(s.store.testing.auditEvents().some((e) => e.action === 'MEMBERSHIP_REVOKED'));
       await call('patch', path, { user: 'u_admin_mun', body: { status: 'ACTIVA' }, expect: 200 });
       await call('get', `/municipalities/SJH/requests/${t.folio}`, { user: 'u_op_tes', expect: 200 });
     });
@@ -193,7 +193,7 @@ describe('F1-12 dependencias y membresías (HTTP aislado)', function () {
     });
 
     it('un ADMIN_MUNICIPAL no puede modificar otra membresía ADMIN (reservada a bootstrap)', async () => {
-      s.store.insertMembership({ id: s.fx.oid(395), userId: s.fx.USERS.u_reg, municipalityId: s.fx.MUNICIPALITIES[0].id, role: 'ADMIN_MUNICIPAL', dependencyIds: [], status: 'ACTIVA', validFrom: new Date('2026-01-01T00:00:00Z'), validTo: null, version: 0 });
+      s.store.testing.insertMembership({ id: s.fx.oid(395), userId: s.fx.USERS.u_reg, municipalityId: s.fx.MUNICIPALITIES[0].id, role: 'ADMIN_MUNICIPAL', dependencyIds: [], status: 'ACTIVA', validFrom: new Date('2026-01-01T00:00:00Z'), validTo: null, version: 0 });
       await call('patch', `/municipalities/SJH/memberships/${s.fx.oid(395)}`, { user: 'u_admin_mun', body: { status: 'INACTIVA' }, expect: 403 });
     });
   });

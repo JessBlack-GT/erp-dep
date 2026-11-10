@@ -21,13 +21,15 @@ No forma parte de la app ni de su navegación.
 ```powershell
 cd apps\frontend
 node qa\build-municipal-harness.cjs qa\dist-municipal
-npx playwright install firefox webkit        # solo si faltan (descarga navegadores)
 powershell -ExecutionPolicy Bypass -File qa\run-windows.ps1                        # 3 navegadores
 powershell -ExecutionPolicy Bypass -File qa\run-windows.ps1 -Spec municipal-detail # solo F1-13
 ```
 
-Verificado el 2026-11-10 en Windows con Chromium 158 (31/31). Firefox y WebKit no arrancaron porque
-faltaban sus binarios para la versión global de Playwright (ver `docs/munierp/13`).
+`run-windows.ps1` no instala nada: usa `QA_CHROMIUM_EXE`, `QA_FIREFOX_EXE` y `QA_WEBKIT_EXE` si están
+definidas (convención del ejecutor de M07) o la revisión instalada más reciente de
+`PLAYWRIGHT_BROWSERS_PATH` (por defecto `%LOCALAPPDATA%\ms-playwright`), y deja `entorno.json` con las
+versiones y rutas usadas. Verificado el 2026-11-10 13:25 en Windows: **93/93** con Chromium 158,
+Firefox 158 (`firefox-1569`) y WebKit 27.2 (`webkit-2386`) (ver `docs/munierp/14`).
 
 Evidencias: `<MUNI_EVIDENCE_DIR>/<navegador>/<escenario>.png` (una por prueba),
 `registro-<navegador>.json` (navegador, fecha, escenario, resultado), `results.json`, `html-report/`

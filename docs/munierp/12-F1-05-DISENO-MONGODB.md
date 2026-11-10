@@ -158,18 +158,19 @@ Los índices se crean de forma **explícita** en un `municipal.setup.js` (`creat
   de `sales.setup.js` y **falla al arrancar** si no hay `setName`.
 - `readConcern: 'snapshot'`, `writeConcern: { w: 'majority' }` en las transacciones; lecturas de
   listado con `readPreference: 'primary'` para no ver datos atrasados tras una transición.
-- El puerto `store.transaction(fn)` pasa a `connection.transaction(session => fn(session))`; el
-  repositorio guarda la sesión en `AsyncLocalStorage` para no cambiar la firma de cada método.
+- **Actualizado en F1-05 paso 1 (2026-11-10):** el puerto ya es `store.transaction(async (tx) => …)`, con
+  un repositorio `tx` explícito. El adaptador Mongo hará `connection.transaction((session) => fn(bind(session)))`,
+  donde `bind` crea el mismo puerto con la sesión. Se descartó `AsyncLocalStorage`: no existe en el
+  navegador (el arnés de QA ejecuta el servicio allí) y un repositorio explícito hace visible qué
+  escrituras pertenecen a la transacción.
 
 ## 9. Migración desde los servicios en memoria
 
-1. **Puerto asíncrono (sin Mongo).** Convertir todas las llamadas `store.*` del servicio a `await`
-   (el almacén en memoria devuelve promesas). Las 117 pruebas municipales y las 16 de F1-13 deben
-   seguir pasando sin cambios de comportamiento. Es el único cambio al servicio.
-2. **Prueba de contrato del puerto.** Una suite común (`repository.contract.test.js`) que se ejecuta
-   contra el almacén en memoria **y** contra el adaptador Mongo: unicidad, versión obsoleta, rollback
-   de folio, idempotencia, aislamiento por municipio, historial solo por `$push`.
-3. **Adaptador Mongo** `infrastructure/mongo-store.js` + modelos en `infrastructure/models/` y adaptador
+1. **Puerto asíncrono (sin Mongo).** ✅ HECHO 2026-11-10 (ver doc 14): `persistence/repository-port.js`,
+   almacén en memoria asíncrono, servicio y router con `await`; respuestas HTTP sin cambios.
+2. **Prueba de contrato del puerto.** ✅ HECHO 2026-11-10: `tests/municipal/repository-contract/` (35 casos
+   en niveles L1/L2/L3) con ejecutor en memoria y ejecutor Mongo preparado (no ejecutado).
+3. **Adaptador Mongo** `persistence/mongo-store.js` + modelos en `persistence/models/` y adaptador
    GridFS `storage/gridfs-storage.js`, todos dentro del módulo municipal.
 4. **`municipal.setup.js`**: verificación de topología, `createCollection`, `createIndexes`, carga de
    catálogo base (municipio SJH y dependencias) **solo** con bandera `MUNICIPAL_SEED=qa`.
@@ -205,7 +206,7 @@ Hasta cumplirlas, F1-05 solo puede avanzar con los pasos 1–2 de §9 (sin base 
 
 | ID | Riesgo | Mitigación |
 |---|---|---|
-| R-M1 | El puerto síncrono obliga a tocar todas las llamadas del servicio | Paso 1 aislado, con la suite completa como red de seguridad |
+| R-M1 | El puerto síncrono obligaba a tocar todas las llamadas del servicio | **Resuelto en el paso 1** con la suite completa como red de seguridad |
 | R-M2 | Atlas sin réplica (M0 compartido sí soporta transacciones; un Mongo local *standalone* no) | Verificación de topología al arrancar |
 | R-M3 | Binarios huérfanos en GridFS | Estado `PENDIENTE` + conciliación (§7) |
 | R-M4 | Crecimiento de `history[]` | Medición en QA; plan de colección de eventos |

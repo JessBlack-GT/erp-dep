@@ -24,14 +24,14 @@ API simulada.
 
 ## 2. Contrato draft.3 y extensiones propuestas (no implementadas en el servidor)
 
-La interfaz usa solo campos de draft.3. Propuestas documentadas para draft.4:
+La interfaz usa solo campos de draft.3. Propuestas documentadas para draft.4 (**reevaluadas el 2026-11-10 en [contracts/PROPUESTAS-DRAFT4.md](contracts/PROPUESTAS-DRAFT4.md): X-02 y X-04 retiradas, X-01 se mantiene, X-03 diferida**):
 
 | ID | Extensión | Motivo | Mientras tanto |
 |---|---|---|---|
 | X-01 | `HistoryEntry.actorName` (o `actor: {id, displayName}`) | El historial solo trae `actorId`; un funcionario no reconoce un ObjectId | Se muestra «Funcionario ···<últimos 6>» |
 | X-02 | `MyMembership.scopes` (o permisos con alcance) | La interfaz infiere acciones por permiso + estado; el alcance (M/D/A) lo decide el servidor | Botones según permiso; un 403/404 del servidor se muestra como mensaje y recarga |
 | X-03 | `RequestFull.allowedActions` calculado por el servidor | Eliminaría la duplicación de la tabla de transiciones en el cliente | Prueba de paridad `TRANSITIONS` ↔ `ACTIONS` |
-| X-04 | `Document.restricted: true` en vez de omitir campos | Hoy la interfaz deduce «restringido» por ausencia de `filename` | Se mantiene la deducción |
+| X-04 | ~~`Document.restricted: true`~~ | **Corrección:** draft.3 ya define `DocumentRestricted` con `restricted: true` y la interfaz ya lo usa; esta fila afirmaba lo contrario por error | Sin cambio |
 
 ## 3. Pruebas
 

@@ -2,6 +2,8 @@
 /**
  * Playwright — QA municipal (API SIMULADA, datos sintéticos).
  * Variables: MUNI_HARNESS_DIR (arnés compilado), MUNI_EVIDENCE_DIR (evidencias), MUNI_BROWSERS (lista).
+ * Ejecutables existentes (misma convención que el ejecutor de Codex en M07): QA_CHROMIUM_EXE,
+ * QA_FIREFOX_EXE, QA_WEBKIT_EXE. Si se definen, se usan tal cual (no se descarga ningún navegador).
  */
 const path = require('path');
 const { defineConfig, devices } = require('playwright/test');
@@ -9,10 +11,12 @@ const { defineConfig, devices } = require('playwright/test');
 const port = Number(process.env.MUNI_QA_PORT || 4178);
 const evidence = path.resolve(process.env.MUNI_EVIDENCE_DIR || path.join(__dirname, '..', 'evidence-local'));
 const wanted = (process.env.MUNI_BROWSERS || 'chromium').split(',').map((b) => b.trim()).filter(Boolean);
+const exe = (browser) => process.env[`QA_${browser.toUpperCase()}_EXE`] || undefined;
+const launch = (browser) => (exe(browser) ? { launchOptions: { executablePath: exe(browser) } } : {});
 const catalog = {
-  chromium: { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-  firefox: { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-  webkit: { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  chromium: { name: 'chromium', use: { ...devices['Desktop Chrome'], ...launch('chromium') } },
+  firefox: { name: 'firefox', use: { ...devices['Desktop Firefox'], ...launch('firefox') } },
+  webkit: { name: 'webkit', use: { ...devices['Desktop Safari'], ...launch('webkit') } },
 };
 
 module.exports = defineConfig({

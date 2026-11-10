@@ -21,7 +21,7 @@ function scenario({ now = T0 } = {}) {
   const ctx = (userKey, mun = 'SJH', erpRole = 'user') =>
     buildAccessContext({
       erpAccess: { id: fx.USERS[userKey], role: erpRole, permissions: ['customers.read'], isSuperadmin: erpRole === 'superadmin' },
-      memberships, grants: store.grantsFor(munId(mun)), municipalityId: munId(mun), now: clock(),
+      memberships, grants: store.testing.grantsFor(munId(mun)), municipalityId: munId(mun), now: clock(),
     });
   let k = 0;
   const key = () => `test-key-${String(++k).padStart(4, '0')}`;
@@ -32,7 +32,7 @@ function scenario({ now = T0 } = {}) {
     advance: (ms) => { current = new Date(current.getTime() + ms); },
     setNow: (d) => { current = new Date(d.getTime()); },
     clock,
-    grant: (g) => store.addGrant(g),
+    grant: (g) => store.testing.addGrant(g),
   };
 }
 

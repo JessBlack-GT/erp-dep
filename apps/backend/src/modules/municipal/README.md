@@ -21,12 +21,16 @@
 | `http/erp-identity.js` | Única puerta al núcleo: `authenticateToken` + `requireCurrentUser` y `rbac.resolveAccess` (lectura) del ERP | RQ05 |
 | `http/isolated-app.js` | App Express aislada para pruebas (no abre puertos) | — |
 | `mocks/*`, `storage/memory-storage.js` | Almacén y almacenamiento **en memoria** con datos **sintéticos** | — |
+| `persistence/repository-port.js` | Puerto **asíncrono** de persistencia (F1-05 paso 1): operaciones, reglas y códigos de error | todos |
+| `persistence/qa-guard.js` | Guardia pura previa a cualquier prueba persistente (`munierp_qa` exclusiva, autorización propia); no conecta | — |
 
 Reglas: solo importa de sí mismo, de módulos nativos de Node, de `express` (solo `http/`) y de la
 identidad central del ERP (solo `http/erp-identity.js`); código compatible con Express 4 y 5
 (sin rutas `*`, sin `req.param`); `// @ts-check` + JSDoc en lugar de TypeScript compilado.
 
-Pruebas: `tests/municipal/*.test.js` (se incluyen en `npm test` del backend por el glob existente).
+Pruebas: `tests/municipal/*.test.js` (se incluyen en `npm test` del backend por el glob existente). La suite de
+contrato del repositorio (`tests/municipal/repository-contract/`) se ejecuta contra memoria; el ejecutor
+MongoDB está preparado pero omitido hasta que la guardia de QA autorice y exista el adaptador.
 
 Persistencia: el almacén en memoria es el puerto que implementará el repositorio MongoDB de F1-05;
 el diseño (modelos, índices, folios concurrentes, transacciones, GridFS, migración y pruebas) está en
