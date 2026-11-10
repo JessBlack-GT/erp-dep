@@ -64,3 +64,18 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
 - **Contrato:** X-02 y X-04 retiradas, X-01 propuesta aditiva, X-03 diferida
   ([contracts/PROPUESTAS-DRAFT4.md](contracts/PROPUESTAS-DRAFT4.md)); draft.3 sigue vigente.
 - Dependencias vigentes: C-01, C-05, C-08, C-15, C-16, C-17, C-18, C-19, C-20, C-21.
+
+## Actualización 2026-11-10 (F1-05 paso 3)
+
+- **C-05 (bloqueante):** se necesita `munierp_qa` en un clúster de QA con réplica, dos usuarios
+  (app: find/insert/update/listCollections/listIndexes; instalación: createCollection/createIndex), ambos
+  limitados a `munierp_qa` y sin `remove`/`drop*`, y una autorización propia distinta de la de M07. El
+  preflight de solo lectura (doc 15 §6) comprueba todo esto antes de cualquier escritura.
+- **C-01:** para producción, la composición debería reutilizar el cliente de mongoose del ERP
+  (`mongoose.connection.getClient()`); `createMongoPersistence` ya acepta un cliente inyectado.
+- **C-21:** documentos privados por `features/municipal/privateDocument.js` (web verificado; Android/iOS
+  no disponible hasta el lector nativo). El exportador comercial no se usa ni se modifica.
+- **Puerto v2:** idempotencia por municipio (corrige un cruce posible entre municipios) y operaciones por
+  id con municipio. Sin cambios en draft.3.
+- Dependencias vigentes: C-01, C-05, C-08, C-15, C-16, C-17, C-18, C-19, C-20, C-21.
+

@@ -111,8 +111,9 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
     const p = Math.max(Number(query.page) || 1, 1);
     return { slice: rows.slice((p - 1) * limit, p * limit), pagination: { page: p, limit, total: rows.length, pages: Math.ceil(rows.length / limit) } };
   };
+  /** Versión obsoleta o conflicto de concurrencia agotado en el adaptador → 409 «recargue». */
   const conflictOnStale = (message) => (e) => {
-    if (e.code === 'STALE_VERSION') throw new MunicipalError(409, 'CONFLICT', message);
+    if (e.code === 'STALE_VERSION' || e.code === 'TRANSIENT_CONFLICT') throw new MunicipalError(409, 'CONFLICT', message);
     throw e;
   };
 
@@ -124,7 +125,7 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
       const key = validateIdempotencyKey(idempotencyKey);
       const input = validateRequestCreate(body);
       const payloadHash = crypto.createHash('sha256').update(JSON.stringify(input)).digest('hex');
-      const previous = await store.requestByIdempotency(ctx.userId, key);
+      const previous = await store.requestByIdempotency(mun.id, ctx.userId, key);
       if (previous) {
         if (previous.payloadHash !== payloadHash) throw new MunicipalError(409, 'CONFLICT', 'Idempotency-Key usada con otro contenido');
         return { status: 200, data: await toDto(ctx, mun, previous) };
@@ -153,11 +154,11 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
         return saved;
       }).catch((e) => {
         if (e.code === 'DUPLICATE_IDEMPOTENCY') return null;
-        if (e.code === 'DUPLICATE_FOLIO') throw new MunicipalError(409, 'CONFLICT', 'Colisión de folio; reintente con la misma Idempotency-Key');
+        if (e.code === 'DUPLICATE_FOLIO' || e.code === 'TRANSIENT_CONFLICT') throw new MunicipalError(409, 'CONFLICT', 'Colisión de folio; reintente con la misma Idempotency-Key');
         throw e;
       });
       if (!created) {
-        const raced = await store.requestByIdempotency(ctx.userId, key);
+        const raced = await store.requestByIdempotency(mun.id, ctx.userId, key);
         if (!raced || raced.payloadHash !== payloadHash) throw new MunicipalError(409, 'CONFLICT', 'Idempotency-Key usada con otro contenido');
         return { status: 200, data: await toDto(ctx, mun, raced, deps) };
       }
@@ -216,7 +217,7 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
         throw new MunicipalError(e.statusCode || 400, e.code || 'VALIDATION_ERROR', e.message);
       }
       const saved = await store.transaction(async (tx) => {
-        const updated = await tx.updateRequest(current.id, current.version, {
+        const updated = await tx.updateRequest(mun.id, current.id, current.version, {
           status: next.status, version: next.version, assignedDependencyIds: next.assignedDependencyIds,
           assignedUserId: next.assignedUserId, history: next.history, updatedAt: next.entry.at,
         });
@@ -248,7 +249,7 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
       });
       await storage.put(storageKey, file.buffer);
       const doc = await store.transaction(async (tx) => {
-        const active = await tx.updateDocumentStatus(pending.id, 'VIGENTE');
+        const active = await tx.updateDocumentStatus(mun.id, pending.id, 'VIGENTE');
         await audit(tx, ctx, mun, 'DOCUMENT_UPLOADED', 'Document', 'success', { ...meta, entityId: pending.id, folio: request.folio });
         return active;
       });
@@ -258,7 +259,7 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
     async listDocuments(ctx, munCode, folioValue) {
       const { mun } = await gate(ctx, 'municipal.documents.read', munCode);
       const request = await loadInScope(ctx, mun, folioValue);
-      return (await store.documentsOf(request.id))
+      return (await store.documentsOf(mun.id, request.id))
         .filter((d) => d.status === 'VIGENTE')
         .map((d) => (access.canReadDocument(ctx, request, d) ? present.document(d) : { id: d.id, confidentiality: d.confidentiality, restricted: true }));
     },
@@ -266,12 +267,17 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
     async downloadDocument(ctx, munCode, folioValue, documentId, meta = {}) {
       const { mun } = await gate(ctx, 'municipal.documents.read', munCode);
       const request = await loadInScope(ctx, mun, folioValue, meta);
-      const doc = (await store.documentsOf(request.id)).find((d) => d.id === documentId && d.status === 'VIGENTE');
+      const doc = (await store.documentsOf(mun.id, request.id)).find((d) => d.id === documentId && d.status === 'VIGENTE');
       if (!doc || !access.canReadDocument(ctx, request, doc)) {
         if (doc) await audit(store, ctx, mun, 'ACCESS_DENIED', 'Document', 'denied', { ...meta, entityId: doc.id, folio: request.folio });
         throw notFound();
       }
       const buffer = await storage.get(doc.storageKey);
+      // Integridad (docs/munierp/12 §7): el binario debe corresponder al hash registrado al subirlo.
+      if (doc.sha256 && crypto.createHash('sha256').update(buffer).digest('hex') !== doc.sha256) {
+        await audit(store, ctx, mun, 'DOCUMENT_INTEGRITY_FAILED', 'Document', 'denied', { ...meta, entityId: doc.id, folio: request.folio });
+        throw new MunicipalError(500, 'INTERNAL_ERROR', 'El documento no supera la verificación de integridad');
+      }
       await audit(store, ctx, mun, 'DOCUMENT_DOWNLOADED', 'Document', 'success', { ...meta, entityId: doc.id, folio: request.folio });
       return { headers: docs.downloadHeaders(doc), buffer };
     },
@@ -349,7 +355,7 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
           const children = deps.all.filter((d) => d.parentCode === dep.code && d.status === 'ACTIVA');
           if (children.length) throw new MunicipalError(409, 'CONFLICT', 'La dependencia tiene dependencias subordinadas activas');
         }
-        const updated = await tx.updateDependency(dep.id, { ...input, updatedAt: clock(), updatedBy: ctx.userId });
+        const updated = await tx.updateDependency(mun.id, dep.id, { ...input, updatedAt: clock(), updatedBy: ctx.userId });
         await audit(tx, ctx, mun, 'DEPENDENCY_UPDATED', 'Dependency', 'success', { ...meta, entityId: dep.id });
         return updated;
       });
@@ -405,9 +411,9 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
       const { mun } = await gate(ctx, 'municipal.memberships.manage', munCode);
       const now = clock();
       const input = V.validateMembershipUpdate(body, now);
-      const current = await store.membership(membershipId);
-      // Otro municipio o inexistente: mismo 404.
-      if (!current || current.municipalityId !== mun.id) throw notFound();
+      // El puerto filtra por municipio: otro municipio o inexistente → null → mismo 404.
+      const current = await store.membership(mun.id, membershipId);
+      if (!current) throw notFound();
       if (current.userId === ctx.userId) throw new MunicipalError(403, 'FORBIDDEN', 'No puede modificar su propia membresía');
       if (current.role === 'ADMIN_MUNICIPAL') throw new MunicipalError(403, 'FORBIDDEN', 'Las membresías ADMIN_MUNICIPAL solo se gestionan por bootstrap/ops');
       if (input.role && !canAssignRole(ctx.membership.role, input.role))
@@ -423,7 +429,7 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
       if (V.DEPENDENCY_SCOPED_ROLES.includes(role) && depIds.length === 0)
         throw new MunicipalError(400, 'VALIDATION_ERROR', 'El rol requiere al menos una dependencia');
       const saved = await store.transaction(async (tx) => {
-        const updated = await tx.updateMembership(current.id, current.version || 0, patch);
+        const updated = await tx.updateMembership(mun.id, current.id, current.version || 0, patch);
         const revoked = current.status === 'ACTIVA' && updated.status === 'INACTIVA';
         await audit(tx, ctx, mun, revoked ? 'MEMBERSHIP_REVOKED' : 'MEMBERSHIP_UPDATED', 'Membership', 'success', { ...meta, entityId: current.id });
         return updated;
@@ -472,7 +478,7 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
         throw new MunicipalError(403, 'FORBIDDEN', 'Cambiar la confidencialidad requiere municipal.requests.readConfidential');
       const at = clock();
       const saved = await store.transaction(async (tx) => {
-        const updated = await tx.updateRequest(current.id, current.version, {
+        const updated = await tx.updateRequest(mun.id, current.id, current.version, {
           ...input, version: current.version + 1, updatedAt: at,
           history: [...(current.history || []), editEntry(ctx.userId, at, current.status, Object.keys(input))],
         });
@@ -515,14 +521,14 @@ function createMunicipalService({ store, storage, clock = () => new Date(), user
     async revokeGrant(ctx, munCode, folioValue, grantId, meta = {}) {
       const { mun } = await gate(ctx, 'municipal.requests.grant', munCode);
       const request = await loadInScope(ctx, mun, folioValue, meta);
-      const grant = await store.grant(grantId);
-      if (!grant || grant.requestId !== request.id || grant.municipalityId !== mun.id || grant.revokedAt) throw notFound();
+      const grant = await store.grant(mun.id, grantId);
+      if (!grant || grant.requestId !== request.id || grant.revokedAt) throw notFound();
       const openView = access.TERMINAL.includes(request.status) ? { ...request, status: 'EN_TRAMITE' } : request;
       if (!access.canWriteRequest(ctx, openView, 'municipal.requests.grant'))
         throw new MunicipalError(403, 'FORBIDDEN', 'Sin permiso para revocar');
       await store.transaction(async (tx) => {
         // Si otra petición la revocó entre la lectura y la escritura: mismo 404.
-        if (!(await tx.revokeGrant(grantId, clock()))) throw notFound();
+        if (!(await tx.revokeGrant(mun.id, grantId, clock()))) throw notFound();
         await audit(tx, ctx, mun, 'GRANT_REVOKED', 'Grant', 'success', { ...meta, entityId: grantId, folio: request.folio });
       });
     },

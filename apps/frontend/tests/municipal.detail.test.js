@@ -18,7 +18,7 @@ jest.setTimeout(30000);
 
 async function setup(persona, options) {
   const saved = [];
-  const world = await createServiceBackedWorld({ save: (out, filename) => saved.push({ filename, bytes: out.buffer, headers: out.headers }) });
+  const world = await createServiceBackedWorld({ save: (out) => saved.push({ filename: out.info.filename, bytes: out.bytes, headers: out.headers }) });
   const api = world.apiFor(persona, options);
   const [membership] = await api.myMemberships();
   const dependencies = await api.listDependencies().catch(() => []);

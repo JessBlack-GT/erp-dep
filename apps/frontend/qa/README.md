@@ -34,3 +34,8 @@ Firefox 158 (`firefox-1569`) y WebKit 27.2 (`webkit-2386`) (ver `docs/munierp/14
 Evidencias: `<MUNI_EVIDENCE_DIR>/<navegador>/<escenario>.png` (una por prueba),
 `registro-<navegador>.json` (navegador, fecha, escenario, resultado), `results.json`, `html-report/`
 y, solo en fallos, `artifacts/` con captura, video y traza.
+
+**F1-05 paso 3 (C-21):** el arnés entrega los documentos con el lector privado municipal
+(`src/features/municipal/privateDocument.js`), nunca con `utils/downloadFile`. `?tamperDocs=1` (solo QA)
+simula contenido alterado en el transporte para el escenario 16. Verificado el 2026-11-10 16:56 en
+Windows: F1-13 18/18 en Chromium, Firefox y WebKit (54/54).

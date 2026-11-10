@@ -294,3 +294,14 @@ JWT, MongoDB ni Atlas.
 
 La suite de contrato en memoria NO certifica MongoDB: L2 es aproximación y L3 queda pendiente. Detalle:
 [14-F1-05-PUERTO-Y-CONTRATO.md](14-F1-05-PUERTO-Y-CONTRATO.md).
+
+## Resultados F1-05 paso 3 (2026-11-10) — adaptador MongoDB con DOBLES, sin conexión
+
+| Suite | Entorno | Resultado |
+|---|---|---|
+| Backend municipal (contrato memoria + adaptador sobre doble v5/v6, unitarias del adaptador, preflight) | VM Linux | **271 pasan, 22 pendientes** (7 L3 × 3 implementaciones + ejecutor real omitido) |
+| Backend completo | VM Linux, 4 lotes | **1 224 pasan, 0 fallan** |
+| Jest municipal | VM Linux | **47/47** |
+| Playwright F1-13 (18 escenarios, incluido el 16 nuevo) | Windows: Chromium 158, Firefox 158, WebKit 27.2 | **54/54** |
+
+Los dobles NO certifican MongoDB. Detalle: [15-F1-05-ADAPTADOR-MONGODB.md](15-F1-05-ADAPTADOR-MONGODB.md).

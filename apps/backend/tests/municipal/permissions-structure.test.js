@@ -69,10 +69,11 @@ describe('MuniERP — matriz municipal congelada (04-ROLES-PERMISOS)', () => {
 });
 
 describe('MuniERP — frontera de módulo (MT-61)', () => {
-  it('el módulo municipal solo importa de sí mismo, de Node y —en http/— de express', () => {
+  it('el módulo municipal solo importa de sí mismo, de Node, —en http/— de express y —solo en el CLI del preflight— de mongoose', () => {
     const builtin = new Set(require('module').builtinModules);
     const HTTP = path.join(MODULE, 'http') + path.sep;
     const IDENTITY = path.join(MODULE, 'http', 'erp-identity.js');
+    const PREFLIGHT_CLI = path.join(MODULE, 'persistence', 'mongo', 'preflight-cli.js');
     // Única puerta al núcleo: middlewares centrales de identidad y resolveAccess del ERP (sin modificarlos).
     const CORE_ALLOWED = new Set([path.join(SRC, 'middleware', 'authenticate'), path.join(SRC, 'middleware', 'authorize'), path.join(SRC, 'security', 'rbac')]);
     for (const file of walk(MODULE))
@@ -83,6 +84,8 @@ describe('MuniERP — frontera de módulo (MT-61)', () => {
           if (target.startsWith(MODULE + path.sep)) continue;
           assert.ok(file === IDENTITY && CORE_ALLOWED.has(target), where);
         } else if (req === 'express') assert.ok(file.startsWith(HTTP), where);
+        // F1-05 paso 3: único punto que obtiene el controlador (mongoose.mongo), con carga diferida tras la guardia.
+        else if (req === 'mongoose') assert.strictEqual(file, PREFLIGHT_CLI, where);
         else assert.ok(builtin.has(req), where);
       }
   });

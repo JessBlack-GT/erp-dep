@@ -22,7 +22,7 @@ import { createRoot } from 'react-dom/client';
 import { View } from 'react-native';
 import { MunicipalWorkspaceScreen, RequestDetail, createMockMunicipalApi } from '../src/features/municipal';
 import { Text } from '../src/components/common';
-import { downloadFile } from '../src/utils/downloadFile';
+import { savePrivateDocumentWeb } from '../src/features/municipal/privateDocument';
 import { createServiceBackedWorld } from './service-backed-api';
 
 const params = new URLSearchParams(window.location.search);
@@ -56,11 +56,10 @@ async function main() {
   const persona = params.get('persona');
   let api;
   if (persona) {
-    const world = await createServiceBackedWorld({
-      save: (out, filename) => downloadFile({ data: new Blob([out.buffer], { type: out.headers['Content-Type'] }), headers: { 'content-type': out.headers['Content-Type'] } }, filename),
-    });
+    // C-21: el arnés entrega documentos con el lector privado municipal, no con el exportador comercial.
+    const world = await createServiceBackedWorld({ save: (out) => savePrivateDocumentWeb(out.bytes, out.info) });
     const fail = (params.get('fail') || '').split(',').filter(Boolean);
-    api = world.apiFor(persona, { latencyMs: Math.min(Number(params.get('latency')) || 0, 5000), failFirst: fail });
+    api = world.apiFor(persona, { latencyMs: Math.min(Number(params.get('latency')) || 0, 5000), failFirst: fail, tamperDocuments: params.get('tamperDocs') === '1' });
     // Solo QA: folios sembrados y revocación de la membresía de la persona actual.
     window.__muniFolios = world.folios;
     window.__muniRevokeCurrent = () => world.revoke(persona);

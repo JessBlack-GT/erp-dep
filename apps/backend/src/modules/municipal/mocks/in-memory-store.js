@@ -14,13 +14,15 @@
  *  - Las transacciones y las escrituras sueltas se SERIALIZAN (cola). Esto evita pérdidas de
  *    actualizaciones en memoria, pero NO equivale al aislamiento por instantáneas, a los reintentos de
  *    `TransientTransactionError` ni a los índices únicos de MongoDB: eso solo se certifica contra Mongo.
- *  - Toda consulta de colección exige el municipio (`MISSING_MUNICIPALITY`), igual que el repositorio Mongo.
+ *  - Toda operación sobre datos municipales exige el municipio (`MISSING_MUNICIPALITY`), también las
+ *    lecturas y escrituras por id (puerto v2, F1-05 paso 3). Excepciones documentadas en el puerto.
  *  - Los objetos devueltos son copias: mutarlos no altera el almacén.
  *
  * `store.testing` (síncrono) es SOLO para pruebas: inspección del estado confirmado e inyección de
  * fallos. No forma parte del puerto y el adaptador Mongo no lo implementará.
  */
 const { matches } = require('./filter-match');
+const { hasMunicipalityScope } = require('../persistence/scope');
 
 const clone = (v) => (v === undefined ? undefined : structuredClone(v));
 const fail = (code, message) => Object.assign(new Error(message), { code });
@@ -29,12 +31,6 @@ function requireMunicipalityId(municipalityId) {
   if (typeof municipalityId !== 'string' || !municipalityId) throw fail('MISSING_MUNICIPALITY', 'municipalityId obligatorio');
 }
 
-/** El filtro debe fijar un municipio en su raíz o en un $and de primer nivel. */
-function hasMunicipalityScope(filter) {
-  if (!filter || typeof filter !== 'object') return false;
-  if (typeof filter.municipalityId === 'string' && filter.municipalityId) return true;
-  return Array.isArray(filter.$and) && filter.$and.some(hasMunicipalityScope);
-}
 
 function initialState(seed) {
   return {
@@ -100,15 +96,19 @@ function createMemoryStore(seed = {}) {
         s.dependencies.push(clone(doc));
         return clone(doc);
       }),
-      updateDependency: (id, patch) => write((s) => {
+      updateDependency: (municipalityId, id, patch) => write((s) => {
         injected('updateDependency');
-        const i = s.dependencies.findIndex((d) => d.id === id);
+        requireMunicipalityId(municipalityId);
+        const i = s.dependencies.findIndex((d) => d.id === id && d.municipalityId === municipalityId);
         if (i < 0) throw fail('NOT_FOUND', 'Dependencia inexistente');
         s.dependencies[i] = { ...s.dependencies[i], ...clone(patch), id: s.dependencies[i].id, municipalityId: s.dependencies[i].municipalityId };
         return clone(s.dependencies[i]);
       }),
 
-      membership: (id) => read((s) => clone(s.memberships.find((m) => m.id === id) || null)),
+      membership: (municipalityId, id) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return clone(s.memberships.find((m) => m.id === id && m.municipalityId === municipalityId) || null);
+      }),
       membershipsOf: (userId) => read((s) => s.memberships.filter((m) => m.userId === userId).map(clone)),
       membershipsIn: (municipalityId) => read((s) => {
         requireMunicipalityId(municipalityId);
@@ -122,9 +122,10 @@ function createMemoryStore(seed = {}) {
         s.memberships.push(clone(doc));
         return clone(doc);
       }),
-      updateMembership: (id, expectedVersion, patch) => write((s) => {
+      updateMembership: (municipalityId, id, expectedVersion, patch) => write((s) => {
         injected('updateMembership');
-        const i = s.memberships.findIndex((m) => m.id === id && (m.version || 0) === expectedVersion);
+        requireMunicipalityId(municipalityId);
+        const i = s.memberships.findIndex((m) => m.id === id && m.municipalityId === municipalityId && (m.version || 0) === expectedVersion);
         if (i < 0) throw fail('STALE_VERSION', 'Versión obsoleta');
         const prev = s.memberships[i];
         s.memberships[i] = { ...prev, ...clone(patch), id: prev.id, userId: prev.userId, municipalityId: prev.municipalityId, version: expectedVersion + 1 };
@@ -157,12 +158,16 @@ function createMemoryStore(seed = {}) {
         requireMunicipalityId(doc.municipalityId);
         if (s.requests.some((r) => r.municipalityId === doc.municipalityId && r.folio === doc.folio))
           throw fail('DUPLICATE_FOLIO', 'Folio duplicado');
-        if (doc.idempotencyKey && s.requests.some((r) => r.createdBy === doc.createdBy && r.idempotencyKey === doc.idempotencyKey))
+        if (doc.idempotencyKey && s.requests.some((r) => r.municipalityId === doc.municipalityId && r.createdBy === doc.createdBy && r.idempotencyKey === doc.idempotencyKey))
           throw fail('DUPLICATE_IDEMPOTENCY', 'Clave de idempotencia duplicada');
         s.requests.push(clone(doc));
         return clone(doc);
       }),
-      requestByIdempotency: (createdBy, key) => read((s) => clone(s.requests.find((r) => r.createdBy === createdBy && r.idempotencyKey === key) || null)),
+      /** Idempotencia por municipio y usuario (la misma clave en otro municipio es otra solicitud). */
+      requestByIdempotency: (municipalityId, createdBy, key) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return clone(s.requests.find((r) => r.municipalityId === municipalityId && r.createdBy === createdBy && r.idempotencyKey === key) || null);
+      }),
       findRequests: (filter) => read((s) => {
         if (!hasMunicipalityScope(filter)) throw fail('MISSING_MUNICIPALITY', 'Consulta de expedientes sin municipio');
         return s.requests.filter((r) => matches(r, filter)).map(clone);
@@ -173,9 +178,10 @@ function createMemoryStore(seed = {}) {
         return s.requests.some((r) => r.municipalityId === municipalityId && r.folio === folio);
       }),
       /** Compara y sustituye por versión. El `patch` trae la versión nueva y el historial completo. */
-      updateRequest: (id, expectedVersion, patch) => write((s) => {
+      updateRequest: (municipalityId, id, expectedVersion, patch) => write((s) => {
         injected('updateRequest');
-        const i = s.requests.findIndex((r) => r.id === id && r.version === expectedVersion);
+        requireMunicipalityId(municipalityId);
+        const i = s.requests.findIndex((r) => r.id === id && r.municipalityId === municipalityId && r.version === expectedVersion);
         if (i < 0) throw fail('STALE_VERSION', 'Versión obsoleta');
         const prev = s.requests[i];
         const next = { ...prev, ...clone(patch), id: prev.id, municipalityId: prev.municipalityId, folio: prev.folio, createdAt: prev.createdAt, createdBy: prev.createdBy };
@@ -194,14 +200,23 @@ function createMemoryStore(seed = {}) {
         s.documents.push(clone(doc));
         return clone(doc);
       }),
-      updateDocumentStatus: (id, status) => write((s) => {
+      updateDocumentStatus: (municipalityId, id, status) => write((s) => {
         injected('updateDocumentStatus');
-        const d = s.documents.find((x) => x.id === id);
+        requireMunicipalityId(municipalityId);
+        const d = s.documents.find((x) => x.id === id && x.municipalityId === municipalityId);
         if (!d) throw fail('NOT_FOUND', 'Documento inexistente');
         d.status = status;
         return clone(d);
       }),
-      documentsOf: (requestId) => read((s) => s.documents.filter((d) => d.requestId === requestId).map(clone)),
+      /** Solo lectura: documentos PENDIENTE anteriores a `before`, para conciliación manual (sin borrado). */
+      pendingDocuments: (municipalityId, before) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return s.documents.filter((d) => d.municipalityId === municipalityId && d.status === 'PENDIENTE' && d.uploadedAt < before).map(clone);
+      }),
+      documentsOf: (municipalityId, requestId) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return s.documents.filter((d) => d.municipalityId === municipalityId && d.requestId === requestId).map(clone);
+      }),
 
       addGrant: (g) => write((s) => {
         injected('addGrant');
@@ -209,10 +224,14 @@ function createMemoryStore(seed = {}) {
         s.grants.push(clone(g));
         return clone(g);
       }),
-      grant: (id) => read((s) => clone(s.grants.find((g) => g.id === id) || null)),
-      revokeGrant: (id, at) => write((s) => {
+      grant: (municipalityId, id) => read((s) => {
+        requireMunicipalityId(municipalityId);
+        return clone(s.grants.find((g) => g.id === id && g.municipalityId === municipalityId) || null);
+      }),
+      revokeGrant: (municipalityId, id, at) => write((s) => {
         injected('revokeGrant');
-        const g = s.grants.find((x) => x.id === id);
+        requireMunicipalityId(municipalityId);
+        const g = s.grants.find((x) => x.id === id && x.municipalityId === municipalityId);
         if (!g || g.revokedAt) return false;
         g.revokedAt = clone(at);
         return true;

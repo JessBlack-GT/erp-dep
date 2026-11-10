@@ -12,6 +12,7 @@ import { createMemoryStore } from '../../backend/src/modules/municipal/mocks/in-
 import { createMemoryStorage } from '../../backend/src/modules/municipal/storage/memory-storage';
 import { createMunicipalService } from '../../backend/src/modules/municipal/application/municipal.service';
 import { buildAccessContext } from '../../backend/src/modules/municipal/policy/context';
+import { inspectPrivateDocument } from '../src/features/municipal/privateDocument';
 
 export const SERVICE_BACKED_LABEL =
   'API simulada en el navegador: servicio municipal real con almacén en memoria y datos sintéticos (sin HTTP, sin JWT, sin MongoDB).';
@@ -27,7 +28,8 @@ const toApiError = (e) => Object.assign(new Error(e && e.message ? e.message : '
 
 /**
  * Crea un "mundo" sintético sembrado con expedientes, historial y documentos mediante el propio servicio.
- * @param {{ save?: (result: { buffer: any, headers: object }, filename: string) => void }} options
+ * @param {{ save?: (result: { bytes: Uint8Array, headers: object, info: { mimeType: string, filename: string } }, doc: object) => void }} options
+ *   `save` recibe el contenido YA VERIFICADO por el lector privado (C-21); nunca el exportador comercial.
  */
 export async function createServiceBackedWorld({ save } = {}) {
   let now = new Date('2026-10-05T16:00:00Z');
@@ -70,7 +72,7 @@ export async function createServiceBackedWorld({ save } = {}) {
 
   const folios = { r1: r1.folio, r2: r2.folio, r3: r3.folio, r4: r4.folio, r5: r5.folio, z1: z1.folio };
 
-  function apiFor(persona, { latencyMs = 0, failFirst = null } = {}) {
+  function apiFor(persona, { latencyMs = 0, failFirst = null, tamperDocuments = false } = {}) {
     const failed = new Set();
     const wrap = (name, fn) => async (...args) => {
       if (latencyMs) await new Promise((r) => setTimeout(r, latencyMs));
@@ -99,14 +101,17 @@ export async function createServiceBackedWorld({ save } = {}) {
       getReceipt: wrap('getReceipt', async (folio) => service.receipt(await c(), 'SJH', folio)),
       downloadDocument: wrap('downloadDocument', async (folio, doc) => {
         const out = await service.downloadDocument(await c(), 'SJH', folio, doc.id, { ip: '127.0.0.1', requestId: 'qa-ui' });
-        if (save) save(out, doc.filename);
-        return { saved: true };
+        // `tamperDocuments` (solo QA) simula contenido alterado en el transporte: el lector debe rechazarlo.
+        const bytes = new Uint8Array(tamperDocuments ? Buffer.from('contenido-no-valido') : out.buffer);
+        const info = inspectPrivateDocument(bytes, { contentType: out.headers['Content-Type'], doc });
+        if (save) save({ bytes, headers: out.headers, info }, doc);
+        return { saved: true, filename: info.filename };
       }),
     };
   }
 
   return { apiFor, folios, store, service, fx, revoke: async (userKey) => {
     const m = (await store.membershipsOf(fx.USERS[userKey])).find((x) => x.municipalityId === SJH);
-    if (m) await store.updateMembership(m.id, m.version || 0, { status: 'INACTIVA' });
+    if (m) await store.updateMembership(SJH, m.id, m.version || 0, { status: 'INACTIVA' });
   } };
 }

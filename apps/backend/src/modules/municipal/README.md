@@ -22,6 +22,7 @@
 | `http/isolated-app.js` | App Express aislada para pruebas (no abre puertos) | — |
 | `mocks/*`, `storage/memory-storage.js` | Almacén y almacenamiento **en memoria** con datos **sintéticos** | — |
 | `persistence/repository-port.js` | Puerto **asíncrono** de persistencia (F1-05 paso 1): operaciones, reglas y códigos de error | todos |
+| `persistence/mongo/*` | Adaptador MongoDB (F1-05 paso 3) con controlador **inyectado**, GridFS, plan de instalación y preflight de solo lectura. Probado solo con dobles; no conecta por sí mismo | todos |
 | `persistence/qa-guard.js` | Guardia pura previa a cualquier prueba persistente (`munierp_qa` exclusiva, autorización propia); no conecta | — |
 
 Reglas: solo importa de sí mismo, de módulos nativos de Node, de `express` (solo `http/`) y de la

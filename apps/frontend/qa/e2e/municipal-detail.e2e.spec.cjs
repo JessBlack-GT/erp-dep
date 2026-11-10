@@ -177,6 +177,17 @@ test('14 auditor: solo metadatos', async ({ page }) => {
   for (const id of ['detail-subject', 'detail-history', 'detail-documents', 'detail-actions', 'detail-citizen']) await expect(page.locator(tid(id))).toHaveCount(0);
 });
 
+test('16 documento alterado en el transporte: el lector privado no lo guarda e informa (C-21)', async ({ page }) => {
+  await direct(page, 'u_tit_obp', 'r1', '&tamperDocs=1');
+  let downloads = 0;
+  page.on('download', () => { downloads += 1; });
+  await page.getByRole('button', { name: /^Descargar Oficio/ }).click();
+  await expect(page.locator(tid('detail-notice-error'))).toContainText('no superó la verificación');
+  await page.waitForTimeout(800);
+  expect(downloads, 'sin archivo guardado').toBe(0);
+  await expect(page.locator(tid('detail-notice-success'))).toHaveCount(0);
+});
+
 for (const [name, width, height] of [['celular', 360, 740], ['tableta', 800, 1000], ['escritorio', 1280, 900]]) {
   test(`15 detalle adaptable ${name} ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height });

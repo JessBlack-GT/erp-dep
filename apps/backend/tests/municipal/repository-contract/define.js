@@ -2,11 +2,13 @@
 /**
  * Registra la suite de contrato para una implementación del puerto.
  *
- * @param {{ label: string, kind: 'memory'|'mongo', createEnv: () => Promise<{ store: any, storage: any, close?: Function }> }} impl
+ * @param {{ label: string, kind: 'memory'|'mongo-double'|'mongo', createEnv: () => Promise<{ store: any, storage: any, mongo?: any, close?: Function }> }} impl
  *
  * - L1 se ejecuta siempre.
- * - L2 se ejecuta; en `memory` el título advierte que es una aproximación sin valor de certificación.
- * - L3 se ejecuta solo con `kind: 'mongo'`; en memoria queda PENDIENTE (mocha lo cuenta como pending).
+ * - L2 se ejecuta; fuera de `mongo` (memoria o doble del controlador) es una aproximación sin valor de
+ *   certificación y el título lo indica.
+ * - L3 se ejecuta solo con `kind: 'mongo'` (MongoDB real autorizado) y si el caso tiene `run`; en los
+ *   demás casos queda PENDIENTE (mocha lo cuenta como pending).
  */
 const { CASES, LEVEL_LABEL } = require('./cases');
 const { withFaults } = require('./faults');
@@ -18,14 +20,15 @@ function defineRepositoryContract(impl) {
     for (const area of areas) {
       describe(area, () => {
         for (const c of CASES.filter((x) => x.area === area)) {
-          const title = `${c.id} [${LEVEL_LABEL[c.level]}] ${c.title}`;
-          if (c.level === 'L3' && impl.kind !== 'mongo') { it(`${title} — pendiente: ${c.verify}`); continue; }
+          const label = c.level === 'L2' && impl.kind === 'mongo' ? 'L2 concurrencia en MongoDB real' : LEVEL_LABEL[c.level];
+          const title = `${c.id} [${label}] ${c.title}`;
+          if (c.level === 'L3' && (impl.kind !== 'mongo' || !c.run)) { it(`${title} — pendiente: ${c.verify}`); continue; }
           it(title, async () => {
             const env = await impl.createEnv();
             try {
               assertRepositoryPort(env.store);
               const faults = withFaults(env.store);
-              await c.run({ store: env.store, storage: env.storage, faults });
+              await c.run({ store: env.store, storage: env.storage, faults, mongo: env.mongo });
             } finally {
               if (env.close) await env.close();
             }

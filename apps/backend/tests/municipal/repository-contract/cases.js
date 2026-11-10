@@ -9,12 +9,14 @@
  *  - L3 «solo MongoDB»: requiere índices, transacciones multi-documento, GridFS o topología reales.
  *    En memoria queda PENDIENTE (no se ejecuta ni se declara aprobado).
  *
- * `run(env)` recibe: { store, storage, faults, seed } — `faults` viene de faults.js y funciona con
- * cualquier implementación del puerto.
+ * `run(env)` recibe: { store, storage, faults, mongo? } — `faults` viene de faults.js y funciona con
+ * cualquier implementación del puerto; `mongo` ({ db, prefix }) solo existe contra MongoDB real.
+ * Un caso L3 sin `run` necesita instrumentación adicional y queda pendiente incluso contra MongoDB.
  */
 const assert = require('assert');
 const { requestDoc, auditEvent, A, B, OBP_A, NOW, fx } = require('./seed');
 const { allOperations } = require('../../../src/modules/municipal/persistence/repository-port');
+const { verifySetup } = require('../../../src/modules/municipal/persistence/mongo/setup-plan');
 
 const code = async (promise) => {
   try { await promise; } catch (e) { return e.code || e.message; }
@@ -32,7 +34,7 @@ const CASES = [
       assert.strictEqual(saved.folio, doc.folio);
       const [found] = await store.findRequests({ $and: [{ municipalityId: A }, { folio: doc.folio }] });
       assert.deepStrictEqual(found, saved);
-      assert.deepStrictEqual(await store.requestByIdempotency(doc.createdBy, doc.idempotencyKey), saved);
+      assert.deepStrictEqual(await store.requestByIdempotency(A, doc.createdBy, doc.idempotencyKey), saved);
       assert.strictEqual(await store.existsByFolio(A, doc.folio), true);
       assert.strictEqual(await store.existsByFolio(A, 'SJH-OBP-SOL-2026-999999'), false);
     } },
@@ -51,7 +53,7 @@ const CASES = [
   { id: 'RC-03', area: 'Creación y consulta', level: 'L1', title: 'un patch no cambia identidad (id, municipio, folio, createdAt, createdBy)',
     async run({ store }) {
       const saved = await store.insertRequest(requestDoc(store));
-      const updated = await store.updateRequest(saved.id, 0, {
+      const updated = await store.updateRequest(A, saved.id, 0, {
         version: 1, municipalityId: B, folio: 'ZZZ-OBP-SOL-2026-000001', createdBy: 'otro', createdAt: new Date(0), history: saved.history,
       });
       for (const k of ['id', 'municipalityId', 'folio', 'createdBy']) assert.strictEqual(updated[k], saved[k], k);
@@ -92,6 +94,30 @@ const CASES = [
       assert.strictEqual(await store.citizen(B, fx.oid(400)), null, 'ciudadano de A no visible desde B');
     } },
 
+  { id: 'RC-36', area: 'Aislamiento municipal', level: 'L1', title: 'lecturas y escrituras por id con otro municipio se comportan como inexistentes y no modifican nada',
+    async run({ store }) {
+      const saved = await store.insertRequest(requestDoc(store));
+      const g = { id: store.newId(), requestId: saved.id, municipalityId: A, granteeUserId: fx.USERS.u_op_tes, level: 'READ', revokedAt: null };
+      await store.addGrant(g);
+      const doc = { id: store.newId(), municipalityId: A, requestId: saved.id, folio: saved.folio, storageKey: 'opaca-contrato-0036', status: 'PENDIENTE', confidentiality: 'PUBLICA' };
+      await store.insertDocument(doc);
+      assert.strictEqual(await store.membership(B, fx.oid(303)), null);
+      assert.strictEqual(await store.grant(B, g.id), null);
+      assert.deepStrictEqual(await store.documentsOf(B, saved.id), []);
+      assert.strictEqual(await store.requestByIdempotency(B, saved.createdBy, saved.idempotencyKey), null);
+      assert.strictEqual(await code(store.updateRequest(B, saved.id, 0, { version: 1, status: 'CANCELADA', history: saved.history })), 'STALE_VERSION');
+      assert.strictEqual(await code(store.updateMembership(B, fx.oid(303), 0, { status: 'INACTIVA' })), 'STALE_VERSION');
+      assert.strictEqual(await code(store.updateDependency(B, OBP_A, { name: 'x' })), 'NOT_FOUND');
+      assert.strictEqual(await code(store.updateDocumentStatus(B, doc.id, 'VIGENTE')), 'NOT_FOUND');
+      assert.strictEqual(await store.revokeGrant(B, g.id, NOW), false);
+      assert.strictEqual((await store.findRequests({ municipalityId: A }))[0].status, 'REGISTRADA');
+      assert.strictEqual((await store.membership(A, fx.oid(303))).status, 'ACTIVA');
+      assert.strictEqual((await store.grant(A, g.id)).revokedAt, null);
+      assert.strictEqual((await store.documentsOf(A, saved.id))[0].status, 'PENDIENTE');
+      for (const op of [() => store.membership(undefined, 'x'), () => store.grant('', 'x'), () => store.documentsOf(null, 'x'), () => store.updateRequest(undefined, 'x', 0, {}), () => store.revokeGrant(undefined, 'x', NOW), () => store.requestByIdempotency(undefined, 'u', 'k')])
+        assert.strictEqual(await code(op()), 'MISSING_MUNICIPALITY');
+    } },
+
   /* ---------------------------------- Folios ---------------------------------- */
   { id: 'RC-07', area: 'Folios únicos', level: 'L1', title: 'la secuencia es consecutiva por clave e independiente entre claves',
     async run({ store }) {
@@ -106,12 +132,16 @@ const CASES = [
       assert.strictEqual(await code(store.insertRequest(requestDoc(store))), 'DUPLICATE_FOLIO');
       assert.strictEqual((await store.findRequests({ municipalityId: A })).length, 1);
     } },
-  { id: 'RC-09', area: 'Folios únicos', level: 'L1', title: 'Idempotency-Key repetida por el mismo usuario → DUPLICATE_IDEMPOTENCY; otro usuario puede usarla',
+  { id: 'RC-09', area: 'Folios únicos', level: 'L1', title: 'Idempotency-Key repetida por el mismo usuario y municipio → DUPLICATE_IDEMPOTENCY; otro usuario u otro municipio pueden usarla',
     async run({ store }) {
       await store.insertRequest(requestDoc(store, { key: 'k-1' }));
       assert.strictEqual(await code(store.insertRequest(requestDoc(store, { sequence: 2, key: 'k-1' }))), 'DUPLICATE_IDEMPOTENCY');
       await store.insertRequest(requestDoc(store, { sequence: 3, key: 'k-1', createdBy: fx.USERS.u_vent }));
       assert.strictEqual((await store.findRequests({ municipalityId: A })).length, 2);
+      // La misma clave del mismo usuario en OTRO municipio es otra solicitud (idempotencia por municipio).
+      await store.insertRequest(requestDoc(store, { municipalityId: B, code: 'ZZZ', key: 'k-1' }));
+      assert.strictEqual(await store.requestByIdempotency(B, fx.USERS.u_op_obp, 'k-1').then((r) => r.municipalityId), B);
+      assert.strictEqual(await store.requestByIdempotency(A, fx.USERS.u_op_obp, 'k-1').then((r) => r.municipalityId), A);
     } },
 
   /* --------------------------- Colisiones y conflictos --------------------------- */
@@ -126,7 +156,7 @@ const CASES = [
     } },
   { id: 'RC-11', area: 'Colisiones y conflictos', level: 'L1', title: 'clave de almacenamiento duplicada → DUPLICATE_STORAGE_KEY',
     async run({ store }) {
-      const doc = { id: store.newId(), municipalityId: A, requestId: 'r1', folio: 'f', storageKey: 'clave-opaca-1', status: 'PENDIENTE', confidentiality: 'PUBLICA' };
+      const doc = { id: store.newId(), municipalityId: A, requestId: 'r1', folio: 'f', storageKey: 'clave-opaca-contrato-1', status: 'PENDIENTE', confidentiality: 'PUBLICA' };
       await store.insertDocument(doc);
       assert.strictEqual(await code(store.insertDocument({ ...doc, id: store.newId() })), 'DUPLICATE_STORAGE_KEY');
     } },
@@ -135,8 +165,8 @@ const CASES = [
   { id: 'RC-12', area: 'Actualización de revisiones', level: 'L1', title: 'expediente: versión correcta aplica; versión obsoleta → STALE_VERSION sin cambios',
     async run({ store }) {
       const saved = await store.insertRequest(requestDoc(store));
-      await store.updateRequest(saved.id, 0, { status: 'EN_TRAMITE', version: 1, history: saved.history });
-      assert.strictEqual(await code(store.updateRequest(saved.id, 0, { status: 'CANCELADA', version: 1, history: saved.history })), 'STALE_VERSION');
+      await store.updateRequest(A, saved.id, 0, { status: 'EN_TRAMITE', version: 1, history: saved.history });
+      assert.strictEqual(await code(store.updateRequest(A, saved.id, 0, { status: 'CANCELADA', version: 1, history: saved.history })), 'STALE_VERSION');
       const [now] = await store.findRequests({ municipalityId: A });
       assert.strictEqual(now.status, 'EN_TRAMITE');
       assert.strictEqual(now.version, 1);
@@ -144,11 +174,11 @@ const CASES = [
   { id: 'RC-13', area: 'Actualización de revisiones', level: 'L1', title: 'membresía: el almacén incrementa la versión; versión obsoleta → STALE_VERSION',
     async run({ store }) {
       const id = fx.oid(303);
-      const v1 = await store.updateMembership(id, 0, { role: 'CONSULTA' });
+      const v1 = await store.updateMembership(A, id, 0, { role: 'CONSULTA' });
       assert.strictEqual(v1.version, 1);
-      assert.strictEqual(await code(store.updateMembership(id, 0, { role: 'TITULAR_DEPENDENCIA' })), 'STALE_VERSION');
-      assert.strictEqual((await store.membership(id)).role, 'CONSULTA');
-      assert.strictEqual(await code(store.updateMembership('000000000000000000000fff', 0, {})), 'STALE_VERSION', 'inexistente');
+      assert.strictEqual(await code(store.updateMembership(A, id, 0, { role: 'TITULAR_DEPENDENCIA' })), 'STALE_VERSION');
+      assert.strictEqual((await store.membership(A, id)).role, 'CONSULTA');
+      assert.strictEqual(await code(store.updateMembership(A, '000000000000000000000fff', 0, {})), 'STALE_VERSION', 'inexistente');
     } },
 
   /* ------------------------------ Historial y auditoría ------------------------------ */
@@ -156,9 +186,9 @@ const CASES = [
     async run({ store }) {
       const saved = await store.insertRequest(requestDoc(store));
       const entry = { at: NOW, actorId: fx.USERS.u_tit_obp, action: 'TURNAR', fromStatus: 'REGISTRADA', toStatus: 'EN_TRAMITE' };
-      await store.updateRequest(saved.id, 0, { version: 1, history: [...saved.history, entry] });
-      assert.strictEqual(await code(store.updateRequest(saved.id, 1, { version: 2, history: [] })), 'HISTORY_REWRITE');
-      assert.strictEqual(await code(store.updateRequest(saved.id, 1, { version: 2, history: [{ ...saved.history[0], actorId: 'falso' }, entry] })), 'HISTORY_REWRITE');
+      await store.updateRequest(A, saved.id, 0, { version: 1, history: [...saved.history, entry] });
+      assert.strictEqual(await code(store.updateRequest(A, saved.id, 1, { version: 2, history: [] })), 'HISTORY_REWRITE');
+      assert.strictEqual(await code(store.updateRequest(A, saved.id, 1, { version: 2, history: [{ ...saved.history[0], actorId: 'falso' }, entry] })), 'HISTORY_REWRITE');
       const [now] = await store.findRequests({ municipalityId: A });
       assert.strictEqual(now.history.length, 2);
       assert.strictEqual(now.version, 1);
@@ -178,40 +208,56 @@ const CASES = [
   { id: 'RC-16', area: 'Revocación de membresías', level: 'L1', title: 'revocar persiste estado y versión, se refleja en lecturas; revocar una concesión dos veces es idempotente',
     async run({ store }) {
       const id = fx.oid(303);
-      await store.updateMembership(id, 0, { status: 'INACTIVA' });
+      await store.updateMembership(A, id, 0, { status: 'INACTIVA' });
       const ofUser = await store.membershipsOf(fx.USERS.u_tit_obp);
       assert.strictEqual(ofUser.find((m) => m.id === id).status, 'INACTIVA');
       assert.strictEqual(ofUser.find((m) => m.id === id).version, 1);
       const g = { id: store.newId(), requestId: 'r', municipalityId: A, granteeUserId: fx.USERS.u_op_tes, level: 'READ', revokedAt: null };
       await store.addGrant(g);
-      assert.strictEqual(await store.revokeGrant(g.id, NOW), true);
-      assert.strictEqual(await store.revokeGrant(g.id, NOW), false);
-      assert.strictEqual((await store.grant(g.id)).revokedAt.getTime(), NOW.getTime());
-      assert.strictEqual(await store.revokeGrant('000000000000000000000fff', NOW), false);
+      assert.strictEqual(await store.revokeGrant(A, g.id, NOW), true);
+      assert.strictEqual(await store.revokeGrant(A, g.id, NOW), false);
+      assert.strictEqual((await store.grant(A, g.id)).revokedAt.getTime(), NOW.getTime());
+      assert.strictEqual(await store.revokeGrant(A, '000000000000000000000fff', NOW), false);
     } },
 
   /* ------------------------------- Documentos privados ------------------------------- */
   { id: 'RC-17', area: 'Documentos privados', level: 'L1', title: 'metadatos PENDIENTE → VIGENTE; solo metadatos en el repositorio y binario en el almacenamiento',
     async run({ store, storage }) {
-      const doc = { id: store.newId(), municipalityId: A, requestId: 'r1', folio: 'SJH-OBP-SOL-2026-000001', filename: 'Oficio.pdf', mimeType: 'application/pdf', size: 9, sha256: 'x', storageKey: 'opaca-17', status: 'PENDIENTE', confidentiality: 'CONFIDENCIAL' };
+      const doc = { id: store.newId(), municipalityId: A, requestId: 'r1', folio: 'SJH-OBP-SOL-2026-000001', filename: 'Oficio.pdf', mimeType: 'application/pdf', size: 9, sha256: 'x', storageKey: 'opaca-contrato-0017', status: 'PENDIENTE', confidentiality: 'CONFIDENCIAL' };
       await store.insertDocument(doc);
-      await storage.put('opaca-17', Buffer.from('%PDF-1.4\n'));
-      const active = await store.updateDocumentStatus(doc.id, 'VIGENTE');
+      await storage.put('opaca-contrato-0017', Buffer.from('%PDF-1.4\n'));
+      const active = await store.updateDocumentStatus(A, doc.id, 'VIGENTE');
       assert.strictEqual(active.status, 'VIGENTE');
-      const listed = await store.documentsOf('r1');
+      const listed = await store.documentsOf(A, 'r1');
       assert.strictEqual(listed.length, 1);
       assert.ok(!('content' in listed[0]) && !('buffer' in listed[0]) && !('contentBase64' in listed[0]), 'sin binario en metadatos');
-      assert.strictEqual((await storage.get('opaca-17')).toString(), '%PDF-1.4\n');
-      assert.strictEqual((await store.documentsOf('otro')).length, 0);
-      assert.strictEqual(await code(store.updateDocumentStatus('000000000000000000000fff', 'VIGENTE')), 'NOT_FOUND');
+      assert.strictEqual((await storage.get('opaca-contrato-0017')).toString(), '%PDF-1.4\n');
+      assert.strictEqual((await store.documentsOf(A, 'otro')).length, 0);
+      assert.strictEqual(await code(store.updateDocumentStatus(A, '000000000000000000000fff', 'VIGENTE')), 'NOT_FOUND');
     } },
   { id: 'RC-18', area: 'Documentos privados', level: 'L1', title: 'el almacenamiento no sobrescribe claves ni entrega contenido inexistente',
     async run({ storage }) {
-      await storage.put('opaca-18', Buffer.from('a'));
-      await assert.rejects(() => storage.put('opaca-18', Buffer.from('b')));
-      assert.strictEqual((await storage.get('opaca-18')).toString(), 'a');
-      await assert.rejects(() => storage.get('no-existe'));
+      await storage.put('opaca-contrato-0018', Buffer.from('a'));
+      await assert.rejects(() => storage.put('opaca-contrato-0018', Buffer.from('b')));
+      assert.strictEqual((await storage.get('opaca-contrato-0018')).toString(), 'a');
+      await assert.rejects(() => storage.get('no-existe-contrato-0'));
       assert.strictEqual(typeof storage.delete, 'undefined', 'sin operación de borrado');
+    } },
+
+  { id: 'RC-37', area: 'Documentos privados', level: 'L1', title: 'los PENDIENTE antiguos se informan para conciliación (solo lectura); vigentes, recientes y de otro municipio no; nada se borra',
+    async run({ store }) {
+      const old = new Date('2026-09-01T00:00:00Z');
+      const recent = new Date('2026-10-01T14:00:00Z');
+      const cutoff = new Date('2026-09-30T00:00:00Z');
+      const put = (municipalityId, key, status, uploadedAt) => store.insertDocument({ id: store.newId(), municipalityId, requestId: 'r37', folio: 'f', storageKey: `opaca-contrato-37-${key}`, status, confidentiality: 'PUBLICA', uploadedAt });
+      await put(A, 'pendiente-viejo', 'PENDIENTE', old);
+      await put(A, 'pendiente-reciente', 'PENDIENTE', recent);
+      await put(A, 'vigente-viejo', 'VIGENTE', old);
+      await put(B, 'otro-municipio', 'PENDIENTE', old);
+      assert.deepStrictEqual((await store.pendingDocuments(A, cutoff)).map((d) => d.storageKey), ['opaca-contrato-37-pendiente-viejo']);
+      assert.strictEqual((await store.documentsOf(A, 'r37')).length, 3, 'informar no borra');
+      assert.strictEqual(await code(store.pendingDocuments(undefined, cutoff)), 'MISSING_MUNICIPALITY');
+      for (const op of ['deleteDocument', 'removeDocument', 'purgePending']) assert.strictEqual(typeof store[op], 'undefined', op);
     } },
 
   /* ----------------------------- Errores de persistencia ----------------------------- */
@@ -243,13 +289,13 @@ const CASES = [
       const boom = new Error('regla de negocio');
       const err = await store.transaction(async (tx) => {
         await tx.insertDependency({ id: tx.newId(), municipalityId: A, code: 'NUE', name: 'Nueva', status: 'ACTIVA' });
-        await tx.updateMembership(fx.oid(304), 0, { status: 'INACTIVA' });
+        await tx.updateMembership(A, fx.oid(304), 0, { status: 'INACTIVA' });
         await tx.addGrant({ id: tx.newId(), requestId: 'r', municipalityId: A, level: 'READ', revokedAt: null });
         throw boom;
       }).catch((e) => e);
       assert.strictEqual(err, boom);
       assert.ok(!(await store.dependencies(A)).some((d) => d.code === 'NUE'));
-      assert.strictEqual((await store.membership(fx.oid(304))).status, 'ACTIVA');
+      assert.strictEqual((await store.membership(A, fx.oid(304))).status, 'ACTIVA');
       assert.strictEqual((await store.grantsFor(A)).length, 0);
     } },
 
@@ -259,12 +305,12 @@ const CASES = [
       const saved = await store.insertRequest(requestDoc(store));
       const stale = await store.transaction(async (tx) => {
         await tx.appendAudit(auditEvent(A, 'REQUEST_TURNAR'));
-        await tx.updateRequest(saved.id, 7, { version: 8, history: saved.history });
+        await tx.updateRequest(A, saved.id, 7, { version: 8, history: saved.history });
       }).catch((e) => e.code);
       assert.strictEqual(stale, 'STALE_VERSION');
       assert.strictEqual((await store.auditEvents(A)).length, 0);
       await store.transaction(async (tx) => {
-        await tx.updateRequest(saved.id, 0, { version: 1, status: 'EN_TRAMITE', history: saved.history });
+        await tx.updateRequest(A, saved.id, 0, { version: 1, status: 'EN_TRAMITE', history: saved.history });
         await tx.appendAudit(auditEvent(A, 'REQUEST_TURNAR'));
       });
       assert.strictEqual((await store.auditEvents(A)).length, 1);
@@ -299,7 +345,7 @@ const CASES = [
     async run({ store }) {
       const before = (await store.dependencies(A)).length;
       await assert.rejects(() => store.insertDependency({ id: store.newId(), municipalityId: A, code: 'OBP', name: 'dup', status: 'ACTIVA' }));
-      await assert.rejects(() => store.updateDependency('000000000000000000000fff', { name: 'x' }));
+      await assert.rejects(() => store.updateDependency(A, '000000000000000000000fff', { name: 'x' }));
       assert.strictEqual((await store.dependencies(A)).length, before);
     } },
 
@@ -318,7 +364,7 @@ const CASES = [
     async run({ store }) {
       const saved = await store.insertRequest(requestDoc(store));
       const results = await Promise.allSettled(['EN_TRAMITE', 'CANCELADA'].map((status) => store.transaction(async (tx) => {
-        await tx.updateRequest(saved.id, 0, { status, version: 1, history: saved.history });
+        await tx.updateRequest(A, saved.id, 0, { status, version: 1, history: saved.history });
         await tx.appendAudit(auditEvent(A, 'X'));
       })));
       assert.strictEqual(results.filter((r) => r.status === 'fulfilled').length, 1);
@@ -338,11 +384,20 @@ const CASES = [
 
   /* ------------------------------ L3: requieren MongoDB real ------------------------------ */
   { id: 'RC-29', area: 'Folios únicos', level: 'L3', title: 'índices únicos y compuestos creados según docs/munierp/12 §3 (listIndexes)',
-    verify: 'Comparar listIndexes() de cada colección municipal_* con la tabla del diseño; unique/partial exactos.' },
+    verify: 'Comparar listIndexes() de cada colección municipal_* con la tabla del diseño; unique/partial exactos.',
+    async run({ mongo }) {
+      const r = await verifySetup(mongo.db, { prefix: mongo.prefix });
+      assert.ok(r.ok, r.problems.join('; '));
+    } },
   { id: 'RC-30', area: 'Errores de persistencia', level: 'L3', title: 'transacción multi-documento real: writeConcern majority, readConcern snapshot y reintento de TransientTransactionError',
     verify: 'Forzar conflicto de escritura entre dos sesiones (WriteConflict) y verificar reintento sin duplicar folio.' },
   { id: 'RC-31', area: 'Aislamiento municipal', level: 'L3', title: 'el arranque rechaza una topología sin réplica (standalone) y una base distinta de munierp_qa',
-    verify: 'hello() sin setName → error de arranque; qa-guard rechaza otra base antes de conectar.' },
+    verify: 'hello() sin setName → error de arranque; qa-guard rechaza otra base antes de conectar.',
+    async run({ mongo }) {
+      const hello = await mongo.db.admin().command({ hello: 1 });
+      assert.ok(hello.setName, 'topología sin réplica: no hay transacciones');
+      assert.strictEqual(mongo.db.databaseName, 'munierp_qa');
+    } },
   { id: 'RC-32', area: 'Documentos privados', level: 'L3', title: 'GridFS: binario fuera de la transacción, PENDIENTE huérfano conciliable, sha256 verificado al leer',
     verify: 'Cortar la subida a GridFS tras insertar metadatos → queda PENDIENTE; la conciliación lo reporta sin borrar.' },
   { id: 'RC-33', area: 'Historial y auditoría', level: 'L3', title: 'el usuario de aplicación no puede modificar ni borrar municipal_audit_events (rol de Atlas)',
@@ -355,7 +410,7 @@ const CASES = [
 
 const LEVEL_LABEL = {
   L1: 'L1 semántica',
-  L2: 'L2 aproximación en memoria — no certifica MongoDB',
+  L2: 'L2 aproximación sin MongoDB real — no certifica MongoDB',
   L3: 'L3 requiere MongoDB real',
 };
 

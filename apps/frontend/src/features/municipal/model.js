@@ -153,6 +153,8 @@ export function formatDateTime(iso) {
 export function describeApiError(error) {
   const status = error && (error.status || (error.response && error.response.status));
   const code = error && (error.code || (error.response && error.response.data && error.response.data.code));
+  if (code === 'PRIVATE_DOCUMENTS_UNAVAILABLE') return { kind: 'unsupported', message: (error && error.message) || 'La descarga de documentos privados no está disponible en esta plataforma.' };
+  if (code === 'DOCUMENT_INTEGRITY') return { kind: 'integrity', message: 'El documento recibido no superó la verificación y no se guardó. Intente de nuevo o avise al área responsable.' };
   if (status === 401) return { kind: 'auth', message: 'Su sesión expiró. Inicie sesión nuevamente.' };
   if (status === 403 && code === 'MUNICIPAL_MEMBERSHIP_REQUIRED') return { kind: 'membership', message: 'No tiene una membresía municipal vigente para este municipio.' };
   if (status === 403) return { kind: 'forbidden', message: 'Su rol no permite esta operación.' };

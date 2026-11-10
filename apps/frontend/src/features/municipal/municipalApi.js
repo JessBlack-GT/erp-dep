@@ -6,9 +6,8 @@
  * Interfaz idéntica a la API simulada (`mockApi.js`) y al adaptador QA del servicio real.
  */
 import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from '../../services/api';
-import { downloadFile } from '../../utils/downloadFile';
+import { inspectPrivateDocument, savePrivateDocumentWeb, privateDocumentsUnavailable } from './privateDocument';
 
 /** /api/v1 → /api/municipal/v1 sobre la misma URL base configurada para el ERP. */
 export function municipalBaseUrl(erpBase = apiClient.defaults.baseURL || '') {
@@ -65,16 +64,18 @@ export function createMunicipalApi({ client = apiClient, mun = 'SJH', platform =
      * Descarga autorizada: SIEMPRE pasa por el endpoint del servidor, que vuelve a verificar
      * membresía, dependencia, expediente y confidencialidad. Nunca se construye una URL pública.
      */
+    /**
+     * C-21: documentos privados por el lector municipal separado (privateDocument.js), nunca por el
+     * exportador comercial. El servidor autoriza cada lectura; aquí se verifica tipo, firma y tamaño.
+     * En Android/iOS no hay lector privado todavía: se informa sin pedir el contenido.
+     */
     downloadDocument: async (folio, doc) => {
+      if (platform !== 'web') throw privateDocumentsUnavailable();
       const url = m(`/requests/${enc(folio)}/documents/${enc(doc.id)}/content`);
-      if (platform === 'android') {
-        const token = await AsyncStorage.getItem('accessToken');
-        await downloadFile({ url: client.getUri({ baseURL, url }), headers: token ? { Authorization: `Bearer ${token}` } : {} }, doc.filename);
-        return { saved: true };
-      }
-      const res = await call('get', url, { responseType: 'blob' });
-      downloadFile(res, doc.filename);
-      return { saved: true };
+      const res = await call('get', url, { responseType: 'arraybuffer' });
+      const bytes = new Uint8Array(res.data);
+      const info = inspectPrivateDocument(bytes, { contentType: res.headers && res.headers['content-type'], doc });
+      return savePrivateDocumentWeb(bytes, info);
     },
   };
 }
