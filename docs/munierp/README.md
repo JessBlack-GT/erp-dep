@@ -3,7 +3,7 @@
 MuniERP IA es la solución especializada para la gestión municipal de **San Juan Huactzinco,
 Tlaxcala**, **conectada** a YJ Nexo ERP (sistema principal). No es un segundo ERP.
 
-Estado (2026-11-09): **Fase 1 en curso — F1-04 y F1-12 hechas en Express aislado (24/24 operaciones).**
+Estado (2026-11-10): **Fase 1 en curso — F1-04, F1-12 y F1-13 hechas (aisladas, sin montar); F1-05 diseñada.**
 Dominio, API HTTP y prototipo de interfaz **aislados y sin montar**, con pruebas ejecutadas en memoria
 y datos sintéticos. Base auditada `main@d5b64b0`; nada en `main` cambia.
 
@@ -21,6 +21,8 @@ y datos sintéticos. Base auditada `main@d5b64b0`; nada en `main` cambia.
 | 10 | Diseño de interfaces y módulos | [09-DISENO-INTERFACES.md](09-DISENO-INTERFACES.md) |
 | 11 | Historia F1-04: capa HTTP, inventario, evidencia y riesgos | [10-F1-04-CAPA-HTTP.md](10-F1-04-CAPA-HTTP.md) |
 | 12 | Historia F1-12 y QA con Playwright | [11-F1-12-Y-QA-PLAYWRIGHT.md](11-F1-12-Y-QA-PLAYWRIGHT.md) |
+| 13 | Diseño técnico F1-05 (repositorio MongoDB, sin conexión) | [12-F1-05-DISENO-MONGODB.md](12-F1-05-DISENO-MONGODB.md) |
+| 14 | Historia F1-13: detalle de expediente y QA Playwright (nube y Windows) | [13-F1-13-DETALLE-Y-QA.md](13-F1-13-DETALLE-Y-QA.md) |
 | — | Código de dominio (no montado) | [`apps/backend/src/modules/municipal/`](../../apps/backend/src/modules/municipal/README.md) |
 
 ## Decisiones clave

@@ -268,3 +268,17 @@ Ejecutadas y aprobadas: `frontend`, `suppliers.api`, `navigation`, `customers.na
 
 No se ejecutaron: build web, APK Android, integración real contra Atlas QA (no autorizado en esta
 fase) ni E2E.
+
+## Resultados F1-13 (2026-11-10) — API SIMULADA (servicio real en memoria, datos sintéticos)
+
+| Suite | Entorno | Resultado |
+|---|---|---|
+| `tests/municipal.detail.test.js` | Jest, VM Linux, Node 22 | **16/16** |
+| `tests/municipal.frontend.test.js` | Jest, VM Linux, Node 22 | **12/12** |
+| `qa/e2e/municipal-detail.e2e.spec.cjs` | Playwright, nube Linux, Chromium 153 | **17/17** |
+| `qa/e2e/municipal.e2e.spec.cjs` (regresión F1-12) | Playwright, nube Linux, Chromium 153 | **14/14** |
+| Ambas suites E2E | Playwright, **Windows**, Chromium 158 | **31/31** |
+| Ambas suites E2E | Windows, Firefox y WebKit | **No ejecutadas** (faltan binarios del navegador; no es fallo de la interfaz) |
+
+Detalle y evidencias: [13-F1-13-DETALLE-Y-QA.md](13-F1-13-DETALLE-Y-QA.md). Ninguna prueba usó HTTP real,
+JWT, MongoDB ni Atlas.

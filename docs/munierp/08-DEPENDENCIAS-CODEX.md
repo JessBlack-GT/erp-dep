@@ -26,7 +26,8 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
 | C-17 | P2 | `ajv` y `js-yaml` en pruebas | La validación de respuestas contra el contrato usa dependencias transitivas de ESLint; si cambian, la suite se omite explícitamente | Declararlas como devDependencies del backend | `apps/backend/package.json` |
 | C-18 | P2 | `Card` (componente común) descarta `accessibilityLabel` cuando no es interactiva | Encontrado por Playwright: filas sin nombre accesible. MuniERP lo rodea en su propio componente | Pasar `accessibilityLabel` también a la rama `View` | `apps/frontend/src/components/common/Card.js` |
 | C-19 | P2 | `Input` declara `accessibilityRole="search"` en todos los campos | Los lectores de pantalla anuncian cada campo como búsqueda (WCAG 4.1.2) | Usar el rol por defecto o uno configurable | `apps/frontend/src/components/common/Input.js` |
-| C-20 | P2 | Herramientas de QA E2E | Playwright solo está disponible con Chromium en la nube; Firefox/WebKit requieren ejecutar en Windows o declarar `@playwright/test` y navegadores en CI | Decidir dónde corre E2E (CI o equipo) | CI |
+| C-20 | P2 | Herramientas de QA E2E | Playwright solo está disponible con Chromium en la nube; Firefox/WebKit requieren ejecutar en Windows (2026-11-10: Chromium 158 en Windows 31/31; faltan los binarios de Firefox y WebKit) o declarar `@playwright/test` y navegadores en CI | Decidir dónde corre E2E (CI o equipo) | CI |
+| C-21 | P2 | `downloadFile.android.js` solo acepta PDF/XLSX y rotula «Reporte de inventario» | Los documentos municipales también pueden ser PNG/JPEG; en Android fallarían con «Formato de reporte no compatible» (F1-13) | Parámetros opcionales `mimeTypes` y `description` sin cambiar el comportamiento actual | `apps/frontend/src/utils/downloadFile.android.js` |
 | C-14 | P2 | CORS | Solo si la interfaz municipal se publica en otro dominio | Ninguno si vive en la misma app de Cloudflare Pages | `config/cors.js` |
 
 ## Lo que MuniERP ya entrega sin tocar el núcleo
@@ -35,7 +36,7 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
 - Interfaz aislada en `apps/frontend/src/features/municipal/` (no registrada en la navegación).
 - Pruebas en `apps/backend/tests/municipal/` y `apps/frontend/tests/municipal.frontend.test.js`, que
   entran automáticamente en `npm test` por los globs existentes. **Efecto en CI de Codex:** +117
-  pruebas backend (desde F1-12) y +11 frontend; ninguna requiere red ni base de datos.
+  pruebas backend (desde F1-12) y +28 frontend (12 F1-12 + 16 F1-13); ninguna requiere red ni base de datos.
 - Contrato `municipal-v1` draft.1 y verificación automática de coherencia contrato ↔ dominio.
 
 ## Interfaz que MuniERP espera del ERP (sin cambios)

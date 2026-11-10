@@ -5,6 +5,12 @@
  * La autorización real vive en el servidor; este mock no la simula.
  */
 
+export const MOCK_PERMISSIONS = Object.freeze([
+  'municipal.dependencies.read', 'municipal.memberships.read', 'municipal.citizens.read', 'municipal.requests.create',
+  'municipal.requests.read', 'municipal.requests.assign', 'municipal.requests.cancel', 'municipal.requests.grant',
+  'municipal.requests.readConfidential', 'municipal.documents.read', 'municipal.indicators.read',
+]);
+
 const DEPENDENCIES = [
   { code: 'OBP', name: 'Obras Públicas', status: 'ACTIVA' },
   { code: 'TES', name: 'Tesorería', status: 'ACTIVA' },
@@ -33,7 +39,8 @@ export function createMockMunicipalApi({ delayMs = 0 } = {}) {
 
   return {
     isMock: true,
-    myMemberships: () => wait([{ id: 'mock', municipality: { code: 'SJH', name: 'San Juan Huactzinco' }, role: 'VENTANILLA', dependencies: [], permissions: ['municipal.requests.create', 'municipal.requests.read'] }]),
+    // Permisos = matriz real de SUPERVISOR_MUNICIPAL (una prueba de paridad lo verifica contra el backend).
+    myMemberships: () => wait([{ id: 'mock', municipality: { code: 'SJH', name: 'San Juan Huactzinco' }, role: 'SUPERVISOR_MUNICIPAL', dependencies: ['PRE'], permissions: [...MOCK_PERMISSIONS] }]),
     listDependencies: () => wait(DEPENDENCIES.map((d) => ({ ...d }))),
     searchCitizens: () => wait(CITIZENS.map((c) => ({ ...c }))),
     listRequests: ({ status } = {}) => wait({ items: requests.filter((r) => !status || r.status === status).map((r) => ({ ...r })), pagination: { page: 1, limit: 20, total: requests.length, pages: 1 } }),
@@ -58,6 +65,20 @@ export function createMockMunicipalApi({ delayMs = 0 } = {}) {
       byKey.set(idempotencyKey, created);
       return wait({ status: 201, data: { ...created } });
     },
+    getRequest: (folio) => {
+      const r = requests.find((x) => x.folio === folio);
+      if (!r) return Promise.reject(Object.assign(new Error('No encontrado'), { status: 404, code: 'NOT_FOUND' }));
+      return wait({ data: { ...r, description: '', citizen: { id: CITIZENS[0].id, fullName: CITIZENS[0].fullName }, assignedUserId: null, version: 0, history: [] } });
+    },
+    getRequestHistory: (folio) => {
+      const r = requests.find((x) => x.folio === folio);
+      if (!r) return Promise.reject(Object.assign(new Error('No encontrado'), { status: 404, code: 'NOT_FOUND' }));
+      return wait([{ at: r.createdAt, actorId: '000000000000000000000209', action: 'REGISTRAR', fromStatus: null, toStatus: 'REGISTRADA' }]);
+    },
+    listDocuments: () => wait([]),
+    listMemberships: () => wait([]),
+    transitionRequest: () => Promise.reject(Object.assign(new Error('La API simulada básica no registra transiciones'), { status: 403, code: 'FORBIDDEN' })),
+    downloadDocument: () => Promise.reject(Object.assign(new Error('No encontrado'), { status: 404, code: 'NOT_FOUND' })),
     getReceipt: (folio) => {
       const r = requests.find((x) => x.folio === folio);
       if (!r) return Promise.reject(Object.assign(new Error('No encontrado'), { status: 404 }));

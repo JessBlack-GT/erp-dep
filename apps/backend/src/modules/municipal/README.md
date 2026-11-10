@@ -27,3 +27,8 @@ identidad central del ERP (solo `http/erp-identity.js`); código compatible con 
 (sin rutas `*`, sin `req.param`); `// @ts-check` + JSDoc en lugar de TypeScript compilado.
 
 Pruebas: `tests/municipal/*.test.js` (se incluyen en `npm test` del backend por el glob existente).
+
+Persistencia: el almacén en memoria es el puerto que implementará el repositorio MongoDB de F1-05;
+el diseño (modelos, índices, folios concurrentes, transacciones, GridFS, migración y pruebas) está en
+`docs/munierp/12-F1-05-DISENO-MONGODB.md`. La interfaz F1-13 (detalle de expediente) ejecuta este
+servicio en el navegador para QA mediante `apps/frontend/qa/service-backed-api.js`, sin modificarlo.

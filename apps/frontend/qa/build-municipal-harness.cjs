@@ -24,7 +24,9 @@ async function main() {
     bundle: true,
     outfile: path.join(outdir, 'app.js'),
     platform: 'browser',
-    alias: { 'react-native': 'react-native-web' },
+    // `crypto` y `Buffer` de Node solo los usa el servicio municipal en memoria del modo «persona».
+    alias: { 'react-native': 'react-native-web', crypto: path.join(root, 'qa', 'shims', 'crypto.js') },
+    inject: [path.join(root, 'qa', 'shims', 'buffer-global.js')],
     resolveExtensions: ['.web.tsx', '.web.ts', '.web.jsx', '.web.js', '.tsx', '.ts', '.jsx', '.js', '.json'],
     loader: { '.js': 'jsx', '.png': 'dataurl', '.ttf': 'dataurl' },
     define: {

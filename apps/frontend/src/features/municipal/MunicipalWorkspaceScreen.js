@@ -1,6 +1,8 @@
 /**
  * MuniERP IA — espacio de trabajo municipal (prototipo de Fase 1).
  *
+ * F1-13: al elegir una fila se abre el detalle del expediente (RequestDetail) y «Volver» regresa a la lista.
+ *
  * ⚠️ NO REGISTRADO en MainNavigator ni en Sidebar: añadir la entrada condicionada a membresías es
  * parte de F1-11 y requiere revisión de Codex. Por defecto usa la API simulada (sin red, datos
  * sintéticos). Para la API real se inyecta `api` con la misma interfaz.
@@ -14,6 +16,7 @@ import { IndicatorsPanel } from './components/IndicatorsPanel';
 import { RequestList } from './components/RequestList';
 import { RequestIntakeForm } from './components/RequestIntakeForm';
 import { ReceiptView } from './components/ReceiptView';
+import { RequestDetail } from './components/RequestDetail';
 
 export function MunicipalWorkspaceScreen({ api: injected }) {
   const api = useMemo(() => injected || createMockMunicipalApi(), [injected]);
@@ -22,11 +25,23 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
   const [state, setState] = useState({ loading: true, error: '', memberships: [], dependencies: [], citizens: [], requests: [], indicators: null });
   const [receipt, setReceipt] = useState(null);
   const [formKey, setFormKey] = useState(0);
+  const [selectedFolio, setSelectedFolio] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      const [memberships, dependencies, citizens, list, indicators] = await Promise.all([
-        api.myMemberships(), api.listDependencies(), api.searchCitizens(), api.listRequests(), api.getIndicators(),
+      // F1-13: primero la membresía; después solo se piden los recursos que sus permisos autorizan
+      // (antes un rol sin `citizens.read` o `indicators.read` hacía fallar toda la carga).
+      const memberships = await api.myMemberships();
+      if (!memberships.length) {
+        setState({ loading: false, error: '', memberships, dependencies: [], citizens: [], requests: [], indicators: null });
+        return;
+      }
+      const perms = new Set(memberships[0].permissions || []);
+      const [dependencies, citizens, list, indicators] = await Promise.all([
+        api.listDependencies(),
+        perms.has('municipal.requests.create') && perms.has('municipal.citizens.read') ? api.searchCitizens() : Promise.resolve([]),
+        perms.has('municipal.requests.read') ? api.listRequests() : Promise.resolve({ items: [] }),
+        perms.has('municipal.indicators.read') ? api.getIndicators() : Promise.resolve(null),
       ]);
       setState({ loading: false, error: '', memberships, dependencies, citizens, requests: list.items, indicators });
     } catch (e) {
@@ -57,22 +72,41 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
     );
 
   const mun = state.memberships[0].municipality;
+  const canCreate = (state.memberships[0].permissions || []).includes('municipal.requests.create');
+  const banner = api.isMock ? (
+    <Text variant="caption" testID="municipal-mock-banner">{api.mockLabel || 'Modo prototipo: datos sintéticos, sin conexión al servidor.'}</Text>
+  ) : null;
+  if (selectedFolio)
+    return (
+      <ScrollView contentContainerStyle={styles.page} testID="municipal-workspace-detail">
+        {banner}
+        <RequestDetail
+          api={api}
+          folio={selectedFolio}
+          membership={state.memberships[0]}
+          dependencies={state.dependencies}
+          onBack={() => { setSelectedFolio(null); load(); }}
+        />
+      </ScrollView>
+    );
   return (
     <ScrollView contentContainerStyle={styles.page} testID="municipal-workspace">
       <Text variant="heading1" accessibilityRole="header">{`MuniERP · ${mun.name}`}</Text>
-      {api.isMock ? <Text variant="caption" testID="municipal-mock-banner">Modo prototipo: datos sintéticos, sin conexión al servidor.</Text> : null}
+      {banner}
       <IndicatorsPanel data={state.indicators} />
       <View style={[styles.columns, wide && styles.columnsWide]}>
         <View style={[styles.column, wide && styles.columnHalf]}>
           {receipt ? (
             <ReceiptView receipt={receipt} onDone={() => { setReceipt(null); setFormKey((k) => k + 1); }} />
-          ) : (
+          ) : canCreate ? (
             <RequestIntakeForm key={formKey} api={api} dependencies={state.dependencies} citizens={state.citizens} onCreated={onCreated} />
+          ) : (
+            <Text testID="municipal-intake-unavailable">Su rol no registra solicitudes.</Text>
           )}
         </View>
         <View style={[styles.column, wide && styles.columnHalf]}>
           <Text variant="heading3">Solicitudes en su alcance</Text>
-          <RequestList items={state.requests} />
+          <RequestList items={state.requests} onSelect={(r) => setSelectedFolio(r.folio)} />
         </View>
       </View>
     </ScrollView>

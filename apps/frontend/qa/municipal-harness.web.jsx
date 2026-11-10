@@ -3,7 +3,15 @@
  * Renderiza el espacio de trabajo municipal con la API SIMULADA (sin red, datos sintéticos).
  * NO forma parte de la app ni de su navegación; se compila aparte con build-municipal-harness.cjs.
  *
- * Parámetros de URL (solo QA):
+ * Dos modos, ambos con API SIMULADA y datos sintéticos:
+ *  - Básico (F1-12): `mockApi.js` escrito a mano.
+ *  - Servicio real (F1-13): `?persona=<usuario sintético>` usa el servicio municipal del backend con
+ *    almacén en memoria (autorización real, sin HTTP/JWT/MongoDB). Personas: u_tit_obp, u_op_obp,
+ *    u_op_tes, u_vent, u_aud, u_sup, u_consulta_obp, u_tit_dif, u_reg (sin membresía), u_admin_erp.
+ *    `?latency=<ms>` simula latencia; `?fail=getRequest,listDocuments` falla la primera llamada.
+ *    `?openFolio=r1|r2|r3|r4|r5|z1|<folio>` abre directamente el detalle (prueba de acceso directo).
+ *
+ * Parámetros de URL del modo básico:
  *   ?scenario=no-membership  → usuario sin membresía
  *   ?scenario=load-error     → falla la carga inicial (reintento)
  *   ?scenario=submit-error   → el primer registro falla por red (continuidad)
@@ -12,7 +20,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { View } from 'react-native';
-import { MunicipalWorkspaceScreen, createMockMunicipalApi } from '../src/features/municipal';
+import { MunicipalWorkspaceScreen, RequestDetail, createMockMunicipalApi } from '../src/features/municipal';
+import { Text } from '../src/components/common';
+import { downloadFile } from '../src/utils/downloadFile';
+import { createServiceBackedWorld } from './service-backed-api';
 
 const params = new URLSearchParams(window.location.search);
 const scenario = params.get('scenario') || 'default';
@@ -41,10 +52,48 @@ function buildApi() {
   return api;
 }
 
-const api = buildApi();
-document.documentElement.dataset.muniScenario = scenario;
-createRoot(document.getElementById('root')).render(
-  <View style={{ flex: 1 }}>
-    <MunicipalWorkspaceScreen api={api} />
-  </View>,
-);
+async function main() {
+  const persona = params.get('persona');
+  let api;
+  if (persona) {
+    const world = await createServiceBackedWorld({
+      save: (out, filename) => downloadFile({ data: new Blob([out.buffer], { type: out.headers['Content-Type'] }), headers: { 'content-type': out.headers['Content-Type'] } }, filename),
+    });
+    const fail = (params.get('fail') || '').split(',').filter(Boolean);
+    api = world.apiFor(persona, { latencyMs: Math.min(Number(params.get('latency')) || 0, 5000), failFirst: fail });
+    // Solo QA: folios sembrados y revocación de la membresía de la persona actual.
+    window.__muniFolios = world.folios;
+    window.__muniRevokeCurrent = () => world.revoke(persona);
+    document.documentElement.dataset.muniMode = 'servicio-real-en-memoria';
+  } else {
+    api = buildApi();
+    document.documentElement.dataset.muniMode = 'mock-basico';
+  }
+  document.documentElement.dataset.muniScenario = scenario;
+  const openFolio = params.get('openFolio');
+  const root = createRoot(document.getElementById('root'));
+  if (persona && openFolio) {
+    // Acceso directo al detalle: equivale a abrir un enlace a un folio. Sin membresía no se pide nada.
+    const folio = (window.__muniFolios && window.__muniFolios[openFolio]) || openFolio;
+    const [membership] = await api.myMemberships();
+    const dependencies = membership ? await api.listDependencies().catch(() => []) : [];
+    root.render(
+      <View style={{ flex: 1 }}>
+        <Text variant="caption" testID="municipal-mock-banner">{api.mockLabel}</Text>
+        {membership ? (
+          <RequestDetail api={api} folio={folio} membership={membership} dependencies={dependencies} />
+        ) : (
+          <Text testID="municipal-no-membership">No tiene una membresía municipal vigente. Solicítela al administrador municipal.</Text>
+        )}
+      </View>,
+    );
+    return;
+  }
+  root.render(
+    <View style={{ flex: 1 }}>
+      <MunicipalWorkspaceScreen api={api} />
+    </View>,
+  );
+}
+
+main();
