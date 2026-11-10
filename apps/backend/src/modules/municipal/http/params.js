@@ -7,6 +7,7 @@
 const { HttpError } = require('./errors');
 const { FOLIO_PATTERN } = require('../domain/folio');
 const { STATUSES } = require('../domain/request-state');
+const { ROLES } = require('../policy/permissions');
 
 const MUN = /^[A-Z]{3}$/;
 const DEP = /^[A-Z]{3}$/;
@@ -22,6 +23,11 @@ function mun(value) {
 /** Folio con formato inválido → 404 (no se distingue de inexistente). */
 function folio(value) {
   if (typeof value !== 'string' || !FOLIO_PATTERN.test(value)) throw new HttpError(404, 'NOT_FOUND', 'No encontrado');
+  return value;
+}
+/** Código de dependencia en la ruta con formato inválido → 404. */
+function depCodeOr404(value) {
+  if (typeof value !== 'string' || !DEP.test(value)) throw new HttpError(404, 'NOT_FOUND', 'No encontrado');
   return value;
 }
 /** Identificador con formato inválido → 404 por la misma política de no revelación. */
@@ -49,6 +55,7 @@ const q = {
   limit: (v, n) => int(v, n, 1, 100),
   slaDays: (v, n) => int(v, n, 1, 365),
   status: (v, n) => { if (!STATUSES.includes(v)) throw bad('Estado inválido', n); return v; },
+  role: (v, n) => { if (!ROLES.includes(v)) throw bad('Rol inválido', n); return v; },
   activeStatus: (v, n) => { if (!['ACTIVA', 'INACTIVA'].includes(v)) throw bad('Estado inválido', n); return v; },
   dependency: (v, n) => { if (!DEP.test(v)) throw bad('Dependencia inválida', n); return v; },
   bool: (v, n) => { if (v !== 'true' && v !== 'false') throw bad('Booleano inválido', n); return v === 'true'; },
@@ -83,4 +90,4 @@ function ifMatchVersion(req) {
   return Number(m[1]);
 }
 
-module.exports = { mun, folio, objectIdOr404, parseQuery, q, idempotencyKey, ifMatchVersion };
+module.exports = { mun, folio, objectIdOr404, depCodeOr404, parseQuery, q, idempotencyKey, ifMatchVersion };

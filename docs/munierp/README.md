@@ -3,7 +3,7 @@
 MuniERP IA es la solución especializada para la gestión municipal de **San Juan Huactzinco,
 Tlaxcala**, **conectada** a YJ Nexo ERP (sistema principal). No es un segundo ERP.
 
-Estado (2026-11-09): **Fase 1 en curso — F1-04 (capa HTTP) hecha en Express aislado.**
+Estado (2026-11-09): **Fase 1 en curso — F1-04 y F1-12 hechas en Express aislado (24/24 operaciones).**
 Dominio, API HTTP y prototipo de interfaz **aislados y sin montar**, con pruebas ejecutadas en memoria
 y datos sintéticos. Base auditada `main@d5b64b0`; nada en `main` cambia.
 
@@ -14,12 +14,13 @@ y datos sintéticos. Base auditada `main@d5b64b0`; nada en `main` cambia.
 | 3 | Arquitectura conectada, ADR-01…12 y modelo de datos | [03-ARQUITECTURA-CONECTADA.md](03-ARQUITECTURA-CONECTADA.md) |
 | 4 | Matriz de roles y permisos por expediente | [04-ROLES-PERMISOS.md](04-ROLES-PERMISOS.md) |
 | 5 | Requisitos oficiales RQ01–RQ06, **matriz de trazabilidad** y comparativa de stack | [05-REQUISITOS-Y-STACK.md](05-REQUISITOS-Y-STACK.md) |
-| 6 | Contrato de API versionado (OpenAPI 3.1, draft.2) | [contracts/municipal-v1.openapi.yaml](contracts/municipal-v1.openapi.yaml) |
+| 6 | Contrato de API versionado (OpenAPI 3.1, draft.3) | [contracts/municipal-v1.openapi.yaml](contracts/municipal-v1.openapi.yaml) |
 | 7 | Casos de prueba, estado por caso y resultados ejecutados | [06-CASOS-PRUEBA.md](06-CASOS-PRUEBA.md) |
 | 8 | Backlog priorizado de Fase 1, riesgos y criterios de aceptación | [07-PLAN-Y-BACKLOG.md](07-PLAN-Y-BACKLOG.md) |
 | 9 | Dependencias que debe resolver Codex | [08-DEPENDENCIAS-CODEX.md](08-DEPENDENCIAS-CODEX.md) |
 | 10 | Diseño de interfaces y módulos | [09-DISENO-INTERFACES.md](09-DISENO-INTERFACES.md) |
 | 11 | Historia F1-04: capa HTTP, inventario, evidencia y riesgos | [10-F1-04-CAPA-HTTP.md](10-F1-04-CAPA-HTTP.md) |
+| 12 | Historia F1-12 y QA con Playwright | [11-F1-12-Y-QA-PLAYWRIGHT.md](11-F1-12-Y-QA-PLAYWRIGHT.md) |
 | — | Código de dominio (no montado) | [`apps/backend/src/modules/municipal/`](../../apps/backend/src/modules/municipal/README.md) |
 
 ## Decisiones clave

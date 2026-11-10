@@ -73,8 +73,8 @@ describe('MuniERP — frontera de módulo (MT-61)', () => {
     const builtin = new Set(require('module').builtinModules);
     const HTTP = path.join(MODULE, 'http') + path.sep;
     const IDENTITY = path.join(MODULE, 'http', 'erp-identity.js');
-    // Única puerta al núcleo: los middlewares centrales de identidad del ERP (sin modificarlos).
-    const CORE_ALLOWED = new Set([path.join(SRC, 'middleware', 'authenticate'), path.join(SRC, 'middleware', 'authorize')]);
+    // Única puerta al núcleo: middlewares centrales de identidad y resolveAccess del ERP (sin modificarlos).
+    const CORE_ALLOWED = new Set([path.join(SRC, 'middleware', 'authenticate'), path.join(SRC, 'middleware', 'authorize'), path.join(SRC, 'security', 'rbac')]);
     for (const file of walk(MODULE))
       for (const req of requiresOf(file)) {
         const where = `${path.relative(SRC, file)} importa ${req}`;

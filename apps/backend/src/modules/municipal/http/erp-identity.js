@@ -8,7 +8,8 @@
  *                           (401) y falla cerrada si la base no responde (503).
  * Después de esto `req.user` es el acceso resuelto por el ERP; la capa municipal SOLO usa `req.user.id`.
  *
- * Es el único archivo del módulo que importa del núcleo (frontera verificada por prueba).
+ * Es el único archivo del módulo que importa del núcleo (frontera verificada por prueba):
+ * middlewares de identidad y, desde F1-12, `security/rbac.resolveAccess` (solo lectura).
  * Se carga de forma diferida para que el resto del módulo no dependa de la configuración del ERP.
  */
 function erpIdentityMiddlewares() {
@@ -17,4 +18,17 @@ function erpIdentityMiddlewares() {
   return [authenticateToken, requireCurrentUser];
 }
 
-module.exports = { erpIdentityMiddlewares };
+/**
+ * Consulta de la identidad central para altas de membresía (F1-12): reutiliza rbac.resolveAccess,
+ * que devuelve null si el usuario no existe o no está activo. No crea ni modifica cuentas.
+ * @returns {(id: string) => Promise<{ id: string } | null>}
+ */
+function erpUserLookup() {
+  const rbac = require('../../../security/rbac');
+  return async (id) => {
+    const access = await rbac.resolveAccess(id);
+    return access ? { id: access.id } : null;
+  };
+}
+
+module.exports = { erpIdentityMiddlewares, erpUserLookup };

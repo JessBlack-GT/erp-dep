@@ -383,12 +383,13 @@ describe('F1-04 HTTP municipal (Express aislado)', function () {
     });
   });
 
-  describe('Operaciones pendientes (F1-12)', () => {
-    it('responden 501 NOT_IMPLEMENTED solo tras autenticar; sin token 401', async () => {
-      await call('post', '/municipalities/SJH/dependencies', { body: { code: 'NUE', name: 'Nueva' }, expect: 401 });
-      const r = await call('post', '/municipalities/SJH/dependencies', { user: 'u_admin_mun', body: { code: 'NUE', name: 'Nueva' }, expect: 501, operationId: 'createDependency' });
-      assert.strictEqual(r.body.code, 'NOT_IMPLEMENTED');
-      await call('get', '/municipalities/SJH/memberships', { user: 'u_admin_mun', expect: 501, operationId: 'listMemberships' });
+  describe('Salvaguarda de despliegue (C-01)', () => {
+    it('el router municipal se niega a construirse con NODE_ENV=production sin allowProduction', () => {
+      const { createMunicipalRouter } = require('../../src/modules/municipal/http/municipal.router');
+      const deps = { service: {}, store: s.store, identity: [(req, res, next) => next()] };
+      assert.throws(() => createMunicipalRouter({ ...deps, environment: 'production' }), /deshabilitada en producción/);
+      assert.doesNotThrow(() => createMunicipalRouter({ ...deps, environment: 'production', allowProduction: true }));
+      assert.doesNotThrow(() => createMunicipalRouter({ ...deps, environment: 'test' }));
     });
   });
 });

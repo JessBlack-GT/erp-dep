@@ -58,6 +58,8 @@ Decisiones:
 
 19 implementadas, 5 pendientes que responden **501 solo después de autenticar** (sin token: 401).
 
+> Actualización 2026-11-09: las 5 pendientes se implementaron en F1-12 (ver [11](11-F1-12-Y-QA-PLAYWRIGHT.md)); contrato draft.3.
+
 ## 4. Inventario de archivos
 
 **Creados**

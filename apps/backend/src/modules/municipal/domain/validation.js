@@ -139,4 +139,87 @@ function validateGrantCreate(body, now) {
   return { granteeUserId: hasUser ? b.granteeUserId : null, granteeDependency: hasDep ? b.granteeDependency : null, level: b.level, expiresAt };
 }
 
-module.exports = { SERVER_OWNED, CHANNELS, CONFIDENTIALITY, REQUEST_TYPES, ValidationError, validateRequestCreate, validateCitizenCreate, validateIdempotencyKey, validateRequestUpdate, validateTransitionInput, validateGrantCreate, OBJECT_ID, DEP };
+const MUNICIPAL_ROLES_ASSIGNABLE = Object.freeze(['SUPERVISOR_MUNICIPAL', 'TITULAR_DEPENDENCIA', 'OPERADOR_DEPENDENCIA', 'VENTANILLA', 'AUDITOR_MUNICIPAL', 'CONSULTA']);
+/** Roles cuyo alcance es la dependencia: exigen al menos una. */
+const DEPENDENCY_SCOPED_ROLES = Object.freeze(['TITULAR_DEPENDENCIA', 'OPERADOR_DEPENDENCIA', 'CONSULTA']);
+
+/** Forma estricta sin la lista general de campos del servidor (para recursos administrativos). */
+function strict(body, allowed, required) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw new ValidationError('Cuerpo inválido');
+  const unknown = Object.keys(body).filter((k) => !allowed.includes(k));
+  if (unknown.length) throw new ValidationError('Campos no permitidos', unknown);
+  const missing = required.filter((k) => body[k] === undefined || body[k] === null || body[k] === '');
+  if (missing.length) throw new ValidationError('Campos obligatorios', missing);
+  return /** @type {Record<string, any>} */ (body);
+}
+
+function dateField(value, field) {
+  const d = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value) ? new Date(value) : new Date(NaN);
+  if (Number.isNaN(d.getTime())) throw new ValidationError('Fecha-hora ISO 8601 inválida', [field]);
+  return d;
+}
+
+function depList(value, field) {
+  if (!Array.isArray(value) || value.length > 20 || new Set(value).size !== value.length || value.some((d) => !DEP.test(d)))
+    throw new ValidationError('Lista de dependencias inválida (máx. 20, códigos únicos)', [field]);
+  return [...value];
+}
+
+/** @param {unknown} body */
+function validateDependencyCreate(body) {
+  const b = strict(body, ['code', 'name', 'parentCode'], ['code', 'name']);
+  if (!DEP.test(b.code)) throw new ValidationError('Código inválido (3 letras mayúsculas)', ['code']);
+  if (b.parentCode !== undefined && !DEP.test(b.parentCode)) throw new ValidationError('Dependencia superior inválida', ['parentCode']);
+  if (b.parentCode === b.code) throw new ValidationError('Una dependencia no puede ser su propia superior', ['parentCode']);
+  return { code: b.code, name: text(b.name, 'name', 3, 150), parentCode: b.parentCode || null };
+}
+
+/** @param {unknown} body  El código es inmutable. */
+function validateDependencyUpdate(body) {
+  const b = strict(body, ['name', 'status'], []);
+  if (!Object.keys(b).length) throw new ValidationError('Indique al menos un campo');
+  const out = {};
+  if (b.name !== undefined) out.name = text(b.name, 'name', 3, 150);
+  if (b.status !== undefined) {
+    if (!['ACTIVA', 'INACTIVA'].includes(b.status)) throw new ValidationError('Estado inválido', ['status']);
+    out.status = b.status;
+  }
+  return out;
+}
+
+/** @param {unknown} body @param {Date} now */
+function validateMembershipCreate(body, now) {
+  const b = strict(body, ['userId', 'role', 'dependencies', 'validFrom', 'validTo'], ['userId', 'role', 'dependencies']);
+  if (!OBJECT_ID.test(b.userId)) throw new ValidationError('Usuario inválido', ['userId']);
+  if (!MUNICIPAL_ROLES_ASSIGNABLE.includes(b.role)) throw new ValidationError('Rol no asignable', ['role']);
+  const dependencies = depList(b.dependencies, 'dependencies');
+  if (DEPENDENCY_SCOPED_ROLES.includes(b.role) && dependencies.length === 0)
+    throw new ValidationError('El rol requiere al menos una dependencia', ['dependencies']);
+  const validFrom = b.validFrom === undefined ? new Date(now.getTime()) : dateField(b.validFrom, 'validFrom');
+  const validTo = b.validTo === undefined ? null : dateField(b.validTo, 'validTo');
+  if (validTo && (validTo <= validFrom || validTo <= now)) throw new ValidationError('validTo debe ser posterior a validFrom y a la fecha actual', ['validTo']);
+  return { userId: b.userId, role: b.role, dependencies, validFrom, validTo };
+}
+
+/** @param {unknown} body @param {Date} now */
+function validateMembershipUpdate(body, now) {
+  const b = strict(body, ['role', 'dependencies', 'validTo', 'status'], []);
+  if (!Object.keys(b).length) throw new ValidationError('Indique al menos un campo');
+  const out = {};
+  if (b.role !== undefined) {
+    if (!MUNICIPAL_ROLES_ASSIGNABLE.includes(b.role)) throw new ValidationError('Rol no asignable', ['role']);
+    out.role = b.role;
+  }
+  if (b.dependencies !== undefined) out.dependencies = depList(b.dependencies, 'dependencies');
+  if (b.validTo !== undefined) {
+    out.validTo = b.validTo === null ? null : dateField(b.validTo, 'validTo');
+    if (out.validTo && out.validTo < now) throw new ValidationError('validTo no puede estar en el pasado (use status INACTIVA para revocar)', ['validTo']);
+  }
+  if (b.status !== undefined) {
+    if (!['ACTIVA', 'INACTIVA'].includes(b.status)) throw new ValidationError('Estado inválido', ['status']);
+    out.status = b.status;
+  }
+  return out;
+}
+
+module.exports = { SERVER_OWNED, CHANNELS, CONFIDENTIALITY, REQUEST_TYPES, ValidationError, validateRequestCreate, validateCitizenCreate, validateIdempotencyKey, validateRequestUpdate, validateTransitionInput, validateGrantCreate, OBJECT_ID, DEP, MUNICIPAL_ROLES_ASSIGNABLE, DEPENDENCY_SCOPED_ROLES, validateDependencyCreate, validateDependencyUpdate, validateMembershipCreate, validateMembershipUpdate };

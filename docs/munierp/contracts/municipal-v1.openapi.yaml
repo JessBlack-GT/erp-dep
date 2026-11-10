@@ -1,11 +1,24 @@
 openapi: 3.1.0
 info:
   title: MuniERP IA — API municipal conectada a YJ Nexo ERP
-  version: 1.0.0-draft.2
+  version: 1.0.0-draft.3
   description: |
     Propuesta versionada. Fuente de verdad para `apps/backend/src/modules/municipal`.
     Estado: BORRADOR. La capa de aplicación y la política de acceso están implementadas y probadas
     en memoria, pero la API **no está montada**: montarla requiere revisión de Codex (C-01).
+
+    Cambios draft.3 (2026-11-09, F1-12 dependencias y membresías) — revisión registrada:
+    - Se retiran `x-status: pending` y las respuestas 501 de createDependency, updateDependency,
+      listMemberships, createMembership y updateMembership: las 24 operaciones están implementadas.
+    - Nuevo esquema `Membership` (respuesta) con `effective` (vigente ahora) y filtros de consulta
+      `role`, `dependency`, `status`, `page`, `limit` en listMemberships.
+    - updateDependency documenta 200 con `Dependency` y 409 (expedientes abiertos o subordinadas
+      activas al desactivar); updateMembership documenta 200 con `Membership` y 409.
+    - createMembership: 404 si el usuario no existe o no está activo en la identidad central;
+      403 al asignarse a sí mismo, 400 si el rol no es asignable (ADMIN_MUNICIPAL), 409 si ya tiene membresía.
+    - AuditEvent.entity admite `Dependency` y `Membership`; acciones MEMBERSHIP_REVOKED, etc.
+    - La API sigue sin montarse y el router se niega a construirse con NODE_ENV=production sin
+      `allowProduction: true` (C-01).
 
     Cambios draft.2 (2026-11-09, F1-04 capa HTTP aislada):
     - Implementación HTTP en `modules/municipal/http/` sobre Express aislado; 19 operaciones
@@ -89,8 +102,6 @@ paths:
     post:
       summary: Crear dependencia
       operationId: createDependency
-      x-status: pending
-      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.dependencies.manage
       requestBody:
@@ -113,7 +124,6 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /municipalities/{mun}/dependencies/{code}:
     parameters:
@@ -122,8 +132,6 @@ paths:
     patch:
       summary: Actualizar nombre/estado de una dependencia (el código es inmutable)
       operationId: updateDependency
-      x-status: pending
-      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.dependencies.manage
       requestBody:
@@ -132,35 +140,55 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/DependencyUpdate' }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Dependency' } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /municipalities/{mun}/memberships:
     parameters: [ { $ref: '#/components/parameters/Mun' } ]
     get:
       summary: Listar membresías
       operationId: listMemberships
-      x-status: pending
-      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.memberships.read
       x-scope: TITULAR solo ve membresías de sus dependencias
+      parameters:
+        - { name: role, in: query, schema: { $ref: '#/components/schemas/MunicipalRole' } }
+        - { name: dependency, in: query, schema: { $ref: '#/components/schemas/DependencyCode' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ActiveStatus' } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Limit' }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties:
+                      data: { type: array, items: { $ref: '#/components/schemas/Membership' } }
+                      pagination: { $ref: '#/components/schemas/Pagination' }
+        '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
     post:
       summary: Asignar un usuario existente de YJ Nexo al municipio
       operationId: createMembership
-      x-status: pending
-      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.memberships.manage
       description: |
@@ -172,14 +200,21 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/MembershipCreate' }
       responses:
-        '201': { description: Creada }
+        '201':
+          description: Creada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Membership' } }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /municipalities/{mun}/memberships/{membershipId}:
     parameters:
@@ -188,8 +223,6 @@ paths:
     patch:
       summary: Cambiar rol, dependencias, vigencia o estado de una membresía
       operationId: updateMembership
-      x-status: pending
-      x-pending-story: F1-12
       x-rq: [RQ05]
       x-permission: municipal.memberships.manage
       requestBody:
@@ -198,13 +231,21 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/MembershipUpdate' }
       responses:
-        '200': { description: OK }
+        '200':
+          description: OK (revocar = status INACTIVA; efecto inmediato)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ok'
+                  - type: object
+                    properties: { data: { $ref: '#/components/schemas/Membership' } }
+        '409': { $ref: '#/components/responses/Conflict' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
-        '501': { $ref: '#/components/responses/NotImplemented' }
 
   /municipalities/{mun}/citizens:
     parameters: [ { $ref: '#/components/parameters/Mun' } ]
@@ -842,6 +883,18 @@ components:
         dependencies: { type: array, maxItems: 20, uniqueItems: true, items: { $ref: '#/components/schemas/DependencyCode' } }
         validFrom: { type: string, format: date-time }
         validTo: { type: string, format: date-time }
+    Membership:
+      type: object
+      required: [id, userId, role, dependencies, status, validFrom, validTo, effective]
+      properties:
+        id: { $ref: '#/components/schemas/ObjectId' }
+        userId: { $ref: '#/components/schemas/ObjectId' }
+        role: { $ref: '#/components/schemas/MunicipalRole' }
+        dependencies: { type: array, items: { $ref: '#/components/schemas/DependencyCode' } }
+        status: { $ref: '#/components/schemas/ActiveStatus' }
+        validFrom: { type: string, format: date-time }
+        validTo: { type: [string, 'null'], format: date-time }
+        effective: { type: boolean, description: 'ACTIVA y dentro de [validFrom, validTo) en este momento' }
     MembershipUpdate:
       type: object
       additionalProperties: false
@@ -1032,7 +1085,7 @@ components:
         at: { type: string, format: date-time }
         actorId: { $ref: '#/components/schemas/ObjectId' }
         action: { type: string }
-        entity: { type: string, enum: [Request, Document, Citizen, Grant] }
+        entity: { type: string, enum: [Request, Document, Citizen, Grant, Dependency, Membership] }
         entityId: { $ref: '#/components/schemas/ObjectId' }
         folio: { $ref: '#/components/schemas/Folio' }
         result: { type: string, enum: [success, denied] }

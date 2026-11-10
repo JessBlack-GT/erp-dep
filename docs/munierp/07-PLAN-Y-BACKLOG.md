@@ -34,16 +34,16 @@ aplique) en `docs/qa/MUNI-XX-VALIDATION.md`. "HECHO-A" **no** equivale a aprobad
 | 9 | F1-09 | Indicadores administrativos | RQ04 | nuevo | `domain/indicators.js` | Cifras = oráculo = conteo manual; alcance respetado | MT-70…75 | **HECHO-A** (Mongo MT-74 BLOQ C-05) |
 | 10 | F1-10 | Bitácora municipal inmutable | RQ02, RQ05 | MUNI-06 | `infra/audit.model.js` (nuevo) | Append-only; IP/requestId; denegaciones | MT-50…53 | Parcial (eventos en memoria) |
 | 11 | F1-11 | Interfaz web municipal adaptable | RQ03, RQ04, RQ06 | MUNI-12 | `features/municipal/*` | Prototipo con mock; entrada en navegación solo con membresía | MT-93…95; MT-90/91/96 E2E | **HECHO-A** prototipo; navegación BLOQ (C-11) |
-| 12 | F1-12 | Dependencias y membresías (administración) | RQ05 | MUNI-04, MUNI-05 | servicio + UI admin | Unicidad por municipio; regla de asignación corregida (04 ¹) | MT-09, 10, 20…22 | PENDIENTE |
+| 12 | F1-12 | Dependencias y membresías (administración) | RQ05 | MUNI-04, MUNI-05 | servicio + UI admin | Unicidad por municipio; regla de asignación corregida (04 ¹) | MT-09, 10, 20…22, MT-F01…F08 | **HECHO-A** (2026-11-09, ver 11) |
 | 13 | F1-13 | Detalle de expediente (historial + documentos) en UI | RQ02, RQ05 | MUNI-12 | `features/municipal/*` | Historial legible; descarga en web y Android (`react-native-blob-util` ya instalado) | E2E | PENDIENTE |
 | 14 | F1-14 | Bootstrap QA y runner real | todos | MUNI-03, MUNI-11 | `scripts/municipal-*.cjs` | Rechaza producción; limpia solo su `runId`; sin datos reales | Todos los R | BLOQ (C-05) |
-| 15 | F1-15 | Validación E2E: teclado, celular, ventanilla | RQ06 | nuevo | `docs/qa/MUNI-E2E.md` | MT-90, 91, 96 con evidencia | E2E | PENDIENTE |
+| 15 | F1-15 | Validación E2E: teclado, celular, ventanilla | RQ06 | nuevo | `apps/frontend/qa/*` | MT-90, 91, 96 con evidencia | E2E | Parcial: MT-90 y MT-94 en Chromium con API simulada; faltan Firefox/WebKit, APK y WCAG completo |
 | — | F1-16 | Higiene de secretos del repo | — | MUNI-00 | `.gitignore` | Ver C-10 | — | BLOQ (C-10, núcleo) |
 | — | F1-17 | Endurecimiento de sesión | — | MUNI-13 | auth | Ver C-13 | — | BLOQ (C-13, núcleo) |
 | — | F1-18 | Diseño de IA opcional (Python + FastAPI) | — | MUNI-14 | `docs/munierp/10-IA.md` | Evaluación de impacto; sin PII externa | Revisión | Fuera de Fase 1 |
 
-**Siguiente paso recomendado sin tocar el núcleo:** F1-12 (las 5 operaciones que hoy responden 501).
-Después, al resolverse C-01/C-05, F1-05 y F1-14.
+**Siguiente paso recomendado:** F1-05 (repositorio Mongo) en cuanto se resuelva C-05. Sin tocar el
+núcleo mientras tanto: F1-13 (detalle de expediente en la interfaz) con cobertura Playwright.
 
 ## Riesgos
 

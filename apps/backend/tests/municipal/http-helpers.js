@@ -47,8 +47,9 @@ function httpScenario({ now = T0 } = {}) {
   directory.set(REVOKED, erpAccess(REVOKED, 'user', 3)); // sesión revocada: el token trae sv 0
   // INACTIVE no está en el directorio: resolveAccess devuelve null, como para status !== 'active'.
   let dbDown = false;
+  const failFor = new Set();
   const stub = sinon.stub(rbac, 'resolveAccess').callsFake(async (id) => {
-    if (dbDown) throw Object.assign(new Error('private database detail'), { name: 'MongoNetworkError' });
+    if (dbDown || failFor.has(id)) throw Object.assign(new Error('private database detail'), { name: 'MongoNetworkError' });
     return directory.get(id) || null;
   });
 
@@ -62,6 +63,8 @@ function httpScenario({ now = T0 } = {}) {
     app, store, storage, clock, memberships, fx, BASE, INACTIVE, REVOKED,
     token, auth,
     setDbDown: (v) => { dbDown = v; },
+    /** Falla la consulta central solo para un usuario (p. ej. el destinatario de una membresía). */
+    failLookupFor: (id) => failFor.add(id),
     advance: (ms) => { current = new Date(current.getTime() + ms); },
     restore: () => stub.restore(),
   };

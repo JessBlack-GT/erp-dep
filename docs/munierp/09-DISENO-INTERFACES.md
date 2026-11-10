@@ -71,8 +71,7 @@ Escritorio (≥1024)                                 Celular (360)
 
 ## Riesgos de interfaz conocidos
 
-- Activación con teclado de `accessibilityRole="radio"` en RN Web 0.19 debe verificarse en
-  navegador (MT-90); si falla, se cambia a `Pressable` con `role="radio"` y manejo de Espacio.
+- Activación con teclado de `role="radio"` en RN Web 0.19: **verificada con Playwright (2026-11-09)**. Enter funcionaba; Espacio no y `aria-checked` no se exponía → corregidos en `OptionGroup.js` (ver doc 11).
 - `newIdempotencyKey()` usa `crypto.getRandomValues` en web; en Android RN 0.72 no existe y cae a
   `Math.random` (suficiente para idempotencia, no para secretos). Alternativa sin dependencia: que el
   servidor emita la clave en un paso previo (decidir en F1-11).

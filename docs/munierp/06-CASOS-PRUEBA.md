@@ -149,10 +149,11 @@ Android.
 | **Ejecutado y aprobado — HTTP aislado (F1-04, 2026-11-09)** | MT-01, MT-02, MT-03, MT-08, MT-09 (lectura), MT-19c, MT-53, MT-H01…MT-H12 (§L). Identidad central real del ERP; `resolveAccess` simulado; almacén en memoria |
 | **Ejecutado y aprobado** (U / H-mock / jest) | MT-04, MT-05, MT-06, MT-07, MT-10, MT-11, MT-12, MT-13, MT-14, MT-15, MT-16, MT-17, MT-18, MT-19, MT-19b, MT-30, MT-32*, MT-33, MT-34, MT-35, MT-36, MT-40, MT-41, MT-42, MT-43, MT-44, MT-45, MT-46, MT-50*, MT-52, MT-60, MT-61, MT-70, MT-71, MT-72, MT-74*, MT-75, MT-80…MT-88, MT-92, MT-93, MT-94, MT-95 |
 | **Ejecutado parcial** | MT-31 (50 creaciones concurrentes en memoria; falta concurrencia real en Atlas), MT-62 (ver §Ejecución) |
-| **Pendiente: historia F1-12** | MT-09 (escritura), MT-10 vía HTTP, MT-20…MT-22 (hoy 501) |
+| **Ejecutado y aprobado — F1-12 HTTP aislado (2026-11-09)** | MT-09, MT-10 (HTTP), MT-20, MT-21 (unicidad por municipio, ver nota), MT-22, MT-F01…MT-F08 (§N) |
 | **Pendiente: montaje en el ERP (C-01)** | Repetición de §L dentro de `app.js` (limitador global, CORS, helmet) |
 | **Pendiente: requiere base QA autorizada (C-05)** | MT-31 real, MT-32 real, MT-47, MT-50 real, MT-51, MT-74 (Mongo), MT-89 |
-| **Pendiente: E2E** | MT-63, MT-64, MT-90, MT-91, MT-96 |
+| **Ejecutado y aprobado — Playwright Chromium, API SIMULADA (2026-11-09)** | MT-90 (teclado), MT-94 (adaptable 360/800/1280), MT-93 y MT-95 en navegador (§O) |
+| **Pendiente: E2E** | MT-63, MT-64, MT-91 (APK Android), MT-96 (auditoría WCAG completa); MT-90 en Firefox/WebKit |
 | Diseñado sin prueba aún | MT-73 |
 
 \* En memoria: demuestran la regla, no la garantía transaccional de Mongo.
@@ -173,6 +174,38 @@ Android.
 | MT-H10 | PATCH sin If-Match 400 / obsoleto 409 / correcto 200 + `EDITAR`; cambio de confidencialidad sin permiso 403; transiciones 200/400/403/409 | Según contrato | ✅ |
 | MT-H11 | Documentos: 201, MIME falso 400, > 5 MB 413, concluido 409, descarga con cabeceras privadas, no autorizada 403/404 | Según contrato | ✅ |
 | MT-H12 | Cada respuesta JSON validada contra el esquema del contrato (ajv); 24 rutas = 24 operaciones; pendientes ↔ 501 | Sin desviaciones | ✅ |
+
+## N. Dependencias y membresías (F1-12) — `tests/municipal/http-f112.test.js`
+
+| ID | Caso | Resultado |
+|---|---|---|
+| MT-F01 | Las 5 operaciones: 401 sin token, 403 para superadmin del ERP | ✅ |
+| MT-F02 | Solo ADMIN_MUNICIPAL administra; TITULAR/SUPERVISOR/AUDITOR 403; OPERADOR no lista | ✅ |
+| MT-F03 | Dependencia: 201, duplicada 409, validaciones 400, código inmutable, inexistente/mal formado 404 | ✅ |
+| MT-F04 | Desactivar con expedientes abiertos o subordinadas activas → 409; inactiva no admite solicitudes ni membresías | ✅ |
+| MT-F05 | Listado: ADMIN todo SJH (nunca ZZZ), TITULAR solo su dependencia, filtros y consulta inválida 400 | ✅ |
+| MT-F06 | Alta: acceso solo a sus dependencias; a sí mismo 403; ADMIN 400; sin dependencias 400; duplicada 409; usuario inexistente/inactivo 404; identidad caída 503 | ✅ |
+| MT-F07 | Revocación inmediata (403 en la siguiente petición), reactivación, cambio de dependencias que mueve el alcance, vencimiento por `validTo` | ✅ |
+| MT-F08 | Propia 403; otra ADMIN 403; otro municipio/inexistente/mal formado 404 idéntico; validaciones 400 | ✅ |
+
+Nota MT-21: la unicidad por municipio se garantiza en el almacén (`{municipalityId, code}`); la
+creación en otro municipio no se probó vía HTTP porque el set sintético no tiene ADMIN en ZZZ.
+
+## O. Playwright (API SIMULADA) — `apps/frontend/qa/e2e/municipal.e2e.spec.cjs`
+
+14 escenarios en Chromium: **14/14 aprobados** en la ejecución final, tras corregir 3 defectos de
+accesibilidad detectados en las ejecuciones previas (ver doc 11 y evidencias). Firefox y WebKit no
+ejecutados (no disponibles en el entorno).
+
+## Ejecución 2026-11-09 (F1-12)
+
+| Suite | Resultado |
+|---|---|
+| Municipal backend | **117 passing, 0 failing** |
+| Backend completo sin `phase1.stability` | **1049 passing, 0 failing** |
+| `phase1.stability` | **21 passing** (completo, incluida la configuración de ESLint) |
+| Frontend municipal (jest) | **12 passed** |
+| Playwright Chromium | **14 passed** (final) |
 
 ## Ejecución 2026-11-09 (F1-04)
 

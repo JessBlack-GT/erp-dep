@@ -19,14 +19,11 @@ const { HttpError, toErrorResponse, ensureErrorCode } = require('./errors');
 const P = require('./params');
 const { buildAccessContext } = require('../policy/context');
 
-/** Operaciones del contrato pendientes de historia propia (F1-12). Responden 501 tras autenticar. */
-const PENDING = Object.freeze({
-  createDependency: 'F1-12',
-  updateDependency: 'F1-12',
-  listMemberships: 'F1-12',
-  createMembership: 'F1-12',
-  updateMembership: 'F1-12',
-});
+/**
+ * Operaciones del contrato pendientes de historia propia. Responden 501 tras autenticar.
+ * Vacío desde F1-12 (2026-11-09): las 24 operaciones están implementadas.
+ */
+const PENDING = Object.freeze({});
 
 const REQUEST_ID = /^[A-Za-z0-9._-]{8,100}$/;
 
@@ -55,11 +52,26 @@ function routeTable(service) {
 
     { method: 'get', path: '/municipalities/{mun}/dependencies', operationId: 'listDependencies',
       handler: (req, res) => ok(res, 200, service.listDependencies(ctx(req), req.params.mun, P.parseQuery(req.query, { status: P.q.activeStatus }))) },
-    { method: 'post', path: '/municipalities/{mun}/dependencies', operationId: 'createDependency' },
-    { method: 'patch', path: '/municipalities/{mun}/dependencies/{code}', operationId: 'updateDependency' },
-    { method: 'get', path: '/municipalities/{mun}/memberships', operationId: 'listMemberships' },
-    { method: 'post', path: '/municipalities/{mun}/memberships', operationId: 'createMembership' },
-    { method: 'patch', path: '/municipalities/{mun}/memberships/{membershipId}', operationId: 'updateMembership' },
+    { method: 'post', path: '/municipalities/{mun}/dependencies', operationId: 'createDependency',
+      handler: (req, res) => ok(res, 201, service.createDependency(ctx(req), req.params.mun, req.body, meta(req))) },
+    { method: 'patch', path: '/municipalities/{mun}/dependencies/{code}', operationId: 'updateDependency',
+      handler: (req, res) => {
+        const c = ctx(req);
+        return ok(res, 200, service.updateDependency(c, req.params.mun, P.depCodeOr404(req.params.code), req.body, meta(req)));
+      } },
+    { method: 'get', path: '/municipalities/{mun}/memberships', operationId: 'listMemberships',
+      handler: (req, res) => {
+        const query = P.parseQuery(req.query, { role: P.q.role, dependency: P.q.dependency, status: P.q.activeStatus, page: P.q.page, limit: P.q.limit });
+        const r = service.listMemberships(ctx(req), req.params.mun, query);
+        return ok(res, 200, r.items, { pagination: r.pagination });
+      } },
+    { method: 'post', path: '/municipalities/{mun}/memberships', operationId: 'createMembership',
+      handler: async (req, res) => ok(res, 201, await service.createMembership(ctx(req), req.params.mun, req.body, meta(req))) },
+    { method: 'patch', path: '/municipalities/{mun}/memberships/{membershipId}', operationId: 'updateMembership',
+      handler: (req, res) => {
+        const c = ctx(req);
+        return ok(res, 200, service.updateMembership(c, req.params.mun, P.objectIdOr404(req.params.membershipId), req.body, meta(req)));
+      } },
 
     { method: 'post', path: '/municipalities/{mun}/citizens', operationId: 'createCitizen',
       handler: (req, res) => ok(res, 201, service.createCitizen(ctx(req), req.params.mun, req.body, meta(req))) },
@@ -150,12 +162,15 @@ function routeTable(service) {
 const toExpressPath = (p) => p.replace(/\{(\w+)\}/g, ':$1');
 
 /**
- * @param {{ service: any, store: any, clock?: () => Date, identity: Function[], jsonLimit?: string }} deps
+ * @param {{ service: any, store: any, clock?: () => Date, identity: Function[], jsonLimit?: string, environment?: string, allowProduction?: boolean }} deps
  *   `identity`: middlewares que dejan en `req.user` el acceso resuelto por el ERP. En producción y en
  *   pruebas se usa `erpIdentityMiddlewares()` (los middlewares reales del ERP).
  */
-function createMunicipalRouter({ service, store, clock = () => new Date(), identity, jsonLimit = '10mb' }) {
+function createMunicipalRouter({ service, store, clock = () => new Date(), identity, jsonLimit = '10mb', environment = process.env.NODE_ENV, allowProduction = false }) {
   if (!Array.isArray(identity) || identity.length === 0) throw new Error('La identidad central del ERP es obligatoria');
+  // Salvaguarda: la API municipal no puede activarse en producción sin decisión explícita (C-01).
+  if (environment === 'production' && allowProduction !== true)
+    throw new Error('API municipal deshabilitada en producción: requiere allowProduction:true tras aprobación del contrato (C-01)');
   const router = express.Router({ caseSensitive: true, strict: false });
   router.use(ensureErrorCode, requestMeta, express.json({ limit: jsonLimit, strict: true }), ...identity);
 

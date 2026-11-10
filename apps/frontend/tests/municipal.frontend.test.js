@@ -59,6 +59,13 @@ describe('MuniERP — componentes', () => {
     expect(getByText(/3.5 días/)).toBeTruthy();
   });
 
+  test('las opciones comunican el estado seleccionado (nativo: accessibilityState; web: aria-checked, ver Playwright)', () => {
+    const { getByTestId } = render(<RequestIntakeForm api={{ createRequest: jest.fn() }} dependencies={deps} citizens={citizens} />);
+    expect(getByTestId('intake-dependency-OBP').props.accessibilityState).toEqual(expect.objectContaining({ checked: false }));
+    fireEvent.press(getByTestId('intake-dependency-OBP'));
+    expect(getByTestId('intake-dependency-OBP').props.accessibilityState).toEqual(expect.objectContaining({ checked: true }));
+  });
+
   test('el formulario no envía si faltan datos y muestra errores', async () => {
     const api = { createRequest: jest.fn() };
     const { getByTestId, findByText } = render(<RequestIntakeForm api={api} dependencies={deps} citizens={citizens} />);

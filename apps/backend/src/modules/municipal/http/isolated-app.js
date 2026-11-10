@@ -9,17 +9,17 @@
  */
 const express = require('express');
 const { createMunicipalRouter } = require('./municipal.router');
-const { erpIdentityMiddlewares } = require('./erp-identity');
+const { erpIdentityMiddlewares, erpUserLookup } = require('./erp-identity');
 const { createMunicipalService } = require('../application/municipal.service');
 
 /**
- * @param {{ store: any, storage: any, clock?: () => Date, identity?: Function[] }} deps
+ * @param {{ store: any, storage: any, clock?: () => Date, identity?: Function[], userLookup?: Function }} deps
  */
-function createIsolatedMunicipalApp({ store, storage, clock = () => new Date(), identity }) {
+function createIsolatedMunicipalApp({ store, storage, clock = () => new Date(), identity, userLookup }) {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1); // mismo valor que el ERP
-  const service = createMunicipalService({ store, storage, clock });
+  const service = createMunicipalService({ store, storage, clock, userLookup: userLookup || erpUserLookup() });
   app.use('/api/municipal/v1', createMunicipalRouter({ service, store, clock, identity: identity || erpIdentityMiddlewares() }));
   app.use((req, res) => res.status(404).json({ success: false, error: 'No encontrado', code: 'NOT_FOUND' }));
   return { app, service };

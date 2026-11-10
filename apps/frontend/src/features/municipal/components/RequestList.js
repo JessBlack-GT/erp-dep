@@ -24,8 +24,15 @@ export function RequestList({ items, onSelect, testID = 'municipal-request-list'
           onPress={onSelect ? () => onSelect(r) : undefined}
           accessibilityLabel={requestAccessibilityLabel(r)}
           style={styles.row}
-          testID={`request-${r.folio}`}
+          testID={onSelect ? `request-${r.folio}` : undefined}
         >
+          {/* Card (componente común del ERP) descarta accessibilityLabel cuando no es interactiva
+              (hallazgo Playwright 2026-11-09, C-18); en ese caso la etiqueta va en este elemento. */}
+          <View
+            accessibilityRole={onSelect ? undefined : 'listitem'}
+            accessibilityLabel={onSelect ? undefined : requestAccessibilityLabel(r)}
+            testID={onSelect ? undefined : `request-${r.folio}`}
+          >
           <View style={styles.header}>
             <Text weight="bold">{r.folio}</Text>
             <RequestStatusBadge status={r.status} />
@@ -34,6 +41,7 @@ export function RequestList({ items, onSelect, testID = 'municipal-request-list'
           <Text variant="caption" color="secondary">
             {`${r.ownerDependency || ''} · ${formatDate(r.createdAt)}`}
           </Text>
+          </View>
         </Card>
       ))}
     </View>

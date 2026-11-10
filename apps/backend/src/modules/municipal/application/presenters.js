@@ -79,6 +79,19 @@ function myMembership(m, municipality, depCodes) {
   };
 }
 
+function membership(m, depCodes, effective) {
+  return {
+    id: m.id,
+    userId: m.userId,
+    role: m.role,
+    dependencies: depCodes,
+    status: m.status,
+    validFrom: iso(m.validFrom),
+    validTo: m.validTo ? iso(m.validTo) : null,
+    effective,
+  };
+}
+
 function auditEvent(e) {
   return compact({
     at: iso(e.at), actorId: e.actorId, action: e.action, entity: e.entity, entityId: e.entityId || undefined,
@@ -86,4 +99,4 @@ function auditEvent(e) {
   });
 }
 
-module.exports = { iso, historyEntry, requestSummary, requestFull, citizen, dependency, document, myMembership, auditEvent };
+module.exports = { iso, historyEntry, requestSummary, requestFull, citizen, dependency, document, myMembership, membership, auditEvent };

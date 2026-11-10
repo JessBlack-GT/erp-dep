@@ -37,7 +37,32 @@ function createMemoryStore(seed = {}) {
     },
     municipalityById: (id) => state.municipalities.find((m) => m.id === id) || null,
     municipalityByCode: (code) => state.municipalities.find((m) => m.code === code) || null,
-    dependencies: (municipalityId) => state.dependencies.filter((d) => d.municipalityId === municipalityId),
+    dependencies: (municipalityId) => state.dependencies.filter((d) => d.municipalityId === municipalityId).map((d) => structuredClone(d)),
+    insertDependency(doc) {
+      if (state.dependencies.some((d) => d.municipalityId === doc.municipalityId && d.code === doc.code))
+        throw Object.assign(new Error('Dependencia duplicada'), { code: 'DUPLICATE_DEPENDENCY' });
+      state.dependencies.push(structuredClone(doc));
+      return structuredClone(doc);
+    },
+    updateDependency(id, patch) {
+      const i = state.dependencies.findIndex((d) => d.id === id);
+      if (i < 0) throw Object.assign(new Error('Dependencia inexistente'), { code: 'NOT_FOUND' });
+      state.dependencies[i] = { ...state.dependencies[i], ...structuredClone(patch) };
+      return structuredClone(state.dependencies[i]);
+    },
+    membership: (id) => structuredClone(state.memberships.find((m) => m.id === id) || null),
+    insertMembership(doc) {
+      if (state.memberships.some((m) => m.userId === doc.userId && m.municipalityId === doc.municipalityId))
+        throw Object.assign(new Error('Membresía duplicada'), { code: 'DUPLICATE_MEMBERSHIP' });
+      state.memberships.push(structuredClone(doc));
+      return structuredClone(doc);
+    },
+    updateMembership(id, expectedVersion, patch) {
+      const i = state.memberships.findIndex((m) => m.id === id && (m.version || 0) === expectedVersion);
+      if (i < 0) throw Object.assign(new Error('Versión obsoleta'), { code: 'STALE_VERSION' });
+      state.memberships[i] = { ...state.memberships[i], ...structuredClone(patch), version: expectedVersion + 1 };
+      return structuredClone(state.memberships[i]);
+    },
     citizens: (municipalityId) => state.citizens.filter((c) => c.municipalityId === municipalityId).map((c) => structuredClone(c)),
     insertCitizen(doc) { state.citizens.push(structuredClone(doc)); return structuredClone(doc); },
     membershipsOf: (userId) => state.memberships.filter((m) => m.userId === userId).map((m) => structuredClone(m)),

@@ -41,7 +41,9 @@ export function createMockMunicipalApi({ delayMs = 0 } = {}) {
       const byStatus = { REGISTRADA: 0, EN_TRAMITE: 0, EN_ESPERA_CIUDADANO: 0, CERRADA: 0, CANCELADA: 0 };
       requests.forEach((r) => { byStatus[r.status] += 1; });
       const open = byStatus.REGISTRADA + byStatus.EN_TRAMITE + byStatus.EN_ESPERA_CIUDADANO;
-      return wait({ total: requests.length, open, closedInPeriod: byStatus.CERRADA, overdueOpen: 0, avgResolutionDays: null, byStatus, byDependency: {}, byChannel: {} });
+      // Coherente con el contrato: sin concluidas no hay promedio; con concluidas se usa un valor
+      // SINTÉTICO fijo (la API real lo calcula en domain/indicators.js).
+      return wait({ total: requests.length, open, closedInPeriod: byStatus.CERRADA, overdueOpen: 0, avgResolutionDays: byStatus.CERRADA ? 4 : null, byStatus, byDependency: {}, byChannel: {} });
     },
     createRequest: (body, idempotencyKey) => {
       if (!idempotencyKey) return Promise.reject(Object.assign(new Error('Idempotency-Key obligatoria'), { status: 400 }));

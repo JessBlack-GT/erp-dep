@@ -13,7 +13,7 @@ const { applyTransition, registrationEntry, editEntry, ACTIONS } = require('../d
 const V = require('../domain/validation');
 const { validateRequestCreate, validateIdempotencyKey } = V;
 const present = require('./presenters');
-const { scopeFor } = require('../policy/permissions');
+const { scopeFor, canAssignRole } = require('../policy/permissions');
 const { computeIndicators } = require('../domain/indicators');
 const docs = require('../domain/documents');
 const { buildReceipt } = require('../domain/receipt');
@@ -30,10 +30,12 @@ class MunicipalError extends Error {
 const notFound = () => new MunicipalError(404, 'NOT_FOUND', 'No encontrado');
 
 /**
+ * `userLookup(id)` (F1-12): consulta a la identidad central si un usuario existe y está ACTIVO
+ * (en producción: rbac.resolveAccess del ERP vía http/erp-identity.js). Nunca crea cuentas.
  * @param {{ store: ReturnType<typeof import('../mocks/in-memory-store').createMemoryStore>,
  *   storage: { put: Function, get: Function }, clock?: () => Date }} deps
  */
-function createMunicipalService({ store, storage, clock = () => new Date() }) {
+function createMunicipalService({ store, storage, clock = () => new Date(), userLookup = null }) {
   function municipality(code) {
     const m = store.municipalityByCode(code);
     if (!m) throw new MunicipalError(403, 'MUNICIPAL_MEMBERSHIP_REQUIRED', 'Sin acceso al municipio');
@@ -74,6 +76,13 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
 
   const depById = (mun) => new Map(store.dependencies(mun.id).map((d) => [d.id, d]));
   const depByCode = (mun) => new Map(store.dependencies(mun.id).map((d) => [d.code, d]));
+  /** Códigos → IDs; todos deben existir y estar activos en el municipio. */
+  function resolveDependencyIds(mun, codes) {
+    const map = depByCode(mun);
+    const bad = codes.filter((c) => !map.has(c) || map.get(c).status !== 'ACTIVA');
+    if (bad.length) throw new MunicipalError(400, 'VALIDATION_ERROR', 'Dependencias inexistentes o inactivas: ' + bad.join(', '));
+    return codes.map((c) => map.get(c).id);
+  }
 
   const codeOf = (mun) => {
     const deps = depById(mun);
@@ -285,6 +294,120 @@ function createMunicipalService({ store, storage, clock = () => new Date() }) {
         .filter((d) => !query.status || d.status === query.status)
         .sort((a, b) => a.code.localeCompare(b.code))
         .map((d) => present.dependency(d, d.parentCode || (d.parentId && byId.get(d.parentId) ? byId.get(d.parentId).code : null)));
+    },
+
+    /* ----------------------------- F1-12: dependencias ----------------------------- */
+
+    createDependency(ctx, munCode, body, meta = {}) {
+      const { mun } = gate(ctx, 'municipal.dependencies.manage', munCode);
+      const input = V.validateDependencyCreate(body);
+      if (input.parentCode) {
+        const parent = depByCode(mun).get(input.parentCode);
+        if (!parent || parent.status !== 'ACTIVA') throw new MunicipalError(400, 'VALIDATION_ERROR', 'Dependencia superior inexistente o inactiva');
+      }
+      let doc;
+      try {
+        doc = store.insertDependency({ id: store.newId(), municipalityId: mun.id, code: input.code, name: input.name, parentCode: input.parentCode, status: 'ACTIVA', createdBy: ctx.userId, createdAt: clock() });
+      } catch (e) {
+        if (e.code === 'DUPLICATE_DEPENDENCY') throw new MunicipalError(409, 'CONFLICT', 'Ya existe una dependencia con ese código en el municipio');
+        throw e;
+      }
+      audit(ctx, mun, 'DEPENDENCY_CREATED', 'Dependency', 'success', { ...meta, entityId: doc.id });
+      return present.dependency(doc, doc.parentCode);
+    },
+
+    updateDependency(ctx, munCode, code, body, meta = {}) {
+      const { mun } = gate(ctx, 'municipal.dependencies.manage', munCode);
+      const input = V.validateDependencyUpdate(body);
+      const dep = depByCode(mun).get(code);
+      if (!dep) throw notFound();
+      if (input.status === 'INACTIVA' && dep.status === 'ACTIVA') {
+        const open = store.findRequests({ municipalityId: mun.id })
+          .filter((r) => !access.TERMINAL.includes(r.status))
+          .filter((r) => r.ownerDependencyId === dep.id || (r.assignedDependencyIds || []).includes(dep.id));
+        if (open.length) throw new MunicipalError(409, 'CONFLICT', `La dependencia tiene ${open.length} expediente(s) abierto(s); concluya o turne antes de desactivar`);
+        const children = store.dependencies(mun.id).filter((d) => d.parentCode === dep.code && d.status === 'ACTIVA');
+        if (children.length) throw new MunicipalError(409, 'CONFLICT', 'La dependencia tiene dependencias subordinadas activas');
+      }
+      const saved = store.updateDependency(dep.id, { ...input, updatedAt: clock(), updatedBy: ctx.userId });
+      audit(ctx, mun, 'DEPENDENCY_UPDATED', 'Dependency', 'success', { ...meta, entityId: dep.id });
+      return present.dependency(saved, saved.parentCode);
+    },
+
+    /* ----------------------------- F1-12: membresías ------------------------------ */
+
+    listMemberships(ctx, munCode, query = {}) {
+      const { mun, scope } = gate(ctx, 'municipal.memberships.read', munCode);
+      const now = clock();
+      const codes = codeOf(mun);
+      let rows = store.membershipsIn(mun.id);
+      if (scope === 'D') rows = rows.filter((m) => m.dependencyIds.some((d) => ctx.membership.dependencyIds.includes(d)));
+      if (query.role) rows = rows.filter((m) => m.role === query.role);
+      if (query.status) rows = rows.filter((m) => m.status === query.status);
+      if (query.dependency) {
+        const dep = depByCode(mun).get(query.dependency);
+        rows = rows.filter((m) => !!dep && m.dependencyIds.includes(dep.id));
+      }
+      rows.sort((a, b) => (a.role + a.id).localeCompare(b.role + b.id));
+      const { slice, pagination } = page(rows, query);
+      return { items: slice.map((m) => present.membership(m, m.dependencyIds.map(codes).filter(Boolean), access.isMembershipActive(m, now))), pagination };
+    },
+
+    async createMembership(ctx, munCode, body, meta = {}) {
+      const { mun } = gate(ctx, 'municipal.memberships.manage', munCode);
+      const now = clock();
+      const input = V.validateMembershipCreate(body, now);
+      if (input.userId === ctx.userId) throw new MunicipalError(403, 'FORBIDDEN', 'No puede asignarse una membresía a sí mismo');
+      if (!canAssignRole(ctx.membership.role, input.role))
+        throw new MunicipalError(403, 'FORBIDDEN', 'Rol no asignable por el actor');
+      const depIds = resolveDependencyIds(mun, input.dependencies);
+      if (typeof userLookup !== 'function') throw new MunicipalError(503, 'AUTHORIZATION_UNAVAILABLE', 'Identidad central no disponible');
+      let central;
+      try { central = await userLookup(input.userId); } catch (_) { throw new MunicipalError(503, 'AUTHORIZATION_UNAVAILABLE', 'Identidad central no disponible'); }
+      if (!central || central.id !== input.userId) throw new MunicipalError(404, 'NOT_FOUND', 'Usuario no encontrado o inactivo en la identidad central');
+      let doc;
+      try {
+        doc = store.insertMembership({
+          id: store.newId(), userId: input.userId, municipalityId: mun.id, role: input.role, dependencyIds: depIds,
+          status: 'ACTIVA', validFrom: input.validFrom, validTo: input.validTo, version: 0, createdBy: ctx.userId, createdAt: now,
+        });
+      } catch (e) {
+        if (e.code === 'DUPLICATE_MEMBERSHIP') throw new MunicipalError(409, 'CONFLICT', 'El usuario ya tiene una membresía en este municipio');
+        throw e;
+      }
+      audit(ctx, mun, 'MEMBERSHIP_CREATED', 'Membership', 'success', { ...meta, entityId: doc.id });
+      return present.membership(doc, input.dependencies, access.isMembershipActive(doc, now));
+    },
+
+    updateMembership(ctx, munCode, membershipId, body, meta = {}) {
+      const { mun } = gate(ctx, 'municipal.memberships.manage', munCode);
+      const now = clock();
+      const input = V.validateMembershipUpdate(body, now);
+      const current = store.membership(membershipId);
+      // Otro municipio o inexistente: mismo 404.
+      if (!current || current.municipalityId !== mun.id) throw notFound();
+      if (current.userId === ctx.userId) throw new MunicipalError(403, 'FORBIDDEN', 'No puede modificar su propia membresía');
+      if (current.role === 'ADMIN_MUNICIPAL') throw new MunicipalError(403, 'FORBIDDEN', 'Las membresías ADMIN_MUNICIPAL solo se gestionan por bootstrap/ops');
+      if (input.role && !canAssignRole(ctx.membership.role, input.role))
+        throw new MunicipalError(403, 'FORBIDDEN', 'Rol no asignable por el actor');
+      const patch = { updatedAt: now, updatedBy: ctx.userId };
+      if (input.role) patch.role = input.role;
+      if (input.status) patch.status = input.status;
+      if (input.validTo !== undefined) patch.validTo = input.validTo;
+      if (input.dependencies) patch.dependencyIds = resolveDependencyIds(mun, input.dependencies);
+      const role = patch.role || current.role;
+      const deps = patch.dependencyIds || current.dependencyIds;
+      if (V.DEPENDENCY_SCOPED_ROLES.includes(role) && deps.length === 0)
+        throw new MunicipalError(400, 'VALIDATION_ERROR', 'El rol requiere al menos una dependencia');
+      let saved;
+      try { saved = store.updateMembership(current.id, current.version || 0, patch); } catch (e) {
+        if (e.code === 'STALE_VERSION') throw new MunicipalError(409, 'CONFLICT', 'La membresía cambió; recargue');
+        throw e;
+      }
+      const revoked = current.status === 'ACTIVA' && saved.status === 'INACTIVA';
+      audit(ctx, mun, revoked ? 'MEMBERSHIP_REVOKED' : 'MEMBERSHIP_UPDATED', 'Membership', 'success', { ...meta, entityId: current.id });
+      const codes = codeOf(mun);
+      return present.membership(saved, saved.dependencyIds.map(codes).filter(Boolean), access.isMembershipActive(saved, now));
     },
 
     createCitizen(ctx, munCode, body, meta = {}) {
