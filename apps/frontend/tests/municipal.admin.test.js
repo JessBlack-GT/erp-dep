@@ -8,7 +8,8 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { DependencyAdmin, MembershipAdmin, MunicipalApp, municipalModel, createMunicipalApi } from '../src/features/municipal';
 import { createServiceBackedWorld } from '../qa/service-backed-api';
 
-jest.setTimeout(30000);
+// El primer render de la suite incluye la transformación en frío de los módulos (≈ 15–30 s en la VM de QA).
+jest.setTimeout(90000);
 const backendPermissions = require('../../backend/src/modules/municipal/policy/permissions');
 const backendValidation = require('../../backend/src/modules/municipal/domain/validation');
 
