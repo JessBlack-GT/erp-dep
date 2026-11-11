@@ -1,4 +1,4 @@
-# MuniERP IA — QA Playwright F1-12/F1-13 en Windows (API SIMULADA, datos sintéticos, sin red externa).
+﻿# MuniERP IA — QA Playwright F1-12/F1-13 en Windows (API SIMULADA, datos sintéticos, sin red externa).
 # Uso:  powershell -ExecutionPolicy Bypass -File .\run-windows.ps1 [-Browsers chromium,firefox,webkit] [-Spec municipal-detail]
 # En el repositorio: compile antes el arnés con  node qa\build-municipal-harness.cjs qa\dist-municipal
 # En el kit autónomo el arnés ya viene compilado en .\harness.

@@ -27,6 +27,8 @@ y datos sintéticos. Base auditada `main@d5b64b0`; nada en `main` cambia.
 | 16 | Propuestas de contrato X-01…X-04 (draft.4 no publicada) | [contracts/PROPUESTAS-DRAFT4.md](contracts/PROPUESTAS-DRAFT4.md) |
 | 17 | F1-05 paso 3: adaptador MongoDB, preflight de `munierp_qa`, C-21 lector privado | [15-F1-05-ADAPTADOR-MONGODB.md](15-F1-05-ADAPTADOR-MONGODB.md) |
 | 18 | F1-14: bitácora de auditoría, documentos PENDIENTE (C-22), casos L3, integridad, Playwright 96/96 | [16-F1-14-AUDITORIA-Y-L3.md](16-F1-14-AUDITORIA-Y-L3.md) |
+| 19 | F1-15a: administración de dependencias y membresías, aplicación navegable, demostración, Playwright 183/183 | [17-F1-15A-ADMIN-Y-DEMO.md](17-F1-15A-ADMIN-Y-DEMO.md) |
+| 20 | **Entrega del 16-11-2026** (instrucciones, manual, guion, RQ, limitaciones) | [entrega/00-LEEME.md](entrega/00-LEEME.md) |
 | — | Código de dominio (no montado) | [`apps/backend/src/modules/municipal/`](../../apps/backend/src/modules/municipal/README.md) |
 
 ## Decisiones clave

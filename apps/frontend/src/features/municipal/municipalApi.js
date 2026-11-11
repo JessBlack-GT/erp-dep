@@ -20,6 +20,7 @@ export function toApiError(error) {
   const e = new Error((res && res.data && res.data.error) || 'Error de comunicación');
   e.status = res ? res.status : 0;
   e.code = res && res.data ? res.data.code : 'NETWORK_ERROR';
+  if (res && res.data && Array.isArray(res.data.fields)) e.fields = res.data.fields.map(String);
   return e;
 }
 
@@ -40,7 +41,18 @@ export function createMunicipalApi({ client = apiClient, mun = 'SJH', platform =
   return {
     isMock: false,
     myMemberships: async () => data(await call('get', '/me/memberships')),
-    listDependencies: async () => data(await call('get', m('/dependencies'), { params: { status: 'ACTIVA' } })),
+    /** Sin argumentos: solo ACTIVAS (formularios). F1-15a: la administración pasa `{}` para ver todas. */
+    listDependencies: async (params = { status: 'ACTIVA' }) => data(await call('get', m('/dependencies'), { params })),
+    /* F1-15a: operaciones de administración ya existentes en draft.3 (x-permission *.manage). */
+    createDependency: async (body) => data(await call('post', m('/dependencies'), {}, body)),
+    updateDependency: async (code, body) => data(await call('patch', m(`/dependencies/${enc(code)}`), {}, body)),
+    /** Página de membresías con paginación del contrato (filtros role, dependency, status, page, limit). */
+    listMembershipPage: async (params) => {
+      const res = await call('get', m('/memberships'), { params });
+      return { items: data(res) || [], pagination: res.data && res.data.pagination };
+    },
+    createMembership: async (body) => data(await call('post', m('/memberships'), {}, body)),
+    updateMembership: async (membershipId, body) => data(await call('patch', m(`/memberships/${enc(membershipId)}`), {}, body)),
     searchCitizens: async (q) => data(await call('get', m('/citizens'), { params: q ? { q } : {} })),
     listMemberships: async (params) => data(await call('get', m('/memberships'), { params })),
     listRequests: async (params) => {

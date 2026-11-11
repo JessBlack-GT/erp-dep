@@ -252,3 +252,98 @@ export function buildAuditQuery(values = {}) {
   query.page = Math.max(Number(values.page) || 1, 1);
   return { errors, query };
 }
+
+/* --------------------------- F1-15a: dependencias y membresías --------------------------- */
+
+export const DEPENDENCY_PERMISSIONS = { read: 'municipal.dependencies.read', manage: 'municipal.dependencies.manage' };
+export const MEMBERSHIP_PERMISSIONS = { read: 'municipal.memberships.read', manage: 'municipal.memberships.manage' };
+
+export const ROLE_LABELS = {
+  ADMIN_MUNICIPAL: 'Administrador municipal',
+  SUPERVISOR_MUNICIPAL: 'Supervisor municipal',
+  TITULAR_DEPENDENCIA: 'Titular de dependencia',
+  OPERADOR_DEPENDENCIA: 'Operador de dependencia',
+  VENTANILLA: 'Ventanilla',
+  AUDITOR_MUNICIPAL: 'Auditor municipal',
+  CONSULTA: 'Consulta',
+};
+
+/**
+ * Roles que la interfaz OFRECE al asignar. Espejo de la regla del contrato («no puede crear
+ * ADMIN_MUNICIPAL») y de backend `MUNICIPAL_ROLES_ASSIGNABLE`; una prueba de paridad lo verifica.
+ * Solo oculta opciones: el servidor vuelve a decidir con `canAssignRole` en cada alta o cambio.
+ */
+export const ASSIGNABLE_ROLES = ['SUPERVISOR_MUNICIPAL', 'TITULAR_DEPENDENCIA', 'OPERADOR_DEPENDENCIA', 'VENTANILLA', 'AUDITOR_MUNICIPAL', 'CONSULTA'];
+/** Roles que requieren al menos una dependencia (backend DEPENDENCY_SCOPED_ROLES; prueba de paridad). */
+export const DEPENDENCY_SCOPED_ROLES = ['TITULAR_DEPENDENCIA', 'OPERADOR_DEPENDENCIA', 'CONSULTA'];
+export const ACTIVE_STATUS_LABELS = { ACTIVA: { label: 'Activa', variant: 'success' }, INACTIVA: { label: 'Inactiva', variant: 'neutral' } };
+
+export function roleLabel(role) {
+  return ROLE_LABELS[role] || String(role || 'Sin rol');
+}
+
+/** El contrato solo entrega `userId` (identidad central); se abrevia como en la bitácora (propuesta X-01). */
+export function userLabel(userId) {
+  return typeof userId === 'string' && userId.length >= 6 ? `Usuario ···${userId.slice(-6)}` : 'Usuario';
+}
+
+const DEP_CODE_RE = /^[A-Z]{3}$/;
+
+/** Validación de FORMA del alta/edición de dependencia (la autoridad y las reglas son del servidor). */
+export function validateDependencyForm(values = {}, { creating = true } = {}) {
+  const errors = {};
+  const code = (values.code || '').trim().toUpperCase();
+  const name = (values.name || '').trim();
+  if (creating && !DEP_CODE_RE.test(code)) errors.code = 'Código de 3 letras mayúsculas (por ejemplo, OBP).';
+  if (name.length < 3 || name.length > 150) errors.name = 'El nombre debe tener entre 3 y 150 caracteres.';
+  const parentCode = (values.parentCode || '').trim().toUpperCase();
+  if (creating && parentCode && !DEP_CODE_RE.test(parentCode)) errors.parentCode = 'Seleccione una dependencia superior válida.';
+  const body = creating ? { code, name, ...(parentCode ? { parentCode } : {}) } : { name };
+  return { errors, body };
+}
+
+/** Validación de FORMA de una membresía (el servidor decide rol asignable, usuario central y dependencias). */
+export function validateMembershipForm(values = {}, { creating = true } = {}) {
+  const errors = {};
+  const userId = (values.userId || '').trim().toLowerCase();
+  if (creating && !OBJECT_ID_RE.test(userId)) errors.userId = 'Identificador de usuario central de 24 caracteres hexadecimales.';
+  if (!ASSIGNABLE_ROLES.includes(values.role)) errors.role = 'Seleccione un rol asignable.';
+  const dependencies = Array.isArray(values.dependencies) ? values.dependencies : [];
+  if (DEPENDENCY_SCOPED_ROLES.includes(values.role) && dependencies.length === 0) errors.dependencies = 'Este rol requiere al menos una dependencia.';
+  const body = creating ? { userId, role: values.role, dependencies } : { role: values.role, dependencies };
+  return { errors, body };
+}
+
+/** Mensaje para operaciones administrativas: los 4xx traen un mensaje del servidor apto para el usuario. */
+export function describeAdminError(error) {
+  const base = describeApiError(error);
+  const status = error && error.status;
+  if ([400, 403, 404, 409].includes(status) && base.kind !== 'membership' && error.message) return { ...base, message: error.message };
+  return base;
+}
+
+/**
+ * Secciones de navegación de la aplicación municipal (F1-15a). Visibles según los permisos que
+ * informa /me/memberships (solo UX); cada pantalla vuelve a consultar al servidor, que autoriza.
+ */
+export const NAV_SECTIONS = [
+  { key: 'home', label: 'Panel principal', permission: null },
+  { key: 'intake', label: 'Registrar solicitud', permission: 'municipal.requests.create' },
+  { key: 'requests', label: 'Solicitudes', permission: 'municipal.requests.read' },
+  { key: 'dependencies', label: 'Dependencias', permission: DEPENDENCY_PERMISSIONS.read },
+  { key: 'memberships', label: 'Membresías y permisos', permission: MEMBERSHIP_PERMISSIONS.read },
+  { key: 'audit', label: 'Auditoría', permission: AUDIT_PERMISSION },
+];
+
+export function navSections(permissions) {
+  const granted = new Set(Array.isArray(permissions) ? permissions : []);
+  return NAV_SECTIONS.filter((s) => !s.permission || granted.has(s.permission));
+}
+
+/** Filtros del listado (contrato listRequests: status, dependency, page, limit). */
+export function buildRequestQuery(values = {}) {
+  const query = { page: Math.max(Number(values.page) || 1, 1), limit: 10 };
+  if (values.status && STATUS[values.status]) query.status = values.status;
+  if (values.dependency && DEP_CODE_RE.test(values.dependency)) query.dependency = values.dependency;
+  return query;
+}

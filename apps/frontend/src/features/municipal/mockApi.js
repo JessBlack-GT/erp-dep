@@ -77,6 +77,12 @@ export function createMockMunicipalApi({ delayMs = 0 } = {}) {
     },
     listDocuments: () => wait([]),
     listMemberships: () => wait([]),
+    // F1-15a: la persona básica (SUPERVISOR) lee dependencias y membresías pero no las administra: 403 como el servidor.
+    listMembershipPage: () => wait({ items: [], pagination: { page: 1, limit: 20, total: 0, pages: 0 } }),
+    createDependency: () => Promise.reject(Object.assign(new Error('Sin permisos municipales suficientes'), { status: 403, code: 'FORBIDDEN' })),
+    updateDependency: () => Promise.reject(Object.assign(new Error('Sin permisos municipales suficientes'), { status: 403, code: 'FORBIDDEN' })),
+    createMembership: () => Promise.reject(Object.assign(new Error('Sin permisos municipales suficientes'), { status: 403, code: 'FORBIDDEN' })),
+    updateMembership: () => Promise.reject(Object.assign(new Error('Sin permisos municipales suficientes'), { status: 403, code: 'FORBIDDEN' })),
     // La persona del mock básico es SUPERVISOR_MUNICIPAL, que no tiene municipal.audit.read: igual que el servidor, 403.
     listAuditEvents: () => Promise.reject(Object.assign(new Error('Sin permisos municipales suficientes'), { status: 403, code: 'FORBIDDEN' })),
     transitionRequest: () => Promise.reject(Object.assign(new Error('La API simulada básica no registra transiciones'), { status: 403, code: 'FORBIDDEN' })),

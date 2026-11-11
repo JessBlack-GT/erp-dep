@@ -42,7 +42,10 @@ aplique) en `docs/qa/MUNI-XX-VALIDATION.md`. "HECHO-A" **no** equivale a aprobad
 | — | F1-17 | Endurecimiento de sesión | — | MUNI-13 | auth | Ver C-13 | — | BLOQ (C-13, núcleo) |
 | — | F1-18 | Diseño de IA opcional (Python + FastAPI) | — | MUNI-14 | `docs/munierp/10-IA.md` | Evaluación de impacto; sin PII externa | Revisión | Fuera de Fase 1 |
 
-**Siguiente paso recomendado (2026-11-10, tras F1-14):** **F1-15a — administración de membresías y
+**Estado 2026-11-10 (F1-15a):** HECHA-A con API simulada (doc 17). Entrega preparada (`entrega/`).
+Siguiente: integración HTTP en el anfitrión de Codex y validación en `munierp_qa`.
+
+**Anterior (tras F1-14):** **F1-15a — administración de membresías y
 dependencias en la interfaz** para ADMIN_MUNICIPAL (las operaciones F1-12 ya existen en servidor y draft.3).
 Decisiones pendientes: C-22 (conciliación) y C-23 (acceso del administrador a la bitácora).
 

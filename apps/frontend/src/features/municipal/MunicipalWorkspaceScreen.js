@@ -104,7 +104,7 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
     );
   return (
     <ScrollView contentContainerStyle={styles.page} testID="municipal-workspace">
-      <Text variant="heading1" accessibilityRole="header">{`MuniERP · ${mun.name}`}</Text>
+      <Text variant="heading1" accessibilityRole="header" aria-level={1}>{`MuniERP · ${mun.name}`}</Text>
       {banner}
       {canAudit ? <Button variant="secondary" label="Bitácora de auditoría" onPress={() => setView('audit')} testID="workspace-open-audit" /> : null}
       <IndicatorsPanel data={state.indicators} />
@@ -119,7 +119,7 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
           )}
         </View>
         <View style={[styles.column, wide && styles.columnHalf]}>
-          <Text variant="heading3">Solicitudes en su alcance</Text>
+          <Text variant="heading3" accessibilityRole="header" aria-level={2}>Solicitudes en su alcance</Text>
           <RequestList items={state.requests} onSelect={(r) => setSelectedFolio(r.folio)} />
         </View>
       </View>

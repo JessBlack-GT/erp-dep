@@ -15,7 +15,7 @@ import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { Text, Badge, Button, Input, LoadingSpinner } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { OptionGroup } from './OptionGroup';
-import { Section } from './Section';
+import { Section, ButtonRow } from './Section';
 import {
   AUDIT_PAGE_SIZES, AUDIT_RESULT_LABELS, auditActionLabel, auditResourceLabel, auditEventAccessibilityLabel,
   dependencyFromFolio, buildAuditQuery, actorLabel, formatDateTime, describeApiError,
@@ -75,7 +75,7 @@ export function AuditLog({ api, membership, dependencies = [], onBack, testID = 
     return (
       <View style={styles.page} testID={`${testID}-denied`}>
         {back}
-        <Text variant="heading2" accessibilityRole="header">Bitácora de auditoría</Text>
+        <Text variant="heading2" accessibilityRole="header" aria-level={1}>Bitácora de auditoría</Text>
         <Text color="error" accessibilityRole="alert" testID="audit-denied-message">{state.error}</Text>
       </View>
     );
@@ -86,7 +86,7 @@ export function AuditLog({ api, membership, dependencies = [], onBack, testID = 
   return (
     <View style={styles.page} testID={testID}>
       {back}
-      <Text variant="heading2" accessibilityRole="header" testID="audit-title">{`Bitácora de auditoría${munName ? ` · ${munName}` : ''}`}</Text>
+      <Text variant="heading2" accessibilityRole="header" aria-level={1} testID="audit-title">{`Bitácora de auditoría${munName ? ` · ${munName}` : ''}`}</Text>
       <Text variant="caption" color="secondary">Solo lectura. Más recientes primero. No se muestran direcciones IP ni identificadores técnicos de la petición.</Text>
 
       <View style={[styles.columns, wide && styles.columnsWide]}>
@@ -104,10 +104,10 @@ export function AuditLog({ api, membership, dependencies = [], onBack, testID = 
               testID="audit-filter-limit"
             />
             {filterErrors.length ? <Text color="error" accessibilityRole="alert" testID="audit-filter-errors">{`Revise los filtros: ${filterErrors.length} error(es).`}</Text> : null}
-            <View style={styles.row}>
+            <ButtonRow>
               <Button label="Aplicar filtros" onPress={apply} testID="audit-apply" />
               <Button variant="secondary" label="Limpiar" onPress={clear} testID="audit-clear" />
-            </View>
+            </ButtonRow>
           </Section>
         </View>
 
@@ -140,10 +140,10 @@ export function AuditLog({ api, membership, dependencies = [], onBack, testID = 
                     );
                   })}
                 </View>
-                <View style={styles.row}>
+                <ButtonRow>
                   <Button variant="secondary" label="Página anterior" onPress={() => goTo(p.page - 1)} disabled={p.page <= 1} testID="audit-prev" />
                   <Button variant="secondary" label="Página siguiente" onPress={() => goTo(p.page + 1)} disabled={p.page >= p.pages} testID="audit-next" />
-                </View>
+                </ButtonRow>
               </>
             ) : null}
           </Section>

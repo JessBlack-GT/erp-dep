@@ -14,7 +14,7 @@ import { Text, Badge, Button, TextArea, LoadingSpinner } from '../../../componen
 import { spacing } from '../../../theme';
 import { OptionGroup } from './OptionGroup';
 import { RequestStatusBadge } from './RequestList';
-import { Field, Section } from './Section';
+import { Field, Section, ButtonRow } from './Section';
 import {
   REQUEST_TYPES, CONFIDENTIALITY_LABELS, CHANNEL_LABELS, HISTORY_LABELS, statusInfo, spokenFolio,
   availableActions, validateAction, actorLabel, formatDateTime, describeApiError,
@@ -146,7 +146,7 @@ export function RequestDetail({ api, folio, membership, dependencies = [], onBac
     <View style={styles.page} testID={testID}>
       {back}
       <View style={styles.header}>
-        <Text variant="heading1" accessibilityRole="header" accessibilityLabel={`Expediente ${spokenFolio(request.folio)}`} testID="detail-folio" selectable>
+        <Text variant="heading1" accessibilityRole="header" aria-level={1} accessibilityLabel={`Expediente ${spokenFolio(request.folio)}`} testID="detail-folio" selectable>
           {request.folio}
         </Text>
         <View style={styles.badges}>
@@ -234,9 +234,13 @@ export function RequestDetail({ api, folio, membership, dependencies = [], onBac
           {!summaryOnly ? (
             <Section title="Acciones" testID="detail-actions">
               {actions.length === 0 ? <Text testID="detail-no-actions">Su rol no tiene acciones disponibles en este estado.</Text> : null}
-              {!panel ? actions.map((a) => (
-                <Button key={a.action} variant={a.action === 'CANCELAR' ? 'danger' : 'secondary'} label={a.label} onPress={() => openAction(a.action)} testID={`action-${a.action}`} style={styles.actionButton} />
-              )) : null}
+              {!panel && actions.length ? (
+                <ButtonRow>
+                  {actions.map((a) => (
+                    <Button key={a.action} variant={a.action === 'CANCELAR' ? 'danger' : 'secondary'} label={a.label} onPress={() => openAction(a.action)} testID={`action-${a.action}`} />
+                  ))}
+                </ButtonRow>
+              ) : null}
               {panel ? (
                 <View testID="action-panel">
                   <Text weight="bold">{actions.find((a) => a.action === panel.action)?.label}</Text>
@@ -272,16 +276,16 @@ export function RequestDetail({ api, folio, membership, dependencies = [], onBac
                   {panel.confirming ? (
                     <View accessibilityRole="alert" testID="action-confirm">
                       <Text>{`¿Confirma «${actions.find((a) => a.action === panel.action)?.label}» para el expediente ${request.folio}? Quedará registrado en el historial con su usuario.`}</Text>
-                      <View style={styles.row}>
+                      <ButtonRow>
                         <Button label="Confirmar" onPress={submit} loading={panel.submitting} testID="action-confirm-button" />
                         <Button variant="ghost" label="Volver" onPress={() => setPanel((p) => ({ ...p, confirming: false }))} testID="action-confirm-back" />
-                      </View>
+                      </ButtonRow>
                     </View>
                   ) : (
-                    <View style={styles.row}>
+                    <ButtonRow>
                       <Button label="Continuar" onPress={review} testID="action-continue" />
                       <Button variant="ghost" label="Cerrar" onPress={() => setPanel(null)} testID="action-cancel" />
-                    </View>
+                    </ButtonRow>
                   )}
                 </View>
               ) : null}

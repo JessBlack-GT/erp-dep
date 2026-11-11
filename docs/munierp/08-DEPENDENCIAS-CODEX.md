@@ -93,3 +93,14 @@ Prioridad: **P0** bloquea el primer endpoint municipal real · **P1** bloquea el
   para no depender de la corrección pendiente.
 - Encabezados web: todos exponen nivel 1 en RN Web; reportar junto con C-18/C-19.
 - Dependencias vigentes: C-01, C-05, C-08, C-15, C-16, C-17, C-18, C-19, C-20, C-21, C-22, C-23.
+
+## Actualización 2026-11-10 (F1-15a y entrega)
+
+- **C-01 / C-11 (para la demostración integrada):** montar `MunicipalApp` (ya acepta `createMunicipalApi`)
+  en la navegación del ERP, con entrada visible solo con membresía municipal. Sin esto, la entrega se
+  demuestra con API simulada.
+- **Núcleo (nuevo, P3):** `EmptyState` y `StatCard` usan variantes de encabezado sin `aria-level`; en RN Web
+  todo encabezado sin nivel es `<h1>`. Propuesta: prop opcional `headingLevel` o rol de texto para el valor.
+  Las pantallas municipales ya no los usan.
+- **Núcleo (informativo):** `m01.frontend.test.js` tiene 3 fallas (detalle de usuario, roles protegidos, roles de solo lectura) que se reproducen idénticas en `cae3e38`, sin cambios municipales.
+- C-18/C-19, C-05, C-22 y C-23 sin cambios. No se amplió la bitácora al administrador.

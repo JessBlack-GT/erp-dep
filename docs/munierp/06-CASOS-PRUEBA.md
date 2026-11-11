@@ -315,3 +315,9 @@ Los dobles NO certifican MongoDB. Detalle: [15-F1-05-ADAPTADOR-MONGODB.md](15-F1
 - Playwright Windows, API SIMULADA: **96/96** (Chromium, Firefox, WebKit; F1-14 ×14 y regresión F1-13 ×18).
   Primer intento 87/96 por selector `textbox` frente al `role="search"` del `Input` (C-19); corregida la prueba.
 - L3 RC-30/32/33/34/35: **escritos, no ejecutados** (requieren `munierp_qa`, C-05). No se aprueban.
+
+## Resultados F1-15a (2026-11-10) — administración, aplicación navegable y demostración
+
+- Jest municipal: **81/81** (nuevo `municipal.admin.test.js`, 14). Backend municipal sin cambios: 279/22 pendientes.
+- Playwright Windows, API SIMULADA: **183/183** (Chromium 158, Firefox 158, WebKit 27.2; F1-12, F1-13, F1-14 y F1-15a).
+- Persistencia real: sin validar (L3 sin ejecutar, C-05).

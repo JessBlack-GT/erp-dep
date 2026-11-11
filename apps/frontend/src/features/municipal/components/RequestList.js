@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Text, Card, Badge, EmptyState } from '../../../components/common';
+import { Text, Card, Badge } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { statusInfo, requestAccessibilityLabel, formatDate } from '../model';
 
@@ -15,7 +15,13 @@ export function RequestStatusBadge({ status }) {
 
 export function RequestList({ items, onSelect, testID = 'municipal-request-list' }) {
   if (!items || items.length === 0)
-    return <EmptyState title="Sin solicitudes" message="No hay solicitudes en su alcance para los filtros elegidos." testID={`${testID}-empty`} />;
+    // F1-15a: sin EmptyState común, cuyo título se expone como <h1> en web y rompía la jerarquía.
+    return (
+      <View style={styles.empty} testID={`${testID}-empty`}>
+        <Text weight="bold">Sin solicitudes</Text>
+        <Text color="secondary">No hay solicitudes en su alcance para los filtros elegidos.</Text>
+      </View>
+    );
   return (
     <View testID={testID} accessibilityRole="list">
       {items.map((r) => (
@@ -51,6 +57,7 @@ export function RequestList({ items, onSelect, testID = 'municipal-request-list'
 
 const styles = StyleSheet.create({
   row: { marginBottom: spacing.sm },
+  empty: { paddingVertical: spacing.md },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginBottom: spacing.xs },
 });
 

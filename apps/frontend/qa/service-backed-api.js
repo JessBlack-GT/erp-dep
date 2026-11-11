@@ -24,14 +24,21 @@ const PDF = (text) => {
   return typeof btoa === 'function' ? btoa(bin) : Buffer.from(bin, 'binary').toString('base64');
 };
 
-const toApiError = (e) => Object.assign(new Error(e && e.message ? e.message : 'Error'), { status: (e && e.statusCode) || 500, code: (e && e.code) || 'INTERNAL_ERROR' });
+// Igual que http/errors.js: los 5xx (salvo 503) se reducen a «Error interno»; los 4xx conservan mensaje y campos.
+const toApiError = (e) => {
+  // Errores del propio cliente (p. ej. el lector privado C-21: DOCUMENT_INTEGRITY) pasan sin cambios.
+  if (e && e.name === 'PrivateDocumentError') return e;
+  const status = (e && e.statusCode) || 500;
+  if (status >= 500 && status !== 503) return Object.assign(new Error('Error interno'), { status: 500, code: 'INTERNAL_ERROR' });
+  return Object.assign(new Error(e && e.message ? e.message : 'Error'), { status, code: (e && e.code) || 'VALIDATION_ERROR', fields: Array.isArray(e && e.fields) ? e.fields.map(String) : undefined });
+};
 
 /**
  * Crea un "mundo" sintético sembrado con expedientes, historial y documentos mediante el propio servicio.
  * @param {{ save?: (result: { bytes: Uint8Array, headers: object, info: { mimeType: string, filename: string } }, doc: object) => void }} options
  *   `save` recibe el contenido YA VERIFICADO por el lector privado (C-21); nunca el exportador comercial.
  */
-export async function createServiceBackedWorld({ save } = {}) {
+export async function createServiceBackedWorld({ save, demo = false } = {}) {
   let now = new Date('2026-10-05T16:00:00Z');
   const clock = () => new Date(now.getTime());
   const tick = (hours = 3) => { now = new Date(now.getTime() + hours * 3600000); };
@@ -74,6 +81,26 @@ export async function createServiceBackedWorld({ save } = {}) {
 
   const folios = { r1: r1.folio, r2: r2.folio, r3: r3.folio, r4: r4.folio, r5: r5.folio, z1: z1.folio };
 
+  // Demostración (F1-15a): más expedientes en todos los estados, un documento de ejemplo no
+  // confidencial y una alta de dependencia; todo con el servicio real (folios, historial,
+  // indicadores y bitácora se generan solos y son coherentes). Las pruebas F1-13/F1-14 no lo usan.
+  if (demo) {
+    const r6 = await create('u_vent', 'OBP', 'Fuga de agua en vía pública (ejemplo)', { channel: 'PRESENCIAL' }, 'SJH', SJH, 1);
+    await move('u_tit_obp', r6.folio, { action: 'TURNAR', version: 0, toDependencies: ['OBP'], note: 'Se envía cuadrilla' });
+    await move('u_tit_obp', r6.folio, { action: 'ESPERAR_CIUDADANO', version: 1, note: 'Se solicita referencia del domicilio' });
+    const r7 = await create('u_op_obp', 'OBP', 'Retiro de escombro (ejemplo)', { channel: 'TELEFONO' }, 'SJH', SJH, 2);
+    await move('u_tit_obp', r7.folio, { action: 'TURNAR', version: 0, toDependencies: ['OBP'] });
+    await move('u_tit_obp', r7.folio, { action: 'ASIGNAR', version: 1, assignedUserId: fx.USERS.u_op_obp });
+    tick(); await service.uploadDocument(await ctx('u_op_obp'), 'SJH', r7.folio, { filename: 'Croquis de ubicación (ejemplo).pdf', mimeType: 'application/pdf', contentBase64: PDF('croquis de ejemplo') });
+    const r8 = await create('u_tit_obp', 'OBP', 'Pintura de paso peatonal (ejemplo)', {}, 'SJH', SJH, 3);
+    await move('u_tit_obp', r8.folio, { action: 'TURNAR', version: 0, toDependencies: ['OBP'] });
+    await move('u_tit_obp', r8.folio, { action: 'CERRAR', version: 1, note: 'Trabajo concluido y verificado' });
+    const r9 = await create('u_vent', 'DIF', 'Información de programas de apoyo (ejemplo)', { channel: 'PRESENCIAL' }, 'SJH', SJH, 4);
+    const r10 = await create('u_vent', 'TES', 'Consulta de adeudo de predial (ejemplo)', { channel: 'TELEFONO' }, 'SJH', SJH, 5);
+    tick(); await service.createDependency(await ctx('u_admin_mun'), 'SJH', { code: 'PCV', name: 'Protección Civil' }, { ip: '192.0.2.20', requestId: 'demo-seed' });
+    Object.assign(folios, { r6: r6.folio, r7: r7.folio, r8: r8.folio, r9: r9.folio, r10: r10.folio });
+  }
+
   function apiFor(persona, { latencyMs = 0, failFirst = null, tamperDocuments = false, mun = 'SJH' } = {}) {
     const failed = new Set();
     const wrap = (name, fn) => async (...args) => {
@@ -91,7 +118,12 @@ export async function createServiceBackedWorld({ save } = {}) {
       mockLabel: SERVICE_BACKED_LABEL,
       persona,
       myMemberships: wrap('myMemberships', () => service.myMemberships(fx.USERS[persona])),
-      listDependencies: wrap('listDependencies', async () => service.listDependencies(await c(), mun, { status: 'ACTIVA' })),
+      listDependencies: wrap('listDependencies', async (q = { status: 'ACTIVA' }) => service.listDependencies(await c(), mun, q)),
+      createDependency: wrap('createDependency', async (body) => service.createDependency(await c(), mun, body, { ip: '127.0.0.1', requestId: 'qa-ui' })),
+      updateDependency: wrap('updateDependency', async (code, body) => service.updateDependency(await c(), mun, code, body, { ip: '127.0.0.1', requestId: 'qa-ui' })),
+      listMembershipPage: wrap('listMembershipPage', async (q = {}) => service.listMemberships(await c(), mun, q)),
+      createMembership: wrap('createMembership', async (body) => service.createMembership(await c(), mun, body, { ip: '127.0.0.1', requestId: 'qa-ui' })),
+      updateMembership: wrap('updateMembership', async (id, body) => service.updateMembership(await c(), mun, id, body, { ip: '127.0.0.1', requestId: 'qa-ui' })),
       searchCitizens: wrap('searchCitizens', async () => (await service.searchCitizens(await c(), mun, {})).items),
       listMemberships: wrap('listMemberships', async (q = {}) => (await service.listMemberships(await c(), mun, q)).items),
       listRequests: wrap('listRequests', async (q = {}) => service.listRequests(await c(), mun, q)),

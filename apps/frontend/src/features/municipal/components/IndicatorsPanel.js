@@ -4,11 +4,11 @@
  */
 import React from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
-import { StatCard, Text } from '../../../components/common';
+import { Card, Text } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { indicatorColumns } from '../model';
 
-export function IndicatorsPanel({ data, testID = 'municipal-indicators' }) {
+export function IndicatorsPanel({ data, testID = 'municipal-indicators', headingLevel = 2 }) {
   const { width } = useWindowDimensions();
   if (!data) return null;
   const columns = indicatorColumns(width);
@@ -20,11 +20,15 @@ export function IndicatorsPanel({ data, testID = 'municipal-indicators' }) {
   ];
   return (
     <View testID={testID} accessibilityRole="summary">
-      <Text variant="heading3">Indicadores</Text>
+      <Text variant="heading3" accessibilityRole="header" aria-level={headingLevel}>Indicadores</Text>
       <View style={styles.grid}>
         {cards.map((c) => (
           <View key={c.key} style={{ width: `${100 / columns}%`, padding: spacing.xs }}>
-            <StatCard label={c.label} value={String(c.value ?? 0)} status={c.status} testID={`indicator-${c.key}`} />
+            {/* F1-15a: tarjeta propia en lugar de StatCard (núcleo), cuyo valor se expone como <h1> en web. */}
+            <Card testID={`indicator-${c.key}`}>
+              <Text variant="caption" color="secondary">{c.label}</Text>
+              <Text variant="heading2" accessibilityRole="text" color={c.status === 'warning' ? 'warning' : 'primary'}>{String(c.value ?? 0)}</Text>
+            </Card>
           </View>
         ))}
       </View>

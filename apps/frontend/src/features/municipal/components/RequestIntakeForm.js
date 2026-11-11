@@ -12,7 +12,7 @@ import { spacing } from '../../../theme';
 import { OptionGroup } from './OptionGroup';
 import { CHANNELS, validateIntake, newIdempotencyKey } from '../model';
 
-export function RequestIntakeForm({ api, dependencies, citizens, onCreated, testID = 'municipal-intake' }) {
+export function RequestIntakeForm({ api, dependencies, citizens, onCreated, testID = 'municipal-intake', headingLevel = 2 }) {
   const [values, setValues] = useState({ ownerDependency: '', citizenId: '', channel: 'PRESENCIAL', subject: '', description: '' });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +40,7 @@ export function RequestIntakeForm({ api, dependencies, citizens, onCreated, test
 
   return (
     <View testID={testID} style={styles.form}>
-      <Text variant="heading3">Registrar solicitud</Text>
+      <Text variant="heading3" accessibilityRole="header" aria-level={headingLevel}>Registrar solicitud</Text>
       <OptionGroup
         label="Dependencia responsable"
         options={dependencies.map((d) => ({ value: d.code, label: d.name }))}
