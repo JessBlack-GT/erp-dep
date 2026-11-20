@@ -109,7 +109,11 @@ async function openAtlasQa({ env, seed, driver } = {}) {
       client, env, bucketFactory: (db, options) => new GridFSBucket(db, options),
     });
     const inserted = await seedMissingFixtures({ db, runTransaction: createTransactionRunner(client), seed });
-    return { store, storage, inserted, close: () => client.close() };
+    return {
+      store, storage, inserted,
+      isReady: async () => (await db.command({ ping: 1, maxTimeMS: 2000 })).ok === 1,
+      close: () => client.close(),
+    };
   } catch (error) {
     await client.close().catch(() => {});
     throw error;

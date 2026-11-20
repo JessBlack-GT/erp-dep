@@ -7,6 +7,7 @@
  * ============================================
  */
 
+const path = require('node:path');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -23,8 +24,9 @@ dotenv.config();
 
 const MUNICIPAL_PREFIX = '/api/municipal/v1';
 
-function createApp({ municipalRouter, qaRoutes } = {}) {
+function createApp({ municipalRouter, qaRoutes, qaWeb } = {}) {
   if (qaRoutes && process.env.NODE_ENV !== 'test') throw new Error('Las rutas sintéticas solo se permiten en QA');
+  if (qaWeb && (!qaRoutes || !municipalRouter)) throw new Error('La web de QA requiere sus rutas y el router municipal');
   const app = express();
   // Set before all middleware; both rate limiters use Express's validated req.ip.
   app.set('trust proxy', config.trustProxyHops === 0 ? false : config.trustProxyHops);
@@ -37,14 +39,21 @@ function createApp({ municipalRouter, qaRoutes } = {}) {
   app.use(helmet());
 
   // CORS
-  const municipalCorsOptions = {
+  const originPolicy = qaWeb ? {
     ...corsOptions,
+    origin: (origin, done) => {
+      if (!origin || origin === qaWeb.origin) return done(null, true);
+      return done(new Error('Origen no permitido por CORS'));
+    },
+  } : corsOptions;
+  const municipalCorsOptions = {
+    ...originPolicy,
     allowedHeaders: [...corsOptions.allowedHeaders, 'Idempotency-Key', 'If-Match'],
     exposedHeaders: ['ETag'],
   };
   app.use(cors((req, done) => {
     const municipal = municipalRouter && /^\/api\/municipal\/v1(?:\/|$)/i.test(req.path);
-    done(null, municipal ? municipalCorsOptions : corsOptions);
+    done(null, municipal ? municipalCorsOptions : originPolicy);
   }));
 
   // Parser de body
@@ -84,6 +93,17 @@ function createApp({ municipalRouter, qaRoutes } = {}) {
   if (qaRoutes) app.use('/api/v1', qaRoutes);
   app.use('/api/v1', routes);
   if (municipalRouter) app.use(MUNICIPAL_PREFIX, municipalRouter);
+  if (qaWeb) {
+    app.get('/qa-ready', async (_req, res) => {
+      let ready = false;
+      try { ready = await qaWeb.isReady(); } catch (_) { /* Sin detalles de Atlas en la respuesta. */ }
+      res.set('Cache-Control', 'no-store').status(ready ? 200 : 503).json({ ok: ready });
+    });
+    app.use(express.static(qaWeb.directory, { index: false, redirect: false }));
+    app.get(/^\/(?!api(?:\/|$))[^.]*$/i, (_req, res) => {
+      res.sendFile(path.join(qaWeb.directory, 'index.html'));
+    });
+  }
 
   // ============================================
   // Route no encontrada

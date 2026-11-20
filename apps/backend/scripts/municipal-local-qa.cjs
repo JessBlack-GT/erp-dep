@@ -1,26 +1,51 @@
 'use strict';
 
 // Proceso local de QA: memoria por defecto, o Atlas QA con --mongo y guardias explícitas.
-const useMongo = process.argv.includes('--mongo');
+const hosted = process.argv.includes('--render');
+const useMongo = hosted || process.argv.includes('--mongo');
 if (useMongo && process.env.NODE_ENV === 'production') {
   console.error('El anfitrión de QA no se puede ejecutar en producción');
   process.exit(1);
 }
 const { randomBytes } = require('node:crypto');
-const password = randomBytes(8).toString('hex');
+const { existsSync } = require('node:fs');
+const path = require('node:path');
+let cloud;
+const directoryWeb = path.resolve(__dirname, '../../frontend/dist');
+if (process.env.RENDER === 'true' && !hosted) {
+  console.error('Render QA requiere el arranque explícito --render');
+  process.exit(1);
+}
+if (hosted) {
+  try { cloud = require('./municipal-render-config.cjs').readRenderQaConfig(process.env); }
+  catch (error) {
+    console.error('No se pudo configurar Render QA: ' + (error.qaSafe ? error.message : error.name));
+    process.exit(1);
+  }
+  if (!['index.html', 'app.js'].every((file) => existsSync(path.join(directoryWeb, file)))) {
+    console.error('No se encontró la compilación de la web de QA');
+    process.exit(1);
+  }
+  process.env.MUNICIPAL_STORE = 'mongo';
+  process.env.MUNICIPAL_QA_DATABASE = 'munierp_qa';
+  process.env.MUNICIPAL_QA_PERSIST_CONFIRM = require('./municipal-atlas-qa.cjs').CONFIRMATION;
+  delete process.env.MUNICIPAL_QA_USERS_JSON;
+}
+const password = hosted ? null : randomBytes(8).toString('hex');
 Object.assign(process.env, {
   NODE_ENV: 'test',
-  TRUST_PROXY_HOPS: '0',
+  TRUST_PROXY_HOPS: hosted ? '1' : '0',
   JWT_SECRET: randomBytes(32).toString('hex'),
   JWT_REFRESH_SECRET: randomBytes(32).toString('hex'),
   MONGODB_URI: '',
-  CORS_ORIGIN: 'http://127.0.0.1:8081',
-  CORS_ORIGIN_FRONTEND: 'http://localhost:8081',
+  CORS_ORIGIN: hosted ? cloud.origin : 'http://127.0.0.1:8081',
+  CORS_ORIGIN_FRONTEND: hosted ? cloud.origin : 'http://localhost:8081',
   RATE_LIMIT_MAX: '100',
 });
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const { createApp } = require('../src/app');
 const rbac = require('../src/security/rbac');
 const { authenticateToken } = require('../src/middleware/authenticate');
@@ -36,11 +61,12 @@ const profiles = [
   ['ventanilla', fx.USERS.u_vent], ['obras', fx.USERS.u_tit_obp], ['auditor', fx.USERS.u_aud],
   ['municipal', fx.USERS.u_admin_mun], ['comercial', fx.USERS.u_admin_erp, 'admin'],
   ['otro', fx.USERS.u_zzz_tit_obp], ['dosmunicipios', fx.USERS.u_sup],
-].map(([name, id, role = 'user']) => ({
+].filter(([name]) => !hosted || cloud.profiles.includes(name)).map(([name, id, role = 'user']) => ({
   id, name, email: name + '@demo.test', role, sessionVersion: 0, roleActive: true,
   permissions: role === 'admin' ? [...rbac.ROLE_PERMISSIONS.admin] : ['customers.read'],
   syntheticMunicipalDemo: true,
   ...(useMongo ? { syntheticMunicipalPersistence: 'atlas-qa' } : {}),
+  ...(hosted ? { syntheticMunicipalHosted: true } : {}),
 }));
 const directory = new Map(profiles.map((user) => [user.id, user]));
 // La sustitución solo vive en este proceso de QA. Se conservan los middlewares centrales.
@@ -54,9 +80,16 @@ const ok = (res, data) => res.json({ success: true, data });
 const unauthorized = (res) => res.status(401).json({ success: false, error: 'Sesión de demostración no válida' });
 const identity = [authenticateToken, requireCurrentUser];
 const qaRoutes = express.Router();
+if (hosted) {
+  qaRoutes.post('/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, skipSuccessfulRequests: true,
+    standardHeaders: true, legacyHeaders: false, message: { success: false, error: 'Demasiados intentos de inicio de sesión' } }));
+}
 qaRoutes.post('/auth/login', (req, res) => {
   const user = profiles.find((u) => u.email === req.body?.email);
-  if (!user || req.body?.password !== password) return unauthorized(res);
+  if (!user || (hosted ? !cloud.matchesPassword(user.name, req.body?.password) : req.body?.password !== password)) {
+    return unauthorized(res);
+  }
+  res.set('Cache-Control', 'no-store');
   return ok(res, { user, accessToken: token(user, 'access'), refreshToken: token(user, 'refresh') });
 });
 qaRoutes.post('/auth/refresh', (req, res) => {
@@ -64,13 +97,16 @@ qaRoutes.post('/auth/refresh', (req, res) => {
     const claims = jwt.verify(req.body?.refreshToken, process.env.JWT_REFRESH_SECRET);
     const user = directory.get(claims.id);
     if (claims.kind !== 'refresh' || !user || claims.sv !== user.sessionVersion) return unauthorized(res);
-    return ok(res, { accessToken: token(user, 'access') });
+    return ok(res.set('Cache-Control', 'no-store'), { accessToken: token(user, 'access') });
   } catch {
     return unauthorized(res);
   }
 });
 qaRoutes.get('/auth/me', ...identity, (req, res) => ok(res, req.user));
-qaRoutes.post('/auth/logout', ...identity, (_req, res) => ok(res, null));
+qaRoutes.post('/auth/logout', ...identity, (req, res) => {
+  if (hosted) directory.get(req.user.id).sessionVersion += 1;
+  return ok(res, null);
+});
 qaRoutes.get('/customers', ...identity, (_req, res) => res.json({
   success: true, data: [], pagination: { page: 1, limit: 10, total: 0, totalPages: 0 },
 }));
@@ -101,20 +137,21 @@ async function main() {
     const { store, storage } = persistence;
     const service = createMunicipalService({ store, storage, userLookup: erpUserLookup() });
     const municipalRouter = createMunicipalRouter({ service, store, identity: erpIdentityMiddlewares() });
-    const app = createApp({ municipalRouter, qaRoutes });
+    const qaWeb = hosted ? { directory: directoryWeb, origin: cloud.origin, isReady: persistence.isReady } : undefined;
+    const app = createApp({ municipalRouter, qaRoutes, qaWeb });
     const server = await new Promise((resolve, reject) => {
-      const candidate = app.listen(4314, '127.0.0.1', () => resolve(candidate));
+      const candidate = app.listen(hosted ? cloud.port : 4314, hosted ? '0.0.0.0' : '127.0.0.1', () => resolve(candidate));
       candidate.once('error', reject);
     });
     const stop = () => server.close(() => persistence.close().catch(() => { process.exitCode = 1; }));
     process.once('SIGINT', stop);
     process.once('SIGTERM', stop);
-    console.log(useMongo
+    console.log(hosted ? 'MuniERP · Render QA con Atlas · solo datos sintéticos' : useMongo
       ? 'MuniERP · QA con MongoDB en Atlas (munierp_qa) · HTTP local · solo datos sintéticos'
       : 'MuniERP · HTTP local con datos sintéticos: http://127.0.0.1:4314/api/municipal/v1');
     if (useMongo) console.log('Entradas nuevas del catálogo sintético: ' + persistence.inserted);
     console.log('Perfiles: ' + profiles.map((p) => p.email).join(', '));
-    console.log('Clave temporal de demostración: ' + password);
+    if (!hosted) console.log('Clave temporal de demostración: ' + password);
   } catch (error) {
     await persistence.close().catch(() => {});
     throw error;
