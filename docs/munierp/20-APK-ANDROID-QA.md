@@ -16,7 +16,9 @@ pwsh -NoProfile -File .\apps\frontend\scripts\build-munierp-android-qa.ps1 -Orig
 
 Gradle se ejecuta en la copia municipal. El APK anterior en `erp-dep` no se modifica. El lanzador usa el `debug.keystore` al que apuntaba la compilación previa. Si ese archivo vive en otro lugar, consulta la línea **Store** del reporte `./gradlew.bat :app:signingReport` en el proyecto anterior y pasa la ruta con `-Keystore`. No compartas ni agregues ese archivo a Git.
 
-El lanzador verifica la firma de ambos APK, el paquete, el nombre QA, el incremento de `versionCode`, el bundle incorporado y el destino fijado. Solo exporta el APK si pasan esos controles. El incremento parte del APK anterior indicado. Si el teléfono ya tenía instalada una versión más nueva, usa la referencia de esa versión para evitar un error de downgrade. Para volver luego a una versión normal mediante actualización habrá que usar la misma firma y un `versionCode` que no sea menor que el instalado.
+El lanzador verifica la firma de ambos APK, el paquete, el nombre QA, el incremento de `versionCode`, el bundle incorporado y el destino fijado. Solo exporta el APK si pasan esos controles. Si ya instalaste un APK de QA, añade `-PreviousQaApk` con la ruta de ese archivo exportado y conserva `-OriginalApk` tal como está. El lanzador toma la versión más alta de las dos referencias y le suma uno. Para volver luego a una versión normal mediante actualización habrá que usar la misma firma y un `versionCode` que no sea menor que el instalado.
+
+El identificador interno del componente es `ERPSystem` tanto en `MainActivity` como en el registro JS. No es la etiqueta pública de la app. La v2 tenía estos nombres desalineados y se debe sustituir mediante actualización, sin desinstalar. La prueba `municipal.android-launch.test.js` comprueba este contrato de arranque.
 
 ## Instalar y probar
 

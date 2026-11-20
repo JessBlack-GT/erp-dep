@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$OriginalApk,
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
-    [string]$Keystore
+    [string]$Keystore,
+    [string]$PreviousQaApk
 )
 
 $ErrorActionPreference = 'Stop'
@@ -47,7 +48,17 @@ function Read-ApkInfo([string]$file) {
 
 $oldInfo = Read-ApkInfo $original
 if ($oldInfo.Package -ne 'com.erpsystem') { throw 'El APK anterior no corresponde a com.erpsystem (YJ Nexo).' }
-$nextVersion = $oldInfo.Version + 1
+$highestVersion = $oldInfo.Version
+if ($PreviousQaApk) {
+    $previousQa = (Resolve-Path -LiteralPath $PreviousQaApk).Path
+    if ($built -ieq $previousQa) { throw 'Usa como referencia el APK de QA exportado, no la salida que se va a recompilar.' }
+    $previousQaInfo = Read-ApkInfo $previousQa
+    if ($previousQaInfo.Package -ne $oldInfo.Package -or $previousQaInfo.Sha256 -ne $oldInfo.Sha256 -or !$previousQaInfo.LabelIsQa) {
+        throw 'La referencia QA no coincide en paquete, firma o nombre con la actualización esperada.'
+    }
+    $highestVersion = [Math]::Max($highestVersion, $previousQaInfo.Version)
+}
+$nextVersion = $highestVersion + 1
 if ($nextVersion -gt 2100000000) { throw 'versionCode fuera del rango admitido.' }
 
 $envNames = @('YJ_NEXO_ATLAS_QA_ANDROID_RELEASE', 'YJ_NEXO_QA_VERSION_CODE', 'YJ_NEXO_QA_KEYSTORE')
