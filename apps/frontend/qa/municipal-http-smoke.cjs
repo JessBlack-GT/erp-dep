@@ -77,6 +77,19 @@ async function httpOnly(password) {
   assert.equal((await json(at('SJH', detail + '/receipt'), { token: ventanilla })).folio, folio);
   assert.equal((await json(at('SJH', detail), { token: obras })).subject, payload.subject);
   assert.ok((await json(at('SJH', detail + '/history'), { token: obras })).length > 0);
+  const newCitizen = await json(at('SJH', '/citizens'), {
+    status: 201, token: obras, data: { fullName: 'Persona Sintética Alta Obras' },
+  });
+  assert.ok((await json(at('SJH', '/citizens'), { token: obras })).some((c) => c.id === newCitizen.id));
+  const newRequest = { ...payload, citizenId: newCitizen.id, subject: 'Segunda solicitud sintética de Obras' };
+  const byObras = { token: obras, data: newRequest, headers: { 'Idempotency-Key': 'obras-segundo-folio-qa' } };
+  await json(at('SJH', '/requests'), { ...byObras, data: { ...newRequest, ownerDependency: 'TES' }, status: 403 });
+  const second = await json(at('SJH', '/requests'), { ...byObras, status: 201 });
+  assert.notEqual(second.folio, folio);
+  assert.equal((await json(at('SJH', '/requests'), byObras)).folio, second.folio);
+  const actual = await json(at('SJH', '/requests'), { token: obras });
+  assert.equal(actual.filter((r) => r.folio === second.folio).length, 1);
+  assert.ok(actual.some((r) => r.folio === folio));
   assert.ok((await json(at('SJH', '/audit-events?folio=' + folio), { token: auditor })).some((e) => e.folio === folio));
   await json(at('SJH', '/audit-events'), { token: ventanilla, status: 403 });
   await json(at('SJH', detail), { token: comercial, status: 403 });
@@ -87,7 +100,7 @@ async function httpOnly(password) {
   const shell = await fetch(site + '/municipal');
   assert.equal(shell.status, 200);
   assert.match(await shell.text(), /id="root"/);
-  console.log(JSON.stringify({ mode: 'HTTP localhost sin navegador', folio, checks: ['alta y acuse', 'reintento idempotente', 'consulta e historial desde otra sesión', 'auditoría y denegación', 'aislamiento municipal', 'ERP y página web disponibles'] }));
+  console.log(JSON.stringify({ mode: 'HTTP localhost sin navegador', folio, secondFolio: second.folio, checks: ['alta y acuse', 'reintento idempotente', 'consulta e historial desde otra sesión', 'alta inmediata de ciudadano y segundo folio sin duplicar', 'denegación fuera de dependencia', 'auditoría y denegación', 'aislamiento municipal', 'ERP y página web disponibles'] }));
 }
 
 async function main() {

@@ -22,6 +22,10 @@ El identificador interno del componente es `ERPSystem` tanto en `MainActivity` c
 
 Al cambiar de sección en MuniERP, Android no debe recibir los roles web `navigation`, `main`, `listitem` ni `group`: el setter nativo de React Native 0.72.17 lanza una excepción para esos valores. Se mantienen en la web, mientras que los botones, listas, encabezados y casillas conservan sus roles válidos en Android. `municipal.android-navigation.test.js` comprueba el árbol renderizado contra los roles que admite la versión nativa instalada. La comprobación en teléfono sigue siendo necesaria.
 
+En el registro de solicitudes, el ciudadano que se acaba de guardar aparece en el selector del mismo formulario sin recarga. El titular u operador solo ve sus dependencias activas para ese registro. Ventanilla puede elegir otras dependencias activas según sus permisos. El backend conserva la autorización definitiva.
+
+Si la respuesta del registro es incierta, `Reintentar registro` conserva la clave y el cuerpo del primer envío mientras ese formulario siga abierto. Si ya se conoce el folio y falla solo la lectura del acuse, se muestra el folio confirmado y no se repite el alta. Si se salió del formulario, consultar el listado antes de capturar la solicitud nuevamente.
+
 ## Instalar y probar
 
 Transfiere únicamente el APK que el script confirma como verificado, por un enlace privado o un método de tu preferencia. En Android abre el APK y acepta **Actualizar**, sin desinstalar la app anterior. No se necesita USB, `adb`, Metro ni encender la PC para usar la API remota.

@@ -27,7 +27,7 @@ import { AuditLog } from './components/AuditLog';
 import { DependencyAdmin } from './components/DependencyAdmin';
 import { MembershipAdmin } from './components/MembershipAdmin';
 import { Heading, Section, ButtonRow } from './components/Section';
-import { navSections, roleLabel, describeApiError } from './model';
+import { navSections, roleLabel, describeApiError, intakeDependencies, receiptOrConfirmation } from './model';
 
 function Home({ api, membership, permissions, sections, dependencies = [], onNavigate, onOpen }) {
   const [data, setData] = useState({ loading: true, indicators: null, recent: [], error: '' });
@@ -139,7 +139,7 @@ function Intake({ api, permissions, dependencies, onOpen }) {
           )}
         </Section>
       ) : null}
-      <RequestIntakeForm key={formKey} api={api} dependencies={dependencies} citizens={citizens} headingLevel={1} onCreated={async (created) => setReceipt(await api.getReceipt(created.folio))} />
+      <RequestIntakeForm key={formKey} api={api} dependencies={dependencies} citizens={citizens} headingLevel={1} onCreated={async (created) => setReceipt(await receiptOrConfirmation(api, created))} />
     </View>
   );
 }
@@ -221,7 +221,7 @@ export function MunicipalApp({ api, modeLabel, initialView = 'home', membershipI
   if (folio) {
     screen = <RequestDetail api={api} folio={folio} membership={membership} dependencies={activeDeps} onBack={() => { setFolio(null); setView(returnTo); }} />;
   } else if (current === 'intake') {
-    screen = <Intake api={api} permissions={permissions} dependencies={activeDeps} onOpen={open} />;
+    screen = <Intake api={api} permissions={permissions} dependencies={intakeDependencies(activeDeps, membership)} onOpen={open} />;
   } else if (current === 'requests') {
     screen = <RequestBrowser api={api} dependencies={boot.dependencies} onOpen={open} />;
   } else if (current === 'dependencies') {

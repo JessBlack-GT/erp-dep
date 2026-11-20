@@ -17,7 +17,7 @@ import { View, Pressable, StyleSheet } from 'react-native';
 import { Text } from '../../../components/common';
 import { semanticColors, spacing, radius } from '../../../theme';
 
-export function OptionGroup({ label, options, value, onChange, error, testID }) {
+export function OptionGroup({ label, options, value, onChange, error, testID, disabled = false }) {
   return (
     <View style={styles.group} accessibilityRole="radiogroup" accessibilityLabel={label} testID={testID}>
       <Text variant="label" weight="bold">{label}</Text>
@@ -28,12 +28,13 @@ export function OptionGroup({ label, options, value, onChange, error, testID }) 
             <Pressable
               key={o.value}
               accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
+              disabled={disabled}
+              accessibilityState={disabled ? { checked: selected, disabled: true } : { checked: selected }}
               aria-checked={selected}
               accessibilityLabel={o.label}
               onPress={() => onChange(o.value)}
               onKeyDown={(e) => {
-                if (!keyActivates(e)) return;
+                if (disabled || !keyActivates(e)) return;
                 if (e.preventDefault) e.preventDefault();
                 onChange(o.value);
               }}
