@@ -9,10 +9,12 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sessionEvents } from './sessionEvents';
 
-const BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  process.env.PUBLIC_API_BASE_URL ||
-  'https://yj-nexo-api.onrender.com/api/v1';
+const localMobileQA = typeof __DEV__ !== 'undefined' && __DEV__ && process.env.YJ_NEXO_LOCAL_QA === '1';
+const BASE_URL = localMobileQA
+  ? 'http://127.0.0.1:4314/api/v1'
+  : process.env.EXPO_PUBLIC_API_BASE_URL ||
+    process.env.PUBLIC_API_BASE_URL ||
+    'https://yj-nexo-api.onrender.com/api/v1';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -46,7 +48,7 @@ apiClient.interceptors.response.use(
       AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
       sessionEvents.emit('invalid');
     }
-    if (error.response?.status === 403) sessionEvents.emit('permissions');
+    if (error.response?.status === 403 && !error.config?.municipalRequest) sessionEvents.emit('permissions');
     return Promise.reject(error);
   },
 );

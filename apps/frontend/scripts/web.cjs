@@ -22,6 +22,7 @@ async function main() {
       global: 'globalThis',
       __DEV__: String(!buildOnly),
       'process.env.NODE_ENV': JSON.stringify(buildOnly ? 'production' : 'development'),
+      'process.env.YJ_NEXO_LOCAL_QA': JSON.stringify('0'),
       'process.env.PUBLIC_API_BASE_URL': JSON.stringify(apiBaseUrl),
       'process.env.EXPO_PUBLIC_API_BASE_URL': JSON.stringify(apiBaseUrl),
     },
@@ -30,7 +31,7 @@ async function main() {
   if (buildOnly) { await esbuild.build(options); console.log('Web build: SUCCESS'); return; }
   const ctx = await esbuild.context(options);
   await ctx.watch();
-  await ctx.serve({ host: '127.0.0.1', port: 8081, servedir: outdir });
+  await ctx.serve({ host: '127.0.0.1', port: 8081, servedir: outdir, fallback: path.join(outdir, 'index.html') });
   console.log('Frontend development: http://localhost:8081');
   process.on('SIGINT', async () => { await ctx.dispose(); process.exit(0); });
 }

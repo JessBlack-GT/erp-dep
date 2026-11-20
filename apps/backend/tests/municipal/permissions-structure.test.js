@@ -90,9 +90,10 @@ describe('MuniERP — frontera de módulo (MT-61)', () => {
       }
   });
 
-  it('ningún archivo del ERP importa el módulo municipal y no está montado', () => {
+  it('el ERP no importa el módulo municipal y no lo monta por defecto', async () => {
     for (const file of walk(SRC).filter((f) => !f.startsWith(MODULE + path.sep)))
       assert.ok(!requiresOf(file).some((r) => r.includes('municipal')), path.relative(SRC, file));
-    assert.ok(!fs.readFileSync(path.join(SRC, 'app.js'), 'utf8').includes('municipal'));
+    const res = await require('supertest')(require('../../src/app')).get('/api/municipal/v1/me/memberships').expect(404);
+    assert.strictEqual(res.body.error, 'Ruta no encontrada');
   });
 });

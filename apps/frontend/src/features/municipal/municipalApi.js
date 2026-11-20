@@ -2,7 +2,7 @@
  * MuniERP IA — cliente HTTP real de la API municipal (contrato municipal-v1 draft.3).
  *
  * Reutiliza `apiClient` del ERP (mismo token, renovación y manejo de sesión); solo cambia la URL base
- * por petición a `/api/municipal/v1`. NO se usa todavía en la app: la API no está montada (C-01).
+ * por petición a `/api/municipal/v1`.
  * Interfaz idéntica a la API simulada (`mockApi.js`) y al adaptador QA del servicio real.
  */
 import { Platform } from 'react-native';
@@ -26,10 +26,11 @@ export function toApiError(error) {
 
 export function createMunicipalApi({ client = apiClient, mun = 'SJH', platform = Platform.OS } = {}) {
   const baseURL = municipalBaseUrl(client.defaults && client.defaults.baseURL);
-  const m = (path) => `/municipalities/${mun}${path}`;
+  const m = (path) => `/municipalities/${encodeURIComponent(mun)}${path}`;
   const call = async (method, url, config = {}, body) => {
     try {
-      const res = body === undefined ? await client[method](url, { baseURL, ...config }) : await client[method](url, body, { baseURL, ...config });
+      const options = { baseURL, municipalRequest: true, ...config };
+      const res = body === undefined ? await client[method](url, options) : await client[method](url, body, options);
       return res;
     } catch (error) {
       throw toApiError(error);
@@ -40,7 +41,7 @@ export function createMunicipalApi({ client = apiClient, mun = 'SJH', platform =
 
   return {
     isMock: false,
-    myMemberships: async () => data(await call('get', '/me/memberships')),
+    myMemberships: async (options) => data(await call('get', '/me/memberships', options)),
     /** Sin argumentos: solo ACTIVAS (formularios). F1-15a: la administración pasa `{}` para ver todas. */
     listDependencies: async (params = { status: 'ACTIVA' }) => data(await call('get', m('/dependencies'), { params })),
     /* F1-15a: operaciones de administración ya existentes en draft.3 (x-permission *.manage). */
@@ -53,6 +54,7 @@ export function createMunicipalApi({ client = apiClient, mun = 'SJH', platform =
     },
     createMembership: async (body) => data(await call('post', m('/memberships'), {}, body)),
     updateMembership: async (membershipId, body) => data(await call('patch', m(`/memberships/${enc(membershipId)}`), {}, body)),
+    createCitizen: async (body) => data(await call('post', m('/citizens'), {}, body)),
     searchCitizens: async (q) => data(await call('get', m('/citizens'), { params: q ? { q } : {} })),
     listMemberships: async (params) => data(await call('get', m('/memberships'), { params })),
     listRequests: async (params) => {
@@ -66,7 +68,11 @@ export function createMunicipalApi({ client = apiClient, mun = 'SJH', platform =
     getRequestHistory: async (folio) => data(await call('get', m(`/requests/${enc(folio)}/history`))),
     listDocuments: async (folio) => data(await call('get', m(`/requests/${enc(folio)}/documents`))),
     transitionRequest: async (folio, body) => data(await call('post', m(`/requests/${enc(folio)}/transitions`), {}, body)),
-    getIndicators: async (params) => data(await call('get', m('/indicators'), { params })),
+    getIndicators: async (params) => {
+      const now = Date.now();
+      const period = { from: new Date(now - 30 * 86400000).toISOString(), to: new Date(now).toISOString(), ...params };
+      return data(await call('get', m('/indicators'), { params: period }));
+    },
     /** F1-14: bitácora (solo lectura). Filtros del contrato: folio, entityId, from, to, page, limit. */
     listAuditEvents: async (params) => {
       const res = await call('get', m('/audit-events'), { params });

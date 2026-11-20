@@ -21,71 +21,89 @@ const { config } = require('./config/environment');
 
 dotenv.config();
 
-const app = express();
-// Set before all middleware; both rate limiters use Express's validated req.ip.
-app.set('trust proxy', config.trustProxyHops === 0 ? false : config.trustProxyHops);
+const MUNICIPAL_PREFIX = '/api/municipal/v1';
 
-// ============================================
-// Middlewares globales
-// ============================================
+function createApp({ municipalRouter, qaRoutes } = {}) {
+  if (qaRoutes && process.env.NODE_ENV !== 'test') throw new Error('Las rutas sintéticas solo se permiten en QA');
+  const app = express();
+  // Set before all middleware; both rate limiters use Express's validated req.ip.
+  app.set('trust proxy', config.trustProxyHops === 0 ? false : config.trustProxyHops);
 
-// Seguridad HTTP
-app.use(helmet());
+  // ============================================
+  // Middlewares globales
+  // ============================================
 
-// CORS
-app.use(cors(corsOptions));
+  // Seguridad HTTP
+  app.use(helmet());
 
-// Parser de body
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Logging
-if (process.env.NODE_ENV !== 'test') {
-  app.use(morgan('dev', {
-    skip: (req) => /^\/api\/v1\/auth\/(forgot|reset)-password/.test(req.path) ||
-      (req.method === 'POST' && /^\/api\/v1\/users\/?$/i.test(req.path)),
+  // CORS
+  const municipalCorsOptions = {
+    ...corsOptions,
+    allowedHeaders: [...corsOptions.allowedHeaders, 'Idempotency-Key', 'If-Match'],
+    exposedHeaders: ['ETag'],
+  };
+  app.use(cors((req, done) => {
+    const municipal = municipalRouter && /^\/api\/municipal\/v1(?:\/|$)/i.test(req.path);
+    done(null, municipal ? municipalCorsOptions : corsOptions);
   }));
-}
-app.use(requestLogger);
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
-  message: {
-    success: false,
-    error: 'Demasiadas solicitudes. Intente mas tarde.',
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
+  // Parser de body
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ============================================
-// Conexion a Base de Datos
-// ============================================
-// La conexión se realiza una sola vez en server.js, antes de escuchar HTTP.
+  // Logging
+  if (process.env.NODE_ENV !== 'test') {
+    app.use(morgan('dev', {
+      skip: (req) => /^\/api\/v1\/auth\/(forgot|reset)-password/.test(req.path) ||
+        (req.method === 'POST' && /^\/api\/v1\/users\/?$/i.test(req.path)),
+    }));
+  }
+  app.use(requestLogger);
 
-// ============================================
-// Rutas
-// ============================================
-app.use('/api/v1', routes);
-
-// ============================================
-// Route no encontrada
-// ============================================
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Ruta no encontrada',
-    path: req.originalUrl,
+  // Rate Limiting
+  const limiter = rateLimit({
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+    max: parseInt(process.env.RATE_LIMIT_MAX) || 100,
+    message: {
+      success: false,
+      error: 'Demasiadas solicitudes. Intente mas tarde.',
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
   });
-});
+  app.use('/api/', limiter);
 
-// ============================================
-// Manejo centralizado de errores
-// ============================================
-app.use('/api/v1/sales', require('./modules/sales/sales.errors'));
-app.use(errorHandler);
+  // ============================================
+  // Conexion a Base de Datos
+  // ============================================
+  // La conexión se realiza una sola vez en server.js, antes de escuchar HTTP.
 
-module.exports = app;
+  // ============================================
+  // Rutas
+  // ============================================
+  if (qaRoutes) app.use('/api/v1', qaRoutes);
+  app.use('/api/v1', routes);
+  if (municipalRouter) app.use(MUNICIPAL_PREFIX, municipalRouter);
+
+  // ============================================
+  // Route no encontrada
+  // ============================================
+  app.use('*', (req, res) => {
+    res.status(404).json({
+      success: false,
+      error: 'Ruta no encontrada',
+      path: req.originalUrl,
+    });
+  });
+
+  // ============================================
+  // Manejo centralizado de errores
+  // ============================================
+  app.use('/api/v1/sales', require('./modules/sales/sales.errors'));
+  app.use(errorHandler);
+
+  return app;
+}
+
+module.exports = createApp();
+module.exports.createApp = createApp;

@@ -19,10 +19,12 @@ import {
 import { Text } from '../common/Text';
 import { IconButton } from '../common/IconButton';
 import { brandAssets } from '../../assets';
+import { useMunicipalAccess } from '../../features/municipal/MunicipalAccess';
 import { usePermissions } from '../../hooks/usePermissions';
 import { semanticColors, spacing, radius, zIndex } from '../../theme';
 
 export const NAV_ITEMS = [
+  { id: 'Municipal', label: 'MuniERP IA', icon: '🏛️', municipalityRequired: true, route: 'Municipal' },
   { id: 'Sales', label: 'Ventas', icon: '🧾', permission: 'commercial.read', route: 'Sales' },
   { id: 'Users', label: 'Usuarios', icon: '👤', permission: 'users.read', route: 'Users' },
   { id: 'Roles', label: 'Roles y permisos', icon: '🔐', permission: 'roles.read', route: 'Roles' },
@@ -70,7 +72,10 @@ export function Sidebar({
 }) {
   const can = usePermissions();
 
-  const visibleNavItems = NAV_ITEMS.filter((item) => !item.permission || can(item.permission));
+  const { memberships } = useMunicipalAccess();
+  const visibleNavItems = NAV_ITEMS.filter((item) =>
+    item.municipalityRequired ? memberships.length > 0 : !item.permission || can(item.permission),
+  );
 
   const handleItemPress = (route) => {
     if (onSelectRoute) {

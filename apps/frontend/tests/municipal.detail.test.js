@@ -199,7 +199,7 @@ describe('F1-13 — cliente HTTP real (sin red: cliente simulado)', () => {
     const api = createMunicipalApi({ client, platform: 'web' });
     const r = await api.getRequest('SJH-OBP-SOL-2026-000001');
     expect(r).toEqual({ data: { folio: 'SJH-OBP-SOL-2026-000001', version: 0 }, etag: '"0"' });
-    expect(calls[0]).toEqual({ url: '/municipalities/SJH/requests/SJH-OBP-SOL-2026-000001', config: { baseURL: 'http://localhost:5000/api/municipal/v1' } });
+    expect(calls[0]).toEqual({ url: '/municipalities/SJH/requests/SJH-OBP-SOL-2026-000001', config: { baseURL: 'http://localhost:5000/api/municipal/v1', municipalRequest: true } });
     await expect(api.getRequestHistory('SJH-OBP-SOL-2026-000001')).rejects.toMatchObject({ status: 404, code: 'NOT_FOUND', message: 'No encontrado' });
   });
 });

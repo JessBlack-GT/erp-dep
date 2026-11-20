@@ -124,7 +124,7 @@ describe('F1-14 — vista con el servicio real en memoria', () => {
   test('cliente HTTP: ruta y parámetros del contrato', async () => {
     const client = { defaults: { baseURL: 'http://localhost:5000/api/v1' }, get: jest.fn(async () => ({ data: { success: true, data: [], pagination: { page: 1, limit: 10, total: 0, pages: 0 } } })) };
     const r = await createMunicipalApi({ client, platform: 'web' }).listAuditEvents({ folio: 'SJH-OBP-SOL-2026-000001', page: 1, limit: 10 });
-    expect(client.get).toHaveBeenCalledWith('/municipalities/SJH/audit-events', { baseURL: 'http://localhost:5000/api/municipal/v1', params: { folio: 'SJH-OBP-SOL-2026-000001', page: 1, limit: 10 } });
+    expect(client.get).toHaveBeenCalledWith('/municipalities/SJH/audit-events', { baseURL: 'http://localhost:5000/api/municipal/v1', municipalRequest: true, params: { folio: 'SJH-OBP-SOL-2026-000001', page: 1, limit: 10 } });
     expect(r).toEqual({ items: [], pagination: { page: 1, limit: 10, total: 0, pages: 0 } });
   });
 });

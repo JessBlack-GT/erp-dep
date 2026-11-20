@@ -9,6 +9,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { ApiProvider } from '../context/ApiContext';
+import { MunicipalAccessProvider } from '../features/municipal/MunicipalAccess';
 import { MainNavigator } from './navigation/MainNavigator';
 
 export const linking = {
@@ -35,6 +36,7 @@ export const linking = {
       UserForm: 'UserForm',
       Roles: 'Roles',
       Password: 'Password',
+      Municipal: 'municipal',
     },
   },
 };
@@ -45,7 +47,9 @@ export default function App() {
       <AuthProvider>
         <ApiProvider>
           <NavigationContainer linking={linking}>
-            <MainNavigator />
+            <MunicipalAccessProvider>
+              <MainNavigator />
+            </MunicipalAccessProvider>
           </NavigationContainer>
         </ApiProvider>
       </AuthProvider>

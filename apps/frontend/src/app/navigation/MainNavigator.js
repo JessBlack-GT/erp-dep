@@ -12,6 +12,7 @@ import { InventoryScreen, InventoryMovementForm, WarehouseForm } from '../../fea
 import { UsersScreen, UserForm, UserDetail, PasswordScreen } from '../../features/users';
 import { RolesScreen } from '../../features/roles';
 import { usePermissions } from '../../hooks/usePermissions';
+import { MunicipalScreen } from '../../features/municipal/MunicipalScreen';
 import { SalesScreen, SaleDetailScreen, SaleForm } from '../../features/sales';
 
 const Stack = createNativeStackNavigator();
@@ -34,6 +35,7 @@ function createShellScreen(ScreenComponent, activeRoute, title) {
 }
 
 // Shell-wrapped screen components
+const MunicipalWithShell = createShellScreen(MunicipalScreen, 'Municipal', 'MuniERP IA');
 const CustomersWithShell = createShellScreen(CustomersScreen, 'Customers', 'Clientes');
 const CustomerDetailWithShell = createShellScreen(
   CustomerDetailScreen,
@@ -157,6 +159,7 @@ export function MainNavigator() {
             <Stack.Screen name="UserForm" component={UserFormWithShell} />
           )}
           {can('roles.read') && <Stack.Screen name="Roles" component={RolesWithShell} />}
+          <Stack.Screen name="Municipal" component={MunicipalWithShell} options={{ title: 'MuniERP IA' }} />
           <Stack.Screen name="Password" component={PasswordWithShell} />
         </>
       )}

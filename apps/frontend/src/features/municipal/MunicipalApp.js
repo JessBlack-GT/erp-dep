@@ -14,7 +14,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, View, StyleSheet, useWindowDimensions } from 'react-native';
-import { Text, Button, LoadingSpinner } from '../../components/common';
+import { Text, Button, Input, LoadingSpinner } from '../../components/common';
 import { semanticColors, spacing } from '../../theme';
 import { IndicatorsPanel } from './components/IndicatorsPanel';
 import { RequestList } from './components/RequestList';
@@ -77,6 +77,26 @@ function Home({ api, membership, permissions, sections, dependencies = [], onNav
 function Intake({ api, permissions, dependencies, onOpen }) {
   const [citizens, setCitizens] = useState(null);
   const [receipt, setReceipt] = useState(null);
+  const [newCitizen, setNewCitizen] = useState(null);
+  const [savingCitizen, setSavingCitizen] = useState(false);
+  const [citizenError, setCitizenError] = useState('');
+  const mayCreateCitizen = permissions.has('municipal.citizens.create') && typeof api.createCitizen === 'function';
+
+  async function saveCitizen() {
+    setCitizenError('');
+    const fullName = newCitizen.trim();
+    if (fullName.length < 3) { setCitizenError('Introduzca el nombre completo.'); return; }
+    setSavingCitizen(true);
+    try {
+      const saved = await api.createCitizen({ fullName });
+      setCitizens((current) => [...current.filter((c) => c.id !== saved.id), saved]);
+      setNewCitizen(null);
+    } catch (e) {
+      setCitizenError(describeApiError(e).message);
+    } finally {
+      setSavingCitizen(false);
+    }
+  }
   const [formKey, setFormKey] = useState(0);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -102,6 +122,22 @@ function Intake({ api, permissions, dependencies, onOpen }) {
   return (
     <View testID="app-intake">
       {error ? <Text color="error" accessibilityRole="alert">{error}</Text> : null}
+      {mayCreateCitizen ? (
+        <Section title="Alta de ciudadano">
+          {newCitizen === null ? (
+            <Button variant="secondary" label="Registrar ciudadano" onPress={() => setNewCitizen('')} testID="intake-new-citizen" />
+          ) : (
+            <View>
+              <Input label="Nombre completo" maxLength={160} value={newCitizen} onChangeText={setNewCitizen} testID="intake-citizen-name" />
+              {citizenError ? <Text accessibilityRole="alert" color="error">{citizenError}</Text> : null}
+              <ButtonRow>
+                <Button label="Guardar ciudadano" loading={savingCitizen} onPress={saveCitizen} testID="intake-save-citizen" />
+                <Button variant="ghost" label="Cancelar alta" disabled={savingCitizen} onPress={() => setNewCitizen(null)} />
+              </ButtonRow>
+            </View>
+          )}
+        </Section>
+      ) : null}
       <RequestIntakeForm key={formKey} api={api} dependencies={dependencies} citizens={citizens} headingLevel={1} onCreated={async (created) => setReceipt(await api.getReceipt(created.folio))} />
     </View>
   );
@@ -129,7 +165,7 @@ function NavBar({ sections, current, onNavigate, vertical }) {
   );
 }
 
-export function MunicipalApp({ api, modeLabel, initialView = 'home', testID = 'municipal-app' }) {
+export function MunicipalApp({ api, modeLabel, initialView = 'home', membershipId, testID = 'municipal-app' }) {
   const { width } = useWindowDimensions();
   const wide = width >= 1024;
   const [boot, setBoot] = useState({ loading: true, error: '', memberships: [], dependencies: [] });
@@ -140,13 +176,14 @@ export function MunicipalApp({ api, modeLabel, initialView = 'home', testID = 'm
   const load = useCallback(async () => {
     setBoot((b) => ({ ...b, loading: true, error: '' }));
     try {
-      const memberships = await api.myMemberships();
+      const available = await api.myMemberships();
+      const memberships = membershipId ? available.filter((item) => item.id === membershipId) : available;
       const dependencies = memberships.length ? await api.listDependencies({}).catch(() => []) : [];
       setBoot({ loading: false, error: '', memberships, dependencies });
     } catch (e) {
       setBoot({ loading: false, error: describeApiError(e).message, memberships: [], dependencies: [] });
     }
-  }, [api]);
+  }, [api, membershipId]);
   useEffect(() => { load(); }, [load]);
   // Al cambiar de pantalla se vuelve al inicio del documento (web).
   useEffect(() => { if (Platform.OS === 'web' && typeof window !== 'undefined' && window.scrollTo) window.scrollTo(0, 0); }, [view, folio]);

@@ -30,7 +30,7 @@ export function RequestIntakeForm({ api, dependencies, citizens, onCreated, test
       const body = { type: 'SOL', ownerDependency: values.ownerDependency, citizenId: values.citizenId, channel: values.channel, subject: values.subject.trim() };
       if (values.description.trim()) body.description = values.description.trim();
       const res = await api.createRequest(body, idempotencyKey);
-      if (onCreated) onCreated(res.data);
+      if (onCreated) await onCreated(res.data);
     } catch (e) {
       setFailure('No se pudo registrar. Puede reintentar sin riesgo de duplicar el folio.');
     } finally {
