@@ -4,6 +4,8 @@ Este APK es una **actualización de pruebas para un teléfono autorizado**. Usa 
 
 El destino queda fijo en `https://yj-nexo-munierp-qa.onrender.com/api/v1`. Las tres claves de sesión de AsyncStorage tienen un prefijo independiente para que no se lean ni envíen tokens guardados por la versión normal. No incluye contraseñas ni la URI de Atlas. Conserva sin cambios los archivos de clave de tu equipo.
 
+La franja técnica que indica el entorno queda visible en la web de QA y no se muestra dentro del módulo en Android. El nombre del APK instalado sigue siendo **YJ Nexo QA** y la conexión permanece en el entorno de pruebas.
+
 ## Generar desde Windows
 
 Desde la raíz de `integration/munierp-android-qa` con dependencias instaladas y Android SDK disponible:
