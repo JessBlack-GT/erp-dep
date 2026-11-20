@@ -4,13 +4,15 @@
  * ============================================
  */
 
+import { API_TARGET } from './api-target';
+
 export const APP_NAME = 'ERP-SYSTEM';
 export const APP_VERSION = '1.0.0';
 export const API_BASE_URL = '/api/v1';
 export const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'accessToken',
-  REFRESH_TOKEN: 'refreshToken',
-  USER: 'user',
+  ACCESS_TOKEN: API_TARGET.sessionPrefix + 'accessToken',
+  REFRESH_TOKEN: API_TARGET.sessionPrefix + 'refreshToken',
+  USER: API_TARGET.sessionPrefix + 'user',
 };
 
 export const ROUTES = {

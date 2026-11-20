@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">YJ Nexo</string>
+    <string name="qa_app_name">YJ Nexo QA</string>
 </resources>

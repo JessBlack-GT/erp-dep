@@ -2,6 +2,22 @@ rootProject.ext.REACT_NATIVE_NODE_MODULES_DIR = file("../../../../node_modules/r
 apply plugin: "com.android.application"
 apply plugin: "com.facebook.react"
 
+def municipalQaRelease = System.getenv("YJ_NEXO_ATLAS_QA_ANDROID_RELEASE") == "1"
+def municipalQaVersion = System.getenv("YJ_NEXO_QA_VERSION_CODE")
+def municipalQaKeyPath = System.getenv("YJ_NEXO_QA_KEYSTORE")
+if (municipalQaRelease) {
+    if (!(municipalQaVersion ==~ /[1-9][0-9]{0,9}/) || municipalQaVersion.toLong() > 2100000000L) {
+        throw new GradleException("No se recibió un versionCode válido para el APK QA.")
+    }
+    if (!municipalQaKeyPath || !file(municipalQaKeyPath).isFile()) {
+        throw new GradleException("Falta el keystore original de YJ Nexo para firmar el APK QA.")
+    }
+}
+// Obligar a recompilar el JS al cambiar entre distribución normal y QA, incluso con caché de Gradle.
+tasks.matching { it.name == "createBundleReleaseJsAndAssets" }.configureEach {
+    inputs.property("yjNexoMunicipalApiTarget", municipalQaRelease ? "atlas-qa" : "normal")
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -82,8 +98,9 @@ android {
         applicationId "com.erpsystem"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode(municipalQaRelease ? municipalQaVersion.toInteger() : 1)
+        versionName(municipalQaRelease ? "1.0-qa.${municipalQaVersion}" : "1.0")
+        manifestPlaceholders = [yjNexoAppLabel: "@string/app_name"]
     }
     signingConfigs {
         debug {
@@ -91,6 +108,15 @@ android {
             storePassword 'android'
             keyAlias 'androiddebugkey'
             keyPassword 'android'
+        }
+        if (municipalQaRelease) {
+            // Reproduce únicamente la firma de la distribución QA anterior. No es firma de producción.
+            municipalQa {
+                storeFile file(municipalQaKeyPath)
+                storePassword 'android'
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+            }
         }
     }
     buildTypes {
@@ -100,7 +126,8 @@ android {
         release {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            signingConfig(municipalQaRelease ? signingConfigs.municipalQa : signingConfigs.debug)
+            if (municipalQaRelease) manifestPlaceholders = [yjNexoAppLabel: "@string/qa_app_name"]
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }

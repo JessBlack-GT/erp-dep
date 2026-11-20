@@ -22,6 +22,7 @@ async function main() {
       global: 'globalThis',
       __DEV__: String(!buildOnly),
       'process.env.NODE_ENV': JSON.stringify(buildOnly ? 'production' : 'development'),
+      'process.env.YJ_NEXO_BUNDLED_ANDROID_QA_URL': JSON.stringify(''),
       'process.env.YJ_NEXO_LOCAL_QA': JSON.stringify('0'),
       'process.env.PUBLIC_API_BASE_URL': JSON.stringify(apiBaseUrl),
       'process.env.EXPO_PUBLIC_API_BASE_URL': JSON.stringify(apiBaseUrl),

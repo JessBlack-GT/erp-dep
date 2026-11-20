@@ -1,14 +1,18 @@
 module.exports = function (api) {
-  const localQA = api.cache.using(() => process.env.YJ_NEXO_LOCAL_QA === '1');
+  const localQa = api.cache.using(() => process.env.YJ_NEXO_LOCAL_QA === '1');
+  const atlasRelease = api.cache.using(() => process.env.YJ_NEXO_ATLAS_QA_ANDROID_RELEASE === '1');
+  const qaBaseUrl = atlasRelease ? 'https://yj-nexo-munierp-qa.onrender.com/api/v1' : '';
   return {
     presets: ['module:metro-react-native-babel-preset'],
     plugins: [({ types: t }) => ({
       visitor: {
         MemberExpression(path, state) {
-          // Only replace our opt-in flag in the ERP API client, not in dependencies.
-          if (/[\\/]src[\\/]services[\\/]api\.js$/.test(state.filename || '') &&
-              path.matchesPattern('process.env.YJ_NEXO_LOCAL_QA')) {
-            path.replaceWith(t.stringLiteral(localQA ? '1' : '0'));
+          if (!/[\\/]src[\\/]constants[\\/]api-target\.js$/.test(state.filename || '')) return;
+          if (path.matchesPattern('process.env.YJ_NEXO_LOCAL_QA')) {
+            path.replaceWith(t.stringLiteral(localQa ? '1' : '0'));
+          }
+          if (path.matchesPattern('process.env.YJ_NEXO_BUNDLED_ANDROID_QA_URL')) {
+            path.replaceWith(t.stringLiteral(qaBaseUrl));
           }
         },
       },

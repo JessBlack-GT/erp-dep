@@ -8,16 +8,13 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sessionEvents } from './sessionEvents';
+import { STORAGE_KEYS } from '../constants';
+import { API_TARGET } from '../constants/api-target';
 
-const localMobileQA = typeof __DEV__ !== 'undefined' && __DEV__ && process.env.YJ_NEXO_LOCAL_QA === '1';
-const BASE_URL = localMobileQA
-  ? 'http://127.0.0.1:4314/api/v1'
-  : process.env.EXPO_PUBLIC_API_BASE_URL ||
-    process.env.PUBLIC_API_BASE_URL ||
-    'https://yj-nexo-api.onrender.com/api/v1';
+const sessionKeys = [STORAGE_KEYS.ACCESS_TOKEN, STORAGE_KEYS.REFRESH_TOKEN, STORAGE_KEYS.USER];
 
 const apiClient = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_TARGET.baseURL,
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
@@ -28,7 +25,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('accessToken');
+      const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -45,7 +42,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+      AsyncStorage.multiRemove(sessionKeys);
       sessionEvents.emit('invalid');
     }
     if (error.response?.status === 403 && !error.config?.municipalRequest) sessionEvents.emit('permissions');
@@ -157,7 +154,7 @@ export const reportService = {
       responseType: 'blob',
     }),
   getInventoryExportRequest: async (view, format, params) => {
-    const token = await AsyncStorage.getItem('accessToken');
+    const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     const config = {
       url: inventoryExportPath(view, format),
       params,
