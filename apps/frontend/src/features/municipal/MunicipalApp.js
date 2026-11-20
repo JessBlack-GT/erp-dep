@@ -14,6 +14,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, View, StyleSheet, useWindowDimensions } from 'react-native';
+import { webAccessibilityRole } from './accessibility';
 import { Text, Button, Input, LoadingSpinner } from '../../components/common';
 import { semanticColors, spacing } from '../../theme';
 import { IndicatorsPanel } from './components/IndicatorsPanel';
@@ -145,7 +146,7 @@ function Intake({ api, permissions, dependencies, onOpen }) {
 
 function NavBar({ sections, current, onNavigate, vertical }) {
   return (
-    <View accessibilityRole="navigation" accessibilityLabel="Secciones de MuniERP" style={[styles.nav, vertical && styles.navVertical]} testID="app-nav">
+    <View accessibilityRole={webAccessibilityRole('navigation')} accessibilityLabel="Secciones de MuniERP" style={[styles.nav, vertical && styles.navVertical]} testID="app-nav">
       {sections.map((s) => {
         const active = s.key === current;
         return (
@@ -245,7 +246,7 @@ export function MunicipalApp({ api, modeLabel, initialView = 'home', membershipI
           <NavBar sections={sections} current={folio ? 'requests' : current} onNavigate={navigate} vertical={wide} />
         </View>
         {/* El documento completo se desplaza (sin ScrollView interno): en celular la cabecera no ocupa la pantalla. */}
-        <View style={[styles.main, styles.mainContent]} testID="app-main" accessibilityRole="main">
+        <View style={[styles.main, styles.mainContent]} testID="app-main" accessibilityRole={webAccessibilityRole('main')}>
           {screen}
         </View>
       </View>

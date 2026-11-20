@@ -14,6 +14,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { webAccessibilityRole } from '../accessibility';
 import { Text, Badge, Button, Input, LoadingSpinner } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { OptionGroup } from './OptionGroup';
@@ -161,7 +162,7 @@ export function MembershipAdmin({ api, membership, dependencies = [], testID = '
                 const deps = (m.dependencies || []).map(depName).join(', ') || 'Todo el municipio';
                 const label = `${userLabel(m.userId)}, ${roleLabel(m.role)}, ${deps}, ${st.label}, ${m.effective ? 'vigente' : 'sin efecto'}`;
                 return (
-                  <View key={m.id} accessibilityRole="listitem" accessibilityLabel={label} style={styles.item} testID={`membership-${m.id}`}>
+                  <View key={m.id} accessibilityRole={webAccessibilityRole('listitem')} accessibilityLabel={label} style={styles.item} testID={`membership-${m.id}`}>
                     <View style={styles.itemHeader}>
                       <Text weight="bold">{`${userLabel(m.userId)} · ${roleLabel(m.role)}`}</Text>
                       <Badge label={st.label} variant={st.variant} />

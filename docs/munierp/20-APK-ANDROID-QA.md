@@ -20,6 +20,8 @@ El lanzador verifica la firma de ambos APK, el paquete, el nombre QA, el increme
 
 El identificador interno del componente es `ERPSystem` tanto en `MainActivity` como en el registro JS. No es la etiqueta pública de la app. La v2 tenía estos nombres desalineados y se debe sustituir mediante actualización, sin desinstalar. La prueba `municipal.android-launch.test.js` comprueba este contrato de arranque.
 
+Al cambiar de sección en MuniERP, Android no debe recibir los roles web `navigation`, `main`, `listitem` ni `group`: el setter nativo de React Native 0.72.17 lanza una excepción para esos valores. Se mantienen en la web, mientras que los botones, listas, encabezados y casillas conservan sus roles válidos en Android. `municipal.android-navigation.test.js` comprueba el árbol renderizado contra los roles que admite la versión nativa instalada. La comprobación en teléfono sigue siendo necesaria.
+
 ## Instalar y probar
 
 Transfiere únicamente el APK que el script confirma como verificado, por un enlace privado o un método de tu preferencia. En Android abre el APK y acepta **Actualizar**, sin desinstalar la app anterior. No se necesita USB, `adb`, Metro ni encender la PC para usar la API remota.
