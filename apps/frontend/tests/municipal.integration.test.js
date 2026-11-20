@@ -52,3 +52,15 @@ test('no conserva acceso de una sesión anterior aun si su consulta termina tard
   expect(myMemberships.mock.calls[0][0].signal.aborted).toBe(true);
   expect(view.getByTestId('access-summary')).toHaveTextContent('0');
 });
+
+test('identifica Atlas QA sin anunciar almacenamiento en memoria', async () => {
+  createMunicipalApi.mockImplementation(({ mun } = {}) => ({
+    mun, myMemberships: async () => [membership('SJH')],
+  }));
+  const auth = session('atlas-user', true);
+  auth.user.syntheticMunicipalPersistence = 'atlas-qa';
+  const view = render(wrap(auth, <MunicipalScreen />));
+  const label = await view.findByTestId('active-membership');
+  expect(label).toHaveTextContent('QA LOCAL · datos sintéticos guardados en Atlas');
+  expect(label).not.toHaveTextContent('en memoria');
+});

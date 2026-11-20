@@ -8,7 +8,7 @@ import { useMunicipalAccess } from './MunicipalAccess';
 import { createMunicipalApi } from './municipalApi';
 
 export function MunicipalScreen() {
-  const { memberships, loading, error, reload, synthetic } = useMunicipalAccess();
+  const { memberships, loading, error, reload, synthetic, atlasQa } = useMunicipalAccess();
   const [selected, setSelected] = useState(null);
   const focused = useIsFocused();
   const membership = memberships.find((item) => item.id === selected) || memberships[0];
@@ -46,7 +46,8 @@ export function MunicipalScreen() {
         key={membership.id}
         api={api}
         membershipId={membership.id}
-        modeLabel={synthetic ? 'DEMOSTRACIÓN LOCAL · HTTP real · datos sintéticos en memoria' : undefined}
+        modeLabel={atlasQa ? 'QA LOCAL · datos sintéticos guardados en Atlas' :
+          synthetic ? 'DEMOSTRACIÓN LOCAL · HTTP real · datos sintéticos en memoria' : undefined}
       />
     </View>
   );

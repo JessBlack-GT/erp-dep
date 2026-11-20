@@ -1,6 +1,11 @@
 'use strict';
 
-// Ejecutar solo como proceso dedicado de demostración. No importa server.js ni conecta a MongoDB.
+// Proceso local de QA: memoria por defecto, o Atlas QA con --mongo y guardias explícitas.
+const useMongo = process.argv.includes('--mongo');
+if (useMongo && process.env.NODE_ENV === 'production') {
+  console.error('El anfitrión de QA no se puede ejecutar en producción');
+  process.exit(1);
+}
 const { randomBytes } = require('node:crypto');
 const password = randomBytes(8).toString('hex');
 Object.assign(process.env, {
@@ -35,6 +40,7 @@ const profiles = [
   id, name, email: name + '@demo.test', role, sessionVersion: 0, roleActive: true,
   permissions: role === 'admin' ? [...rbac.ROLE_PERMISSIONS.admin] : ['customers.read'],
   syntheticMunicipalDemo: true,
+  ...(useMongo ? { syntheticMunicipalPersistence: 'atlas-qa' } : {}),
 }));
 const directory = new Map(profiles.map((user) => [user.id, user]));
 // La sustitución solo vive en este proceso de QA. Se conservan los middlewares centrales.
@@ -80,17 +86,45 @@ memberships.push({
   userId: fx.USERS.u_sup,
   id: fx.oid(399),
 });
-const store = createMemoryStore({
+const seed = {
   municipalities: fx.MUNICIPALITIES,
   dependencies: fx.buildDependencies(),
   citizens: fx.buildCitizens(),
   memberships,
-});
-const service = createMunicipalService({ store, storage: createMemoryStorage(), userLookup: erpUserLookup() });
-const municipalRouter = createMunicipalRouter({ service, store, identity: erpIdentityMiddlewares() });
-const app = createApp({ municipalRouter, qaRoutes });
-app.listen(4314, '127.0.0.1', () => {
-  console.log('MuniERP · HTTP local con datos sintéticos: http://127.0.0.1:4314/api/municipal/v1');
-  console.log('Perfiles: ' + profiles.map((p) => p.email).join(', '));
-  console.log('Clave temporal de demostración: ' + password);
+};
+
+async function main() {
+  const persistence = useMongo
+    ? await require('./municipal-atlas-qa.cjs').openAtlasQa({ env: process.env, seed })
+    : { store: createMemoryStore(seed), storage: createMemoryStorage(), close: async () => {} };
+  try {
+    const { store, storage } = persistence;
+    const service = createMunicipalService({ store, storage, userLookup: erpUserLookup() });
+    const municipalRouter = createMunicipalRouter({ service, store, identity: erpIdentityMiddlewares() });
+    const app = createApp({ municipalRouter, qaRoutes });
+    const server = await new Promise((resolve, reject) => {
+      const candidate = app.listen(4314, '127.0.0.1', () => resolve(candidate));
+      candidate.once('error', reject);
+    });
+    const stop = () => server.close(() => persistence.close().catch(() => { process.exitCode = 1; }));
+    process.once('SIGINT', stop);
+    process.once('SIGTERM', stop);
+    console.log(useMongo
+      ? 'MuniERP · QA con MongoDB en Atlas (munierp_qa) · HTTP local · solo datos sintéticos'
+      : 'MuniERP · HTTP local con datos sintéticos: http://127.0.0.1:4314/api/municipal/v1');
+    if (useMongo) console.log('Entradas nuevas del catálogo sintético: ' + persistence.inserted);
+    console.log('Perfiles: ' + profiles.map((p) => p.email).join(', '));
+    console.log('Clave temporal de demostración: ' + password);
+  } catch (error) {
+    await persistence.close().catch(() => {});
+    throw error;
+  }
+}
+
+main().catch((error) => {
+  // El controlador puede incluir detalles de la conexión; no imprimir el objeto ni el mensaje crudo.
+  const known = ['EADDRINUSE', 'EACCES'].includes(error.code) ? error.code : null;
+  const reason = error.qaSafe ? error.message : known || error.name || 'error no identificado';
+  console.error('No se pudo iniciar MuniERP QA: ' + reason);
+  process.exitCode = 1;
 });

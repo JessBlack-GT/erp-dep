@@ -9,6 +9,7 @@ export function MunicipalAccessProvider({ children }) {
   const { isAuthenticated, token, user } = useAuth();
   const session = isAuthenticated ? token : null;
   const synthetic = user?.syntheticMunicipalDemo === true;
+  const atlasQa = synthetic && user?.syntheticMunicipalPersistence === 'atlas-qa';
   const [attempt, setAttempt] = useState(0);
   const reload = useCallback(() => setAttempt((value) => value + 1), []);
   const [snapshot, setSnapshot] = useState(null);
@@ -31,7 +32,7 @@ export function MunicipalAccessProvider({ children }) {
   const result = !session ? empty : snapshot?.session === session && snapshot?.attempt === attempt
     ? snapshot : { ...empty, loading: true };
 
-  return <Context.Provider value={{ ...result, reload, synthetic }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ ...result, reload, synthetic, atlasQa }}>{children}</Context.Provider>;
 }
 
 export function useMunicipalAccess() {
