@@ -79,3 +79,5 @@ ios/
 *service-account*.json
 *.p12
 *.pfx
+
+/apps/frontend/android/app/debug.keystore

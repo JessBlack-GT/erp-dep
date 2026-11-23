@@ -1,21 +1,40 @@
+const fs = require('fs');
 const path = require('path');
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');
 
+const moduleLocations = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
+];
+
+const realModuleLocations = [
+  ...new Set(
+    moduleLocations
+      .filter((location) => fs.existsSync(location))
+      .map((location) => fs.realpathSync.native(location))
+  ),
+];
+
+const workspaceModules = fs.realpathSync.native(
+  path.resolve(workspaceRoot, 'node_modules')
+);
+
 const config = {
-  watchFolders: [workspaceRoot],
-  cacheVersion: `yj-nexo-${process.env.YJ_NEXO_ATLAS_QA_ANDROID_RELEASE === '1' ? 'atlas-qa' : 'standard'}-${process.env.YJ_NEXO_LOCAL_QA === '1' ? 'local-qa' : 'no-local-qa'}`,
+  watchFolders: [
+    ...new Set([workspaceRoot, ...realModuleLocations]),
+  ],
+
+  cacheVersion: 'munierp-standalone-real-modules-v1',
 
   resolver: {
-    nodeModulesPaths: [
-      path.resolve(projectRoot, 'node_modules'),
-      path.resolve(workspaceRoot, 'node_modules'),
-    ],
+    nodeModulesPaths: realModuleLocations,
+
     extraNodeModules: {
-      react: path.resolve(workspaceRoot, 'node_modules/react'),
-      'react-native': path.resolve(workspaceRoot, 'node_modules/react-native'),
+      react: path.join(workspaceModules, 'react'),
+      'react-native': path.join(workspaceModules, 'react-native'),
     },
   },
 };
