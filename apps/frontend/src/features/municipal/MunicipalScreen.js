@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Platform, View, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Button, LoadingSpinner, Text } from '../../components/common';
 import { spacing } from '../../theme';
@@ -27,13 +27,6 @@ export function MunicipalScreen() {
     <Text testID="municipal-access-denied">No hay una membresía municipal disponible para esta sesión.</Text>
   );
 
-  // La franja de diagnóstico queda en la web, fuera del flujo del usuario móvil.
-  const modeLabel = Platform.OS === 'web' ? (
-    hostedQa ? 'QA POR HTTPS · datos sintéticos guardados en Atlas' :
-      atlasQa ? 'QA LOCAL · datos sintéticos guardados en Atlas' :
-      synthetic ? 'DEMOSTRACIÓN LOCAL · HTTP real · datos sintéticos en memoria' : undefined
-  ) : undefined;
-
   return (
     <View style={styles.root}>
       {memberships.length > 1 && (
@@ -53,7 +46,6 @@ export function MunicipalScreen() {
         key={membership.id}
         api={api}
         membershipId={membership.id}
-        modeLabel={modeLabel}
       />
     </View>
   );

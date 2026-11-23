@@ -11,7 +11,8 @@ const apiBaseUrl =
 async function main() {
   const outdir = path.join(root, 'dist');
   fs.mkdirSync(outdir, { recursive: true });
-  fs.writeFileSync(path.join(outdir, 'index.html'), '<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="referrer" content="no-referrer"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ERP · Clientes</title><style>html,body,#root{height:100%;margin:0}#root{display:flex;flex-direction:column}</style></head><body><div id="root"></div><script src="/app.js"></script></body></html>');
+  fs.copyFileSync(path.join(root, 'assets', 'munierp-favicon.svg'), path.join(outdir, 'favicon.svg'));
+  fs.writeFileSync(path.join(outdir, 'index.html'), '<!doctype html><html lang="es"><head><meta charset="UTF-8"><meta name="referrer" content="no-referrer"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MuniERP IA · Gestión municipal</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><style>html,body,#root{height:100%;margin:0}#root{display:flex;flex-direction:column}</style></head><body><div id="root"></div><script src="/app.js"></script></body></html>');
   const options = {
     absWorkingDir: root, entryPoints: ['src/web.jsx'], bundle: true,
     outfile: path.join(outdir, 'app.js'), platform: 'browser',

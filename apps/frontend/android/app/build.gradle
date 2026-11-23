@@ -95,7 +95,7 @@ android {
 
     namespace "com.erpsystem"
     defaultConfig {
-        applicationId "com.erpsystem"
+        applicationId "com.munierp.ia.qa"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode(municipalQaRelease ? municipalQaVersion.toInteger() : 1)

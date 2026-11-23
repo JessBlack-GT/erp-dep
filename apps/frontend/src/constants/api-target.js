@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 /* eslint-env node, es2020 */
 export function getApiTarget({ dev, atlasQaUrl, localQa, configuredUrl }) {
   if (!dev && atlasQaUrl) {
@@ -13,8 +14,8 @@ export function getApiTarget({ dev, atlasQaUrl, localQa, configuredUrl }) {
 }
 
 export const API_TARGET = getApiTarget({
-  dev: typeof __DEV__ === 'undefined' || __DEV__,
-  atlasQaUrl: process.env.YJ_NEXO_BUNDLED_ANDROID_QA_URL,
-  localQa: process.env.YJ_NEXO_LOCAL_QA === '1',
-  configuredUrl: process.env.EXPO_PUBLIC_API_BASE_URL || process.env.PUBLIC_API_BASE_URL,
+  dev: false,
+  atlasQaUrl: Platform.OS === 'web' ? '/api/v1' : 'https://yj-nexo-munierp-qa.onrender.com/api/v1',
+  localQa: false,
+  configuredUrl: undefined,
 });

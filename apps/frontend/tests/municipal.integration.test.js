@@ -1,5 +1,5 @@
 import React from 'react';
-import { Platform, Text } from 'react-native';
+import { Text } from 'react-native';
 import { act, fireEvent, render } from '@testing-library/react-native';
 import { AuthContext } from '../src/context/AuthContext';
 import { MunicipalAccessProvider, useMunicipalAccess } from '../src/features/municipal/MunicipalAccess';
@@ -25,18 +25,15 @@ const wrap = (auth, children) => (
     <MunicipalAccessProvider>{children}</MunicipalAccessProvider>
   </AuthContext.Provider>
 );
-const initialPlatform = Platform.OS;
-afterEach(() => { Platform.OS = initialPlatform; });
 
 test('recalcula el municipio del cliente HTTP al cambiar de membresía', async () => {
-  Platform.OS = 'web';
   createMunicipalApi.mockImplementation(({ mun } = {}) => ({
     mun, myMemberships: async () => [membership('SJH'), membership('ZZZ')],
   }));
   const view = render(wrap(session('actor', true), <MunicipalScreen />));
-  expect(await view.findByTestId('active-membership')).toHaveTextContent('m-SJH / SJH / DEMOSTRACIÓN LOCAL');
+  expect(await view.findByTestId('active-membership')).toHaveTextContent('m-SJH / SJH');
   fireEvent.press(view.getByTestId('municipality-ZZZ'));
-  expect(view.getByTestId('active-membership')).toHaveTextContent('m-ZZZ / ZZZ / DEMOSTRACIÓN LOCAL');
+  expect(view.getByTestId('active-membership')).toHaveTextContent('m-ZZZ / ZZZ');
 });
 
 test('no conserva acceso de una sesión anterior aun si su consulta termina tarde', async () => {
@@ -57,7 +54,6 @@ test('no conserva acceso de una sesión anterior aun si su consulta termina tard
 });
 
 test('identifica Atlas QA sin anunciar almacenamiento en memoria', async () => {
-  Platform.OS = 'web';
   createMunicipalApi.mockImplementation(({ mun } = {}) => ({
     mun, myMemberships: async () => [membership('SJH')],
   }));
@@ -65,21 +61,6 @@ test('identifica Atlas QA sin anunciar almacenamiento en memoria', async () => {
   auth.user.syntheticMunicipalPersistence = 'atlas-qa';
   const view = render(wrap(auth, <MunicipalScreen />));
   const label = await view.findByTestId('active-membership');
-  expect(label).toHaveTextContent('QA LOCAL · datos sintéticos guardados en Atlas');
+  expect(label).not.toHaveTextContent(/QA LOCAL|datos sintéticos|Atlas/);
   expect(label).not.toHaveTextContent('en memoria');
-});
-
-test.each(['android', 'web'])('QA alojado en %s: el aviso es visible solo en la web', async (platform) => {
-  Platform.OS = platform;
-  createMunicipalApi.mockImplementation(({ mun } = {}) => ({
-    mun, myMemberships: async () => [membership('SJH')],
-  }));
-  const auth = session('atlas-hosted-user', true);
-  auth.user.syntheticMunicipalPersistence = 'atlas-qa';
-  auth.user.syntheticMunicipalHosted = true;
-  const view = render(wrap(auth, <MunicipalScreen />));
-  const screen = await view.findByTestId('active-membership');
-  expect(screen).toHaveTextContent('m-SJH / SJH');
-  if (platform === 'web') expect(screen).toHaveTextContent('QA POR HTTPS · datos sintéticos guardados en Atlas');
-  else expect(screen).not.toHaveTextContent(/QA POR HTTPS|datos sintéticos|Atlas/);
 });
