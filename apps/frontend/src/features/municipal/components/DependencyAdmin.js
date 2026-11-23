@@ -9,6 +9,7 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { webAccessibilityRole } from '../accessibility';
 import { Text, Badge, Button, Input, LoadingSpinner } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { OptionGroup } from './OptionGroup';
@@ -119,7 +120,7 @@ export function DependencyAdmin({ api, membership, testID = 'municipal-dependenc
               const st = ACTIVE_STATUS_LABELS[d.status] || { label: d.status, variant: 'neutral' };
               const isEditing = editing && editing.code === d.code;
               return (
-                <View key={d.code} accessibilityRole="listitem" accessibilityLabel={`${d.name}, código ${d.code.split('').join(' ')}, ${st.label}${d.parentCode ? `, depende de ${nameOf(d.parentCode)}` : ''}`} style={styles.item} testID={`dependency-${d.code}`}>
+                <View key={d.code} accessibilityRole={webAccessibilityRole('listitem')} accessibilityLabel={`${d.name}, código ${d.code.split('').join(' ')}, ${st.label}${d.parentCode ? `, depende de ${nameOf(d.parentCode)}` : ''}`} style={styles.item} testID={`dependency-${d.code}`}>
                   <View style={styles.itemHeader}>
                     <Text weight="bold">{`${d.name} (${d.code})`}</Text>
                     <Badge label={st.label} variant={st.variant} />

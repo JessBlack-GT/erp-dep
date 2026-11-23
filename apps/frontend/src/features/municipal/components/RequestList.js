@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { webAccessibilityRole } from '../accessibility';
 import { Text, Card, Badge } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { statusInfo, requestAccessibilityLabel, formatDate } from '../model';
@@ -36,7 +37,7 @@ export function RequestList({ items, onSelect, testID = 'municipal-request-list'
           testID={onSelect ? `request-${r.folio}` : undefined}
         >
           <View
-            accessibilityRole={onSelect ? undefined : 'listitem'}
+            accessibilityRole={onSelect ? undefined : webAccessibilityRole('listitem')}
             accessibilityLabel={onSelect ? undefined : requestAccessibilityLabel(r)}
             testID={onSelect ? undefined : `request-${r.folio}`}
           >

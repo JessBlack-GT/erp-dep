@@ -125,6 +125,7 @@ export async function createServiceBackedWorld({ save, demo = false } = {}) {
       createMembership: wrap('createMembership', async (body) => service.createMembership(await c(), mun, body, { ip: '127.0.0.1', requestId: 'qa-ui' })),
       updateMembership: wrap('updateMembership', async (id, body) => service.updateMembership(await c(), mun, id, body, { ip: '127.0.0.1', requestId: 'qa-ui' })),
       searchCitizens: wrap('searchCitizens', async () => (await service.searchCitizens(await c(), mun, {})).items),
+      createCitizen: wrap('createCitizen', async (body) => service.createCitizen(await c(), mun, body)),
       listMemberships: wrap('listMemberships', async (q = {}) => (await service.listMemberships(await c(), mun, q)).items),
       listRequests: wrap('listRequests', async (q = {}) => service.listRequests(await c(), mun, q)),
       getRequest: wrap('getRequest', async (folio) => ({ data: await service.getRequest(await c(), mun, folio, { ip: '127.0.0.1', requestId: 'qa-ui' }) })),

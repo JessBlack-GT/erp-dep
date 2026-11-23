@@ -4,6 +4,7 @@
  * prueba del Card CORREGIDO por Codex). No es un archivo de prueba por sí mismo.
  */
 import React from 'react';
+import { Platform } from 'react-native';
 import { render } from '@testing-library/react-native';
 import { RequestList } from '../src/features/municipal/components/RequestList';
 import { ReceiptView } from '../src/features/municipal/components/ReceiptView';
@@ -19,9 +20,18 @@ const receipt = {
 export function defineC18Cases(version) {
   describe(`C-18 — Card ${version}`, () => {
     test('fila de lista estática: la etiqueta del expediente se anuncia exactamente una vez', () => {
-      const view = render(<RequestList items={[row]} />);
-      expect(view.queryAllByLabelText(requestAccessibilityLabel(row))).toHaveLength(1);
-      expect(view.getByTestId(`request-${folio}`).props.accessibilityRole).toBe('listitem');
+      const originalPlatform = Platform.OS;
+      try {
+        for (const platform of ['web', 'android']) {
+          Platform.OS = platform;
+          const view = render(<RequestList items={[row]} />);
+          expect(view.queryAllByLabelText(requestAccessibilityLabel(row))).toHaveLength(1);
+          expect(view.getByTestId(`request-${folio}`).props.accessibilityRole).toBe(platform === 'web' ? 'listitem' : undefined);
+          view.unmount();
+        }
+      } finally {
+        Platform.OS = originalPlatform;
+      }
     });
 
     test('fila interactiva: una sola etiqueta, en el botón', () => {

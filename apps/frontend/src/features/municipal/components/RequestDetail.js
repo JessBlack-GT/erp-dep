@@ -10,6 +10,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { webAccessibilityRole } from '../accessibility';
 import { Text, Badge, Button, TextArea, LoadingSpinner } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { OptionGroup } from './OptionGroup';
@@ -192,7 +193,7 @@ export function RequestDetail({ api, folio, membership, dependencies = [], onBac
               {state.history ? (
                 <View accessibilityRole="list">
                   {state.history.map((h, i) => (
-                    <View key={`${h.at}-${i}`} accessibilityRole="listitem" accessibilityLabel={historyItemLabel(h)} style={styles.historyItem} testID={`history-${i}`}>
+                    <View key={`${h.at}-${i}`} accessibilityRole={webAccessibilityRole('listitem')} accessibilityLabel={historyItemLabel(h)} style={styles.historyItem} testID={`history-${i}`}>
                       <Text weight="bold">{HISTORY_LABELS[h.action] || h.action}</Text>
                       <Text variant="caption" color="secondary">{`${formatDateTime(h.at)} · ${actorLabel(h.actorId)}`}</Text>
                       <Text>{h.fromStatus && h.fromStatus !== h.toStatus ? `${statusInfo(h.fromStatus).label} → ${statusInfo(h.toStatus).label}` : statusInfo(h.toStatus).label}</Text>
@@ -215,12 +216,12 @@ export function RequestDetail({ api, folio, membership, dependencies = [], onBac
               {state.documents ? (
                 <View accessibilityRole="list">
                   {state.documents.map((d) => (d.restricted ? (
-                    <View key={d.id} accessibilityRole="listitem" style={styles.docItem} testID={`document-${d.id}`}>
+                    <View key={d.id} accessibilityRole={webAccessibilityRole('listitem')} style={styles.docItem} testID={`document-${d.id}`}>
                       <Text>{`Documento restringido (${CONFIDENTIALITY_LABELS[d.confidentiality] || d.confidentiality})`}</Text>
                       <Text variant="caption" color="secondary">Su alcance no permite ver ni descargar este documento.</Text>
                     </View>
                   ) : (
-                    <View key={d.id} accessibilityRole="listitem" style={styles.docItem} testID={`document-${d.id}`}>
+                    <View key={d.id} accessibilityRole={webAccessibilityRole('listitem')} style={styles.docItem} testID={`document-${d.id}`}>
                       <Text weight="bold">{d.filename}</Text>
                       <Text variant="caption" color="secondary">{`${d.mimeType} · ${Math.max(1, Math.round(d.size / 1024))} KB · ${CONFIDENTIALITY_LABELS[d.confidentiality] || d.confidentiality}`}</Text>
                       <Button variant="secondary" size="small" label="Descargar" accessibilityLabel={`Descargar ${d.filename}`} onPress={() => download(d)} testID={`download-${d.id}`} />

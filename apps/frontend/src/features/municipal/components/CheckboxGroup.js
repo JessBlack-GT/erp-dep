@@ -5,6 +5,7 @@
  */
 import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
+import { webAccessibilityRole } from '../accessibility';
 import { Text } from '../../../components/common';
 import { semanticColors, spacing, radius } from '../../../theme';
 
@@ -16,7 +17,7 @@ const isSpace = (e) => {
 export function CheckboxGroup({ label, options, values = [], onChange, error, testID, hint }) {
   const toggle = (v) => onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
   return (
-    <View style={styles.group} accessibilityRole="group" accessibilityLabel={label} testID={testID}>
+    <View style={styles.group} accessibilityRole={webAccessibilityRole('group')} accessibilityLabel={label} testID={testID}>
       <Text variant="label" weight="bold">{label}</Text>
       {hint ? <Text variant="caption" color="secondary">{hint}</Text> : null}
       <View style={styles.row}>

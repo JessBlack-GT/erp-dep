@@ -19,7 +19,7 @@ import { RequestIntakeForm } from './components/RequestIntakeForm';
 import { ReceiptView } from './components/ReceiptView';
 import { RequestDetail } from './components/RequestDetail';
 import { AuditLog } from './components/AuditLog';
-import { AUDIT_PERMISSION } from './model';
+import { AUDIT_PERMISSION, intakeDependencies, receiptOrConfirmation } from './model';
 
 export function MunicipalWorkspaceScreen({ api: injected }) {
   const api = useMemo(() => injected || createMockMunicipalApi(), [injected]);
@@ -56,7 +56,7 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
   useEffect(() => { load(); }, [load]);
 
   const onCreated = async (created) => {
-    setReceipt(await api.getReceipt(created.folio));
+    setReceipt(await receiptOrConfirmation(api, created));
     load();
   };
 
@@ -113,7 +113,7 @@ export function MunicipalWorkspaceScreen({ api: injected }) {
           {receipt ? (
             <ReceiptView receipt={receipt} onDone={() => { setReceipt(null); setFormKey((k) => k + 1); }} />
           ) : canCreate ? (
-            <RequestIntakeForm key={formKey} api={api} dependencies={state.dependencies} citizens={state.citizens} onCreated={onCreated} />
+            <RequestIntakeForm key={formKey} api={api} dependencies={intakeDependencies(state.dependencies, state.memberships[0])} citizens={state.citizens} onCreated={onCreated} />
           ) : (
             <Text testID="municipal-intake-unavailable">Su rol no registra solicitudes.</Text>
           )}

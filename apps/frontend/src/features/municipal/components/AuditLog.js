@@ -12,6 +12,7 @@
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
+import { webAccessibilityRole } from '../accessibility';
 import { Text, Badge, Button, Input, LoadingSpinner } from '../../../components/common';
 import { spacing } from '../../../theme';
 import { OptionGroup } from './OptionGroup';
@@ -129,7 +130,7 @@ export function AuditLog({ api, membership, dependencies = [], onBack, testID = 
                     const result = AUDIT_RESULT_LABELS[e.result] || { label: e.result, variant: 'neutral' };
                     const dep = dependencyFromFolio(e.folio, dependencies);
                     return (
-                      <View key={`${e.at}-${i}`} accessibilityRole="listitem" accessibilityLabel={auditEventAccessibilityLabel(e, dependencies)} style={styles.item} testID={`audit-event-${i}`}>
+                      <View key={`${e.at}-${i}`} accessibilityRole={webAccessibilityRole('listitem')} accessibilityLabel={auditEventAccessibilityLabel(e, dependencies)} style={styles.item} testID={`audit-event-${i}`}>
                         <View style={styles.itemHeader}>
                           <Text weight="bold">{auditActionLabel(e.action)}</Text>
                           <Badge label={result.label} variant={result.variant} />

@@ -31,9 +31,9 @@ test('recalcula el municipio del cliente HTTP al cambiar de membresía', async (
     mun, myMemberships: async () => [membership('SJH'), membership('ZZZ')],
   }));
   const view = render(wrap(session('actor', true), <MunicipalScreen />));
-  expect(await view.findByTestId('active-membership')).toHaveTextContent('m-SJH / SJH / DEMOSTRACIÓN LOCAL');
+  expect(await view.findByTestId('active-membership')).toHaveTextContent('m-SJH / SJH');
   fireEvent.press(view.getByTestId('municipality-ZZZ'));
-  expect(view.getByTestId('active-membership')).toHaveTextContent('m-ZZZ / ZZZ / DEMOSTRACIÓN LOCAL');
+  expect(view.getByTestId('active-membership')).toHaveTextContent('m-ZZZ / ZZZ');
 });
 
 test('no conserva acceso de una sesión anterior aun si su consulta termina tarde', async () => {
@@ -61,6 +61,6 @@ test('identifica Atlas QA sin anunciar almacenamiento en memoria', async () => {
   auth.user.syntheticMunicipalPersistence = 'atlas-qa';
   const view = render(wrap(auth, <MunicipalScreen />));
   const label = await view.findByTestId('active-membership');
-  expect(label).toHaveTextContent('QA LOCAL · datos sintéticos guardados en Atlas');
+  expect(label).not.toHaveTextContent(/QA LOCAL|datos sintéticos|Atlas/);
   expect(label).not.toHaveTextContent('en memoria');
 });

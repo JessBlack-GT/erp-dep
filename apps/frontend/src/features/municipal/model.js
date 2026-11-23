@@ -74,6 +74,35 @@ export function indicatorColumns(width) {
   return 1;
 }
 
+/** Opciones orientativas del formulario. El servidor vuelve a comprobar el alcance al registrar. */
+export function intakeDependencies(dependencies, membership) {
+  const scoped = ['TITULAR_DEPENDENCIA', 'OPERADOR_DEPENDENCIA'].includes(membership?.role);
+  const allowed = new Set(membership?.dependencies || []);
+  return dependencies.filter((d) => d.status !== 'INACTIVA' && (!scoped || allowed.has(d.code)));
+}
+
+/** Un folio confirmado por el POST no se pierde si falla la consulta posterior del acuse. */
+export async function receiptOrConfirmation(api, created) {
+  try {
+    const receipt = await api.getReceipt(created.folio);
+    if (receipt?.folio === created.folio) return receipt;
+  } catch {
+    // El resultado de la lectura no cambia el resultado de la escritura.
+  }
+  return { folio: created.folio, confirmationOnly: true };
+}
+
+export function describeIntakeFailure(error) {
+  const status = error?.status ?? error?.response?.status;
+  if (status === 400) return { message: error.message || 'Revise los datos de la solicitud.' };
+  if (status === 401) return { message: 'Su sesión expiró. Inicie sesión nuevamente.' };
+  if (status === 403) return { message: 'No tiene permiso para registrar en esa dependencia.' };
+  if (status === 404) return { message: 'No se encontró el recurso para registrar. Revise el municipio y los datos.' };
+  if (status === 429) return { message: 'Demasiados intentos. Espere un momento antes de reintentar.', retry: true };
+  if (status === 409) return { message: 'Hubo un conflicto al registrar. Reintente con los mismos datos.', retry: true };
+  return { message: 'No se pudo confirmar el registro. Puede reintentar sin cambiar los datos y sin duplicar el folio.', retry: true };
+}
+
 export function formatDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
