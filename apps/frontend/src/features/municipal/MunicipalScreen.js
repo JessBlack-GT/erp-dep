@@ -46,9 +46,6 @@ export function MunicipalScreen() {
         key={membership.id}
         api={api}
         membershipId={membership.id}
-        modeLabel={hostedQa ? 'QA POR HTTPS · datos sintéticos guardados en Atlas' :
-          atlasQa ? 'QA LOCAL · datos sintéticos guardados en Atlas' :
-          synthetic ? 'DEMOSTRACIÓN LOCAL · HTTP real · datos sintéticos en memoria' : undefined}
       />
     </View>
   );
